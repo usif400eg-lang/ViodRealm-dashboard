@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "servers": {
+      "$serverId": {
+        // Only the specified admin account may read/write dashboard data.
+        // The plugin's service account bypasses these rules entirely (full admin),
+        // so it can always write waypoints/stats/players.
+        ".read": "auth != null && auth.token.email == 'usif400.eg@gmail.com'",
+
+        "waypoints": { ".write": false },
+        "stats": { ".write": false },
+        "players": { ".write": false },
+
+        "commands": {
+          ".read": "auth != null && auth.token.email == 'usif400.eg@gmail.com'",
+          ".write": "auth != null && auth.token.email == 'usif400.eg@gmail.com'"
+        }
+      }
+    }
+  }
+}

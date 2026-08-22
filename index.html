@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViodRealms TPU — لوحة التحكم</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Animated background -->
+    <div class="bg-orbs">
+        <span class="orb orb-1"></span>
+        <span class="orb orb-2"></span>
+        <span class="orb orb-3"></span>
+    </div>
+
+    <!-- Login screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-box">
+            <div class="brand">
+                <div class="brand-logo">VR</div>
+                <h1>ViodRealms <span>TPU</span></h1>
+                <p class="subtitle">لوحة التحكم الإدارية</p>
+            </div>
+
+            <button id="google-login-btn" class="btn-google">
+                <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
+                </svg>
+                <span>الدخول عبر Google</span>
+            </button>
+
+            <p id="login-error" class="error-msg"></p>
+            <p class="login-hint">مخصّص لحسابات الإدارة المصرّح لها فقط</p>
+        </div>
+        <footer class="login-footer">ViodRealms &copy; 2026</footer>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard hidden">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo small">VR</div>
+                <span>ViodRealms</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#overview" class="nav-item active" data-target="overview">
+                    <span class="nav-icon">▦</span> نظرة عامة
+                </a>
+                <a href="#players" class="nav-item" data-target="players">
+                    <span class="nav-icon">◉</span> اللاعبون
+                </a>
+                <a href="#waypoints" class="nav-item" data-target="waypoints">
+                    <span class="nav-icon">✦</span> النقاط
+                </a>
+                <a href="#control" class="nav-item" data-target="control">
+                    <span class="nav-icon">⚙</span> التحكم
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <img id="user-avatar" class="user-avatar" alt="" referrerpolicy="no-referrer">
+                    <div class="user-info">
+                        <span id="user-name" class="user-name"></span>
+                        <span id="user-email" class="user-email"></span>
+                    </div>
+                </div>
+                <button id="logout-btn" class="btn-logout">تسجيل الخروج</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <div>
+                    <h2 id="page-title">نظرة عامة</h2>
+                    <p class="breadcrumb">لوحة تحكم ViodRealms TPU</p>
+                </div>
+                <div class="header-status">
+                    <span id="connection-status" class="status-badge offline">
+                        <span class="status-dot"></span> غير متصل
+                    </span>
+                    <span id="last-sync" class="last-sync"></span>
+                </div>
+            </header>
+
+            <!-- Overview section -->
+            <section id="section-overview" class="content-section active">
+                <div class="stats-grid">
+                    <div class="stat-card accent-blue">
+                        <div class="stat-icon">✦</div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="stat-total">-</div>
+                            <div class="stat-label">إجمالي النقاط</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">🌐</div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="stat-public">-</div>
+                            <div class="stat-label">النقاط العامة</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent-purple">
+                        <div class="stat-icon">◉</div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="stat-players">-</div>
+                            <div class="stat-label">اللاعبون المعروفون</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="stat-online">-</div>
+                            <div class="stat-label">المتصلون الآن</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent-teal">
+                        <div class="stat-icon">⏻</div>
+                        <div class="stat-body">
+                            <div class="stat-value" id="stat-system">-</div>
+                            <div class="stat-label">حالة النظام</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Players section -->
+            <section id="section-players" class="content-section">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>اللاعبون المتصلون</h3>
+                        <span id="players-count" class="pill">0</span>
+                    </div>
+                    <div id="players-list" class="players-list">
+                        <p class="empty-msg">لا يوجد لاعبون متصلون</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Waypoints section -->
+            <section id="section-waypoints" class="content-section">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>النقاط (Waypoints)</h3>
+                        <input type="text" id="waypoint-search" class="search-input" placeholder="بحث بالاسم أو المالك...">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الاسم</th>
+                                    <th>المالك</th>
+                                    <th>العالم</th>
+                                    <th>الإحداثيات</th>
+                                    <th>الفئة</th>
+                                    <th>عام</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="waypoints-body">
+                                <tr><td colspan="8" class="empty-msg">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Control section -->
+            <section id="section-control" class="content-section">
+                <div class="control-grid">
+                    <div class="panel">
+                        <div class="panel-head"><h3>بث رسالة</h3></div>
+                        <p class="panel-desc">أرسل رسالة لكل اللاعبين في السيرفر.</p>
+                        <div class="control-row">
+                            <input type="text" id="broadcast-input" placeholder="اكتب رسالتك...">
+                            <button id="broadcast-btn" class="btn-primary">بث</button>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head"><h3>حالة النظام</h3></div>
+                        <p class="panel-desc">تفعيل أو تعطيل نظام الـ Waypoints بالكامل.</p>
+                        <div class="control-row">
+                            <button id="system-on-btn" class="btn-success">تفعيل</button>
+                            <button id="system-off-btn" class="btn-danger">تعطيل</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="toast" class="toast hidden"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

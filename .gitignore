@@ -1,0 +1,9 @@
+# Never commit the plugin's Firebase service account key
+*firebase-adminsdk*.json
+firebase-service-account.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
