@@ -10,6 +10,10 @@
         "waypoints": { ".write": false },
         "stats": { ".write": false },
         "players": { ".write": false },
+        "knownPlayers": { ".write": false },
+        "bans": { ".write": false },
+        "whitelist": { ".write": false },
+        "ranks": { ".write": false },
 
         "commands": {
           ".read": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).val() == true)",
