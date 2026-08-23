@@ -637,7 +637,69 @@ button:active { transform: translateY(1px); }
     padding: 30px;
 }
 
-/* Toast */
+/* Pending / not-authorized screen */
+.pending-logo {
+    background: linear-gradient(135deg, var(--warning), var(--orange));
+    box-shadow: 0 8px 24px rgba(255, 176, 32, 0.4);
+}
+
+.pending-msg {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.9;
+    margin: 8px 0 24px;
+}
+
+.pending-msg strong { color: var(--accent); }
+
+/* Admin management */
+.admins-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    gap: 12px;
+}
+
+.admin-chip.owner {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(76, 141, 255, 0.12), rgba(124, 92, 255, 0.08));
+}
+
+.admin-email {
+    font-weight: 600;
+    font-size: 14px;
+    word-break: break-all;
+}
+
+.admin-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.remove-admin-btn {
+    background: rgba(255, 80, 100, 0.15);
+    color: var(--danger);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
 .toast {
     position: fixed;
     bottom: 28px;

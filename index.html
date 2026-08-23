@@ -37,7 +37,24 @@
             </button>
 
             <p id="login-error" class="error-msg"></p>
-            <p class="login-hint">مخصّص لحسابات الإدارة المصرّح لها فقط</p>
+            <p class="login-hint">سجّل الدخول بحساب Google الخاص بك</p>
+        </div>
+        <footer class="login-footer">ViodRealms &copy; 2026</footer>
+    </div>
+
+    <!-- Pending / not-authorized screen (shown to signed-in users who are not admins) -->
+    <div id="pending-screen" class="login-screen hidden">
+        <div class="login-box">
+            <div class="brand">
+                <div class="brand-logo pending-logo">⏳</div>
+                <h1>بانتظار الموافقة</h1>
+                <p class="subtitle">حسابك سجّل الدخول بنجاح</p>
+            </div>
+            <p class="pending-msg">
+                حسابك <strong id="pending-email"></strong> غير مصرّح له بعد.<br>
+                تواصل مع مالك السيرفر ليمنحك صلاحية الدخول.
+            </p>
+            <button id="pending-logout-btn" class="btn-logout">تسجيل الخروج</button>
         </div>
         <footer class="login-footer">ViodRealms &copy; 2026</footer>
     </div>
@@ -61,6 +78,9 @@
                 </a>
                 <a href="#control" class="nav-item" data-target="control">
                     <span class="nav-icon">⚙</span> التحكم
+                </a>
+                <a href="#admins" class="nav-item owner-only" data-target="admins" id="nav-admins">
+                    <span class="nav-icon">👑</span> إدارة الأدمن
                 </a>
             </nav>
             <div class="sidebar-footer">
@@ -193,6 +213,27 @@
                     </div>
                 </div>
                 <div id="toast" class="toast hidden"></div>
+            </section>
+
+            <!-- Admin management section (owner only) -->
+            <section id="section-admins" class="content-section">
+                <div class="panel">
+                    <div class="panel-head"><h3>إضافة أدمن جديد</h3></div>
+                    <p class="panel-desc">امنح صلاحية الدخول للوحة التحكم لأي حساب Google بإدخال بريده.</p>
+                    <div class="control-row">
+                        <input type="email" id="new-admin-email" placeholder="example@gmail.com">
+                        <button id="add-admin-btn" class="btn-primary">إضافة</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>الأدمنز الحاليون</h3>
+                        <span id="admins-count" class="pill">0</span>
+                    </div>
+                    <div id="admins-list" class="admins-list">
+                        <p class="empty-msg">جاري التحميل...</p>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
