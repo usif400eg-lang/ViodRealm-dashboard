@@ -540,14 +540,12 @@ function attachAdminManagement() {
     if (!isValidEmail(email)) { setAdminHint("أدخل بريداً صالحاً.", "error"); return; }
     if (email === OWNER_EMAIL.toLowerCase()) { setAdminHint("هذا الحساب هو المالك.", "error"); return; }
     addBtn.disabled = true;
-    const key = emailKey(email);
-    adminsRef.child(key).get().then((s) => {
-      if (s.exists() && s.val() === true) { setAdminHint("هذا البريد أدمن بالفعل.", "error"); addBtn.disabled = false; return; }
-      adminsRef.child(key).set(true)
-        .then(() => { input.value = ""; setAdminHint("تمت إضافة " + email + " كأدمن.", "success"); showToast("تمت إضافة الأدمن", "success"); })
-        .catch(() => setAdminHint("فشل إضافة الأدمن.", "error"))
-        .finally(() => { addBtn.disabled = false; });
-    }).catch(() => { setAdminHint("فشل الاتصال.", "error"); addBtn.disabled = false; });
+    setAdminHint("جاري الإضافة...", "");
+    // Write directly (no pre-check) to minimise round-trips that can be blocked.
+    adminsRef.child(emailKey(email)).set(true)
+      .then(() => { input.value = ""; setAdminHint("تمت إضافة " + email + " كأدمن.", "success"); showToast("تمت إضافة الأدمن", "success"); })
+      .catch((err) => { setAdminHint("فشل: " + (err && err.code ? err.code : err && err.message ? err.message : "غير معروف"), "error"); })
+      .finally(() => { addBtn.disabled = false; });
   };
   addBtn.onclick = submit;
   input.onkeydown = (e) => { if (e.key === "Enter") submit(); };
@@ -559,13 +557,11 @@ function attachAdminManagement() {
     const id = idInput.value.trim();
     if (id.length < 10) { setIdHint("أدخل معرّفاً صالحاً.", "error"); return; }
     addIdBtn.disabled = true;
-    adminsRef.child(id).get().then((s) => {
-      if (s.exists()) { setIdHint("هذا المعرّف مضاف بالفعل.", "error"); addIdBtn.disabled = false; return; }
-      adminsRef.child(id).set({ authorized: true, addedBy: auth.currentUser.email, addedAt: Date.now() })
-        .then(() => { idInput.value = ""; setIdHint("تمت إضافة المعرّف بنجاح.", "success"); showToast("تمت إضافة المعرّف", "success"); })
-        .catch(() => setIdHint("فشل الإضافة.", "error"))
-        .finally(() => { addIdBtn.disabled = false; });
-    }).catch(() => { setIdHint("فشل الاتصال.", "error"); addIdBtn.disabled = false; });
+    setIdHint("جاري الإضافة...", "");
+    adminsRef.child(id).set({ authorized: true, addedBy: auth.currentUser.email, addedAt: Date.now() })
+      .then(() => { idInput.value = ""; setIdHint("تمت إضافة المعرّف بنجاح.", "success"); showToast("تمت إضافة المعرّف", "success"); })
+      .catch((err) => { setIdHint("فشل: " + (err && err.code ? err.code : err && err.message ? err.message : "غير معروف"), "error"); })
+      .finally(() => { addIdBtn.disabled = false; });
   };
   if (addIdBtn) {
     addIdBtn.onclick = submitId;
