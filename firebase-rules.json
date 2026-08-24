@@ -14,6 +14,9 @@
         "bans": { ".write": false },
         "whitelist": { ".write": false },
         "ranks": { ".write": false },
+        "activity": { ".write": false },
+        "history": { ".write": false },
+        "categoryStats": { ".write": false },
 
         "commands": {
           ".read": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).val() == true)",
