@@ -369,6 +369,43 @@ canvas { max-width: 100%; }
 .myid-code { flex: 1; min-width: 200px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 15px; font-family: monospace; font-size: 13px; color: var(--brand-2); word-break: break-all; }
 .admin-type { display: block; font-size: 11px; color: var(--text-3); margin-top: 1px; }
 
+/* Inventory / inspect */
+.modal-box.wide { max-width: 560px; }
+.inspect-vitals { display: flex; gap: 20px; flex-wrap: wrap; margin: 14px 0; }
+.vital { display: flex; flex-direction: column; gap: 4px; }
+.vital-label { color: var(--text-3); font-size: 12px; }
+.vital-num { font-size: 20px; font-weight: 800; color: var(--brand); }
+.hearts, .hunger { display: flex; gap: 1px; font-size: 15px; }
+.heart.full { color: #ff4d5e; } .heart.half { color: #ff9aa5; } .heart.empty { color: #3a3f52; }
+.drumstick.full { color: #c98a3a; } .drumstick.half { color: #e0be8e; } .drumstick.empty { color: #3a3f52; filter: grayscale(1); }
+.inspect-meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-2); font-size: 13px; margin-bottom: 14px; }
+.inv-section { margin-top: 14px; }
+.inv-label { color: var(--text-3); font-size: 12px; margin-bottom: 8px; }
+.inv-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
+.inv-row { display: flex; gap: 5px; }
+.inv-slot { aspect-ratio: 1; background: #2a2f42; border: 1px solid var(--line); border-radius: 6px; position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; }
+.inv-slot img { width: 76%; height: 76%; object-fit: contain; image-rendering: pixelated; }
+.inv-count { position: absolute; bottom: 1px; left: 3px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 #000; }
+
+/* Plugins */
+.plugins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.plugin-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.plugin-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.plugin-name { font-weight: 800; font-size: 15px; }
+.plugin-ver { color: var(--brand-2); font-size: 13px; font-family: monospace; }
+.plugin-auth { color: var(--text-3); font-size: 12px; margin-top: 4px; }
+.plugin-desc { color: var(--text-2); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+
+/* Modrinth */
+.modrinth-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-top: 16px; }
+.modrinth-card { display: flex; gap: 12px; align-items: center; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.mr-icon { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: var(--surface-3); }
+.mr-body { flex: 1; overflow: hidden; }
+.mr-title { font-weight: 800; font-size: 14px; }
+.mr-desc { color: var(--text-2); font-size: 12px; margin: 2px 0; }
+.mr-meta { color: var(--text-3); font-size: 11px; }
+.mr-install { padding: 8px 14px; font-size: 13px; white-space: nowrap; }
+
 /* Player action modal */
 .pm-tabs { display: flex; gap: 6px; margin: 16px 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; }
 .pm-tab { flex: 1; background: transparent; color: var(--text-2); border: none; padding: 8px; border-radius: 7px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }

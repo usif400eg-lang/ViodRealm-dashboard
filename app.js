@@ -87,6 +87,11 @@ function showDashboard(user) {
   const navAdmins = document.getElementById("nav-admins");
   if (currentUserIsOwner) { navAdmins.style.display = ""; attachAdminManagement(); }
   else { navAdmins.style.display = "none"; }
+  // Owner-only elements (e.g. plugin install panel).
+  document.querySelectorAll(".owner-only").forEach((el) => {
+    if (el.id === "nav-admins") return;
+    el.style.display = currentUserIsOwner ? "" : "none";
+  });
 }
 
 function translateAuthError(code) {
@@ -104,6 +109,7 @@ const PAGE_INFO = {
   overview: ["نظرة عامة", "لوحة تحكم السيرفر"],
   players: ["إدارة اللاعبين", "عرض وإدارة اللاعبين والرتب"],
   waypoints: ["النقاط", "إدارة نقاط اللاعبين"],
+  plugins: ["البلجنات", "البلجنات المثبّتة وتثبيت جديد"],
   moderation: ["الحظر والقوائم", "الحظر، القائمة البيضاء والسوداء"],
   server: ["تحكم السيرفر", "الوقت، الطقس، الحفظ، console"],
   charts: ["الإحصائيات", "رسوم بيانية حية"],
@@ -179,6 +185,17 @@ function attachListeners() {
   serverRef.child("categoryStats").on("value", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); });
   serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); });
   serverRef.child("activity").limitToLast(100).on("value", (snap) => renderActivity(snap.val() || {}));
+
+  // Installed plugins list.
+  serverRef.child("plugins").on("value", (snap) => renderPlugins(toArray(snap.val())));
+  // Plugin install status feedback.
+  serverRef.child("pluginInstall").on("value", (snap) => {
+    const r = snap.val();
+    const el = document.getElementById("plugin-install-status");
+    if (!el || !r) return;
+    el.textContent = r.message || "";
+    el.className = "admin-add-hint " + (r.status === "success" ? "success" : r.status === "error" ? "error" : "");
+  });
 }
 
 function formatUptime(ms) {
@@ -286,27 +303,133 @@ document.querySelectorAll(".rank-opt").forEach((opt) => opt.addEventListener("cl
 // ---- Player action modal (msg / tp / gamemode) ----
 const playerModal = document.getElementById("player-modal");
 let pmTarget = null;
-function openPlayerModal(name) { pmTarget = name; document.getElementById("pm-target").textContent = name; playerModal.classList.remove("hidden"); }
-document.getElementById("pm-cancel").addEventListener("click", () => playerModal.classList.add("hidden"));
-playerModal.addEventListener("click", (e) => { if (e.target === playerModal) playerModal.classList.add("hidden"); });
+let inspectRef = null;
+function openPlayerModal(name) {
+  pmTarget = name;
+  document.getElementById("pm-target").textContent = name;
+  playerModal.classList.remove("hidden");
+  // Default to inspect tab and request fresh data.
+  switchPmTab("inspect");
+  requestInspect(name);
+}
+document.getElementById("pm-cancel").addEventListener("click", closePlayerModal);
+playerModal.addEventListener("click", (e) => { if (e.target === playerModal) closePlayerModal(); });
+function closePlayerModal() {
+  playerModal.classList.add("hidden");
+  if (inspectRef) { inspectRef.off(); inspectRef = null; }
+}
+function switchPmTab(pm) {
+  document.querySelectorAll(".pm-tab").forEach((t) => t.classList.toggle("active", t.dataset.pm === pm));
+  document.querySelectorAll(".pm-panel").forEach((p) => p.classList.toggle("active", p.dataset.pmPanel === pm));
+}
 document.querySelectorAll(".pm-tab").forEach((tab) => tab.addEventListener("click", () => {
-  document.querySelectorAll(".pm-tab").forEach((t) => t.classList.remove("active"));
-  tab.classList.add("active");
-  document.querySelectorAll(".pm-panel").forEach((p) => p.classList.remove("active"));
-  document.querySelector(`[data-pm-panel="${tab.dataset.pm}"]`).classList.add("active");
+  switchPmTab(tab.dataset.pm);
+  if (tab.dataset.pm === "inspect") requestInspect(pmTarget);
 }));
+
+// ---- Player inspection (inventory / health / hunger) ----
+function requestInspect(name) {
+  if (!name) return;
+  document.getElementById("inspect-loading").classList.remove("hidden");
+  document.getElementById("inspect-content").classList.add("hidden");
+  // Ask the plugin to publish a fresh snapshot.
+  sendCommand("inspect_player", name);
+  // Listen for the snapshot.
+  if (inspectRef) inspectRef.off();
+  const key = name.replace(/[.#$/\[\]]/g, "_");
+  inspectRef = serverRef.child("inspect").child(key);
+  inspectRef.on("value", (snap) => {
+    const d = snap.val();
+    if (d && d.t && Date.now() - d.t < 60000) renderInspect(d);
+  });
+}
+
+function renderInspect(d) {
+  document.getElementById("inspect-loading").classList.add("hidden");
+  document.getElementById("inspect-content").classList.remove("hidden");
+  if (d.online === false) {
+    document.getElementById("inspect-loading").classList.remove("hidden");
+    document.getElementById("inspect-loading").textContent = "اللاعب غير متصل حالياً.";
+    document.getElementById("inspect-content").classList.add("hidden");
+    return;
+  }
+  // Hearts (each heart = 2 HP, max shown = maxHealth/2).
+  const health = d.health || 0, maxHealth = d.maxHealth || 20;
+  const hearts = document.getElementById("insp-health");
+  hearts.innerHTML = "";
+  const totalHearts = Math.ceil(maxHealth / 2);
+  for (let i = 0; i < totalHearts; i++) {
+    const filled = (i + 1) * 2 <= health;
+    const half = !filled && (i * 2 + 1) === health;
+    hearts.innerHTML += `<span class="heart ${filled ? "full" : half ? "half" : "empty"}">❤</span>`;
+  }
+  // Hunger (each = 2 points, max 20 = 10 icons).
+  const food = d.food || 0;
+  const hunger = document.getElementById("insp-food");
+  hunger.innerHTML = "";
+  for (let i = 0; i < 10; i++) {
+    const filled = (i + 1) * 2 <= food;
+    const half = !filled && (i * 2 + 1) === food;
+    hunger.innerHTML += `<span class="drumstick ${filled ? "full" : half ? "half" : "empty"}">🍗</span>`;
+  }
+  document.getElementById("insp-level").textContent = d.level || 0;
+  document.getElementById("insp-meta").innerHTML =
+    `<span>🎮 ${escapeHtml(d.gamemode||"-")}</span><span>🌍 ${escapeHtml(d.world||"-")}</span><span>📍 ${d.x}, ${d.y}, ${d.z}</span>`;
+
+  renderInvRow("inv-armor", buildArmorRow(d));
+  renderInvGrid("inv-main", toArray(d.main));
+}
+
+function buildArmorRow(d) {
+  // Armor order from Bukkit: [boots, leggings, chestplate, helmet]. Show helmet first.
+  const armor = toArray(d.armor);
+  const ordered = [armor[3], armor[2], armor[1], armor[0]];
+  ordered.push(d.offhand || { type: "AIR" });
+  return ordered.map((x) => x || { type: "AIR" });
+}
+
+function renderInvRow(id, items) {
+  const c = document.getElementById(id);
+  c.innerHTML = "";
+  items.forEach((it) => c.appendChild(buildSlot(it)));
+}
+function renderInvGrid(id, items) {
+  const c = document.getElementById(id);
+  c.innerHTML = "";
+  // Ensure 36 slots.
+  for (let i = 0; i < 36; i++) c.appendChild(buildSlot(items[i] || { type: "AIR" }));
+}
+function buildSlot(item) {
+  const slot = document.createElement("div");
+  slot.className = "inv-slot";
+  if (item && item.type && item.type !== "AIR") {
+    const url = itemTextureUrl(item.type);
+    const nameAttr = item.name ? item.name.replace(/§./g, "") : item.type;
+    slot.innerHTML = `<img src="${url}" alt="" loading="lazy" onerror="this.style.opacity=0.3;this.src='${fallbackTexture()}'" title="${escapeHtml(nameAttr)}">` +
+      (item.amount > 1 ? `<span class="inv-count">${item.amount}</span>` : "");
+    slot.title = nameAttr;
+  }
+  return slot;
+}
+// Real Minecraft item textures via a public CDN keyed by lowercase item id.
+function itemTextureUrl(type) {
+  return "https://raw.githubusercontent.com/Owen1212055/mc-assets/master/item/" + type.toLowerCase() + ".png";
+}
+function fallbackTexture() {
+  return "https://raw.githubusercontent.com/Owen1212055/mc-assets/master/item/barrier.png";
+}
 document.getElementById("pm-msg-send").addEventListener("click", () => {
   const m = document.getElementById("pm-msg-input").value.trim();
   if (!m) return;
   sendCommand("msg", pmTarget + ":" + m);
   document.getElementById("pm-msg-input").value = "";
-  showToast("تم إرسال الرسالة", "success"); playerModal.classList.add("hidden");
+  showToast("تم إرسال الرسالة", "success"); closePlayerModal();
 });
 document.getElementById("pm-tp-player-btn").addEventListener("click", () => {
   const t = document.getElementById("pm-tp-player").value.trim();
   if (!t) return;
   sendCommand("tp_player", pmTarget + ":" + t);
-  showToast(`نقل ${pmTarget} إلى ${t}`, "success"); playerModal.classList.add("hidden");
+  showToast(`نقل ${pmTarget} إلى ${t}`, "success"); closePlayerModal();
 });
 document.getElementById("pm-tp-coords-btn").addEventListener("click", () => {
   const w = document.getElementById("pm-tp-world").value.trim();
@@ -315,11 +438,11 @@ document.getElementById("pm-tp-coords-btn").addEventListener("click", () => {
   const z = document.getElementById("pm-tp-z").value.trim();
   if (!w || !x || !y || !z) { showToast("أدخل كل الإحداثيات", "error"); return; }
   sendCommand("tp_coords", `${pmTarget}:${w}:${x}:${y}:${z}`);
-  showToast("تم إرسال النقل", "success"); playerModal.classList.add("hidden");
+  showToast("تم إرسال النقل", "success"); closePlayerModal();
 });
 document.querySelectorAll(".gm-opt").forEach((opt) => opt.addEventListener("click", () => {
   sendCommand("gamemode", pmTarget + ":" + opt.dataset.gm);
-  showToast(`وضع ${pmTarget}: ${opt.dataset.gm}`, "success"); playerModal.classList.add("hidden");
+  showToast(`وضع ${pmTarget}: ${opt.dataset.gm}`, "success"); closePlayerModal();
 }));
 
 // ---- Waypoints ----
@@ -515,9 +638,99 @@ function updateCategoryChart() {
   });
 }
 
+// ---- Plugins & Modrinth ----
+function renderPlugins(plugins) {
+  const c = document.getElementById("plugins-list");
+  document.getElementById("plugins-count").textContent = plugins.length;
+  if (!plugins.length) { c.innerHTML = '<p class="empty-msg">لا توجد بيانات — اضغط تحديث</p>'; return; }
+  c.innerHTML = "";
+  plugins.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "plugin-card";
+    card.innerHTML = `
+      <div class="plugin-head">
+        <span class="plugin-name">${escapeHtml(p.name)}</span>
+        <span class="badge ${p.enabled ? "on" : "off"}">${p.enabled ? "مفعّل" : "معطّل"}</span>
+      </div>
+      <div class="plugin-ver">v${escapeHtml(p.version || "?")}</div>
+      ${p.authors ? `<div class="plugin-auth">${escapeHtml(p.authors)}</div>` : ""}
+      ${p.description ? `<div class="plugin-desc">${escapeHtml(p.description)}</div>` : ""}`;
+    c.appendChild(card);
+  });
+}
+
+document.getElementById("refresh-plugins-btn").addEventListener("click", () => {
+  sendCommand("refresh_plugins", "");
+  showToast("جاري تحديث قائمة البلجنات...", "success");
+});
+
+// Modrinth search (public API, no key needed). Owner-only install.
+document.getElementById("modrinth-search-btn").addEventListener("click", searchModrinth);
+document.getElementById("modrinth-search").addEventListener("keydown", (e) => { if (e.key === "Enter") searchModrinth(); });
+
+function searchModrinth() {
+  const q = document.getElementById("modrinth-search").value.trim();
+  if (!q) return;
+  const results = document.getElementById("modrinth-results");
+  results.innerHTML = '<p class="empty-msg">جاري البحث...</p>';
+  // facets restrict results to Bukkit/Paper/Spigot plugins.
+  const facets = encodeURIComponent('[["project_type:plugin"]]');
+  fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(q)}&facets=${facets}&limit=12`)
+    .then((r) => r.json())
+    .then((data) => renderModrinth(data.hits || []))
+    .catch(() => { results.innerHTML = '<p class="empty-msg">فشل البحث. تأكد من الاتصال.</p>'; });
+}
+
+function renderModrinth(hits) {
+  const results = document.getElementById("modrinth-results");
+  if (!hits.length) { results.innerHTML = '<p class="empty-msg">لا توجد نتائج</p>'; return; }
+  results.innerHTML = "";
+  hits.forEach((h) => {
+    const card = document.createElement("div");
+    card.className = "modrinth-card";
+    card.innerHTML = `
+      <img class="mr-icon" src="${h.icon_url || fallbackTexture()}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div class="mr-body">
+        <div class="mr-title">${escapeHtml(h.title)}</div>
+        <div class="mr-desc">${escapeHtml((h.description||"").slice(0, 90))}</div>
+        <div class="mr-meta">⬇ ${formatNum(h.downloads)} · ${escapeHtml((h.categories||[]).slice(0,2).join(", "))}</div>
+      </div>
+      <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}">تثبيت</button>`;
+    results.appendChild(card);
+  });
+  results.querySelectorAll(".mr-install").forEach((btn) => btn.addEventListener("click", () => installModrinth(btn.dataset.slug, btn.dataset.title)));
+}
+
+function installModrinth(slug, title) {
+  if (!confirm(`تثبيت "${title}"؟ سيتطلب إعادة تشغيل السيرفر بعد التحميل.`)) return;
+  const status = document.getElementById("plugin-install-status");
+  status.textContent = "جاري جلب ملف التحميل...";
+  status.className = "admin-add-hint";
+  // Get the latest version's primary file URL.
+  fetch(`https://api.modrinth.com/v2/project/${slug}/version`)
+    .then((r) => r.json())
+    .then((versions) => {
+      if (!versions.length) { status.textContent = "لا توجد إصدارات متاحة."; status.className = "admin-add-hint error"; return; }
+      // Prefer a paper/spigot/bukkit compatible version; else take the first.
+      let ver = versions.find((v) => (v.loaders||[]).some((l) => ["paper","spigot","bukkit","purpur"].includes(l))) || versions[0];
+      const file = (ver.files || []).find((f) => f.primary) || (ver.files || [])[0];
+      if (!file) { status.textContent = "لا يوجد ملف قابل للتحميل."; status.className = "admin-add-hint error"; return; }
+      sendCommand("download_plugin", file.url + "|" + file.filename);
+      status.textContent = "تم إرسال أمر التثبيت. تابع الحالة بالأسفل.";
+      status.className = "admin-add-hint success";
+    })
+    .catch(() => { status.textContent = "فشل جلب بيانات الإصدار."; status.className = "admin-add-hint error"; });
+}
+
+function formatNum(n) {
+  if (n == null) return "0";
+  if (n >= 1e6) return (n/1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n/1e3).toFixed(1) + "K";
+  return String(n);
+}
+
 // ---- Command sender ----
-function sendCommand(type, value) {
-  serverRef.child("commands").push({ type, value, issuedBy: auth.currentUser ? auth.currentUser.email : "unknown", timestamp: Date.now() })
+function sendCommand(type, value) {  serverRef.child("commands").push({ type, value, issuedBy: auth.currentUser ? auth.currentUser.email : "unknown", timestamp: Date.now() })
     .catch(() => showToast("فشل إرسال الأمر", "error"));
 }
 

@@ -81,6 +81,9 @@
                 <a href="#waypoints" class="nav-item" data-target="waypoints">
                     <img class="nav-icon-img" src="image/waypoints.png" alt="" onerror="this.style.display='none'"><span class="nav-text">النقاط</span>
                 </a>
+                <a href="#plugins" class="nav-item" data-target="plugins">
+                    <img class="nav-icon-img" src="image/control.png" alt="" onerror="this.style.display='none'"><span class="nav-text">البلجنات</span>
+                </a>
                 <a href="#moderation" class="nav-item" data-target="moderation">
                     <img class="nav-icon-img" src="image/moderation.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الحظر والقوائم</span>
                 </a>
@@ -253,10 +256,34 @@
                 </div>
             </section>
 
+            <!-- Plugins -->
+            <section id="section-plugins" class="section">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>البلجنات المثبّتة</h3>
+                        <div class="head-tools">
+                            <span id="plugins-count" class="pill">0</span>
+                            <button id="refresh-plugins-btn" class="btn-ghost">تحديث</button>
+                        </div>
+                    </div>
+                    <div id="plugins-list" class="plugins-grid"><p class="empty-msg">جاري التحميل...</p></div>
+                </div>
+
+                <div class="panel owner-only" id="plugin-install-panel">
+                    <div class="panel-head"><span class="ctrl-icon i-purple">⬇</span><h3>تثبيت بلجن من Modrinth</h3></div>
+                    <p class="panel-desc">ابحث في Modrinth وثبّت بلجن مباشرة. متاح للمالك فقط. يتطلب إعادة تشغيل السيرفر بعد التثبيت.</p>
+                    <div class="control-row">
+                        <input type="text" id="modrinth-search" placeholder="ابحث عن بلجن... (مثال: EssentialsX)">
+                        <button id="modrinth-search-btn" class="btn-primary">بحث</button>
+                    </div>
+                    <div id="modrinth-results" class="modrinth-grid"></div>
+                    <p id="plugin-install-status" class="admin-add-hint"></p>
+                </div>
+            </section>
+
             <!-- Moderation: bans / whitelist / blacklist -->
             <section id="section-moderation" class="section">
-                <div class="mod-grid">
-                    <div class="panel">
+                <div class="mod-grid">                    <div class="panel">
                         <div class="panel-head"><h3>حظر لاعب</h3></div>
                         <p class="panel-desc">احظر لاعباً بالاسم أو الـ UUID.</p>
                         <div class="control-row">
@@ -418,15 +445,34 @@
     </div>
 
     <!-- Player action modal -->
-    <div id="player-modal" class="modal hidden">
-        <div class="modal-box">
+    <div id="player-modal" class="modal hidden">        <div class="modal-box wide">
             <h3>إجراءات <span id="pm-target"></span></h3>
             <div class="pm-tabs">
-                <button class="pm-tab active" data-pm="msg">رسالة</button>
+                <button class="pm-tab active" data-pm="inspect">فحص</button>
+                <button class="pm-tab" data-pm="msg">رسالة</button>
                 <button class="pm-tab" data-pm="tp">نقل</button>
                 <button class="pm-tab" data-pm="gm">وضع اللعب</button>
             </div>
-            <div class="pm-panel active" data-pm-panel="msg">
+            <div class="pm-panel active" data-pm-panel="inspect">
+                <div id="inspect-loading" class="panel-desc">جاري جلب بيانات اللاعب...</div>
+                <div id="inspect-content" class="hidden">
+                    <div class="inspect-vitals">
+                        <div class="vital"><span class="vital-label">الصحة</span><div id="insp-health" class="hearts"></div></div>
+                        <div class="vital"><span class="vital-label">الجوع</span><div id="insp-food" class="hunger"></div></div>
+                        <div class="vital"><span class="vital-label">المستوى</span><span id="insp-level" class="vital-num">0</span></div>
+                    </div>
+                    <div class="inspect-meta" id="insp-meta"></div>
+                    <div class="inv-section">
+                        <div class="inv-label">الدرع + اليد الثانية</div>
+                        <div id="inv-armor" class="inv-row"></div>
+                    </div>
+                    <div class="inv-section">
+                        <div class="inv-label">الحقيبة</div>
+                        <div id="inv-main" class="inv-grid"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="pm-panel" data-pm-panel="msg">
                 <p class="panel-desc">أرسل رسالة خاصة للاعب.</p>
                 <input type="text" id="pm-msg-input" placeholder="اكتب الرسالة...">
                 <button id="pm-msg-send" class="btn-primary full mt-8">إرسال</button>
