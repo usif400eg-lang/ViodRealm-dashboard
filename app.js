@@ -131,6 +131,7 @@ document.querySelectorAll(".nav-item").forEach((item) => {
     document.getElementById("page-sub").textContent = info[1];
     document.getElementById("sidebar").classList.remove("open");
     if (target === "charts") renderCharts();
+    if (target === "plugins") ensureModrinthDefault();
   });
 });
 document.getElementById("menu-toggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
@@ -665,41 +666,87 @@ document.getElementById("refresh-plugins-btn").addEventListener("click", () => {
 });
 
 // Modrinth search (public API, no key needed). Owner-only install.
-document.getElementById("modrinth-search-btn").addEventListener("click", searchModrinth);
-document.getElementById("modrinth-search").addEventListener("keydown", (e) => { if (e.key === "Enter") searchModrinth(); });
+let mrOffset = 0;
+let mrLimit = 20;
+let mrLastQuery = "";
+let mrTotal = 0;
+
+document.getElementById("modrinth-search-btn").addEventListener("click", () => { mrOffset = 0; searchModrinth(); });
+document.getElementById("modrinth-search").addEventListener("keydown", (e) => { if (e.key === "Enter") { mrOffset = 0; searchModrinth(); } });
+document.getElementById("modrinth-sort").addEventListener("change", () => { mrOffset = 0; searchModrinth(); });
+document.getElementById("mr-prev").addEventListener("click", () => { if (mrOffset >= mrLimit) { mrOffset -= mrLimit; searchModrinth(); } });
+document.getElementById("mr-next").addEventListener("click", () => { if (mrOffset + mrLimit < mrTotal) { mrOffset += mrLimit; searchModrinth(); } });
+
+// Show popular plugins immediately when the plugins page is opened for the owner.
+let modrinthLoadedOnce = false;
+function ensureModrinthDefault() {
+  if (modrinthLoadedOnce || !currentUserIsOwner) return;
+  modrinthLoadedOnce = true;
+  mrOffset = 0;
+  document.getElementById("modrinth-sort").value = "downloads";
+  searchModrinth();
+}
 
 function searchModrinth() {
   const q = document.getElementById("modrinth-search").value.trim();
-  if (!q) return;
+  mrLastQuery = q;
+  const sort = document.getElementById("modrinth-sort").value;
   const results = document.getElementById("modrinth-results");
-  results.innerHTML = '<p class="empty-msg">جاري البحث...</p>';
-  // facets restrict results to Bukkit/Paper/Spigot plugins.
+  results.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
   const facets = encodeURIComponent('[["project_type:plugin"]]');
-  fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(q)}&facets=${facets}&limit=12`)
+  const url = `https://api.modrinth.com/v2/search?query=${encodeURIComponent(q)}&facets=${facets}&index=${sort}&offset=${mrOffset}&limit=${mrLimit}`;
+  fetch(url)
     .then((r) => r.json())
-    .then((data) => renderModrinth(data.hits || []))
+    .then((data) => { mrTotal = data.total_hits || 0; renderModrinth(data.hits || []); })
     .catch(() => { results.innerHTML = '<p class="empty-msg">فشل البحث. تأكد من الاتصال.</p>'; });
 }
 
+const LOADER_COLORS = { bukkit: "#e8663f", spigot: "#f0a01a", paper: "#e64b6b", purpur: "#8b6cf0", folia: "#3fbf6f", bungeecord: "#d0a020", velocity: "#40a0d0", waterfall: "#5090c0" };
+
 function renderModrinth(hits) {
   const results = document.getElementById("modrinth-results");
-  if (!hits.length) { results.innerHTML = '<p class="empty-msg">لا توجد نتائج</p>'; return; }
+  const info = document.getElementById("modrinth-info");
+  const pager = document.getElementById("modrinth-pager");
+  if (!hits.length) { results.innerHTML = '<p class="empty-msg">لا توجد نتائج</p>'; info.textContent = ""; pager.classList.add("hidden"); return; }
+
+  info.textContent = `${formatNum(mrTotal)} نتيجة`;
   results.innerHTML = "";
   hits.forEach((h) => {
-    const card = document.createElement("div");
-    card.className = "modrinth-card";
-    card.innerHTML = `
-      <img class="mr-icon" src="${h.icon_url || fallbackTexture()}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-      <div class="mr-body">
-        <div class="mr-title">${escapeHtml(h.title)}</div>
-        <div class="mr-desc">${escapeHtml((h.description||"").slice(0, 90))}</div>
-        <div class="mr-meta">⬇ ${formatNum(h.downloads)} · ${escapeHtml((h.categories||[]).slice(0,2).join(", "))}</div>
+    const cats = (h.display_categories || h.categories || []);
+    const loaders = cats.filter((c) => LOADER_COLORS[c.toLowerCase()]);
+    const tags = cats.filter((c) => !LOADER_COLORS[c.toLowerCase()]).slice(0, 3);
+    const loaderTags = loaders.map((l) => `<span class="mr-loader" style="color:${LOADER_COLORS[l.toLowerCase()]};border-color:${LOADER_COLORS[l.toLowerCase()]}44">${escapeHtml(cap(l))}</span>`).join("");
+    const catTags = tags.map((t) => `<span class="mr-tag">${escapeHtml(cap(t))}</span>`).join("");
+    const extra = cats.length - tags.length - loaders.length;
+
+    const row = document.createElement("div");
+    row.className = "mr-row";
+    row.innerHTML = `
+      <img class="mr-row-icon" src="${h.icon_url || fallbackTexture()}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div class="mr-row-main">
+        <div class="mr-row-title"><span class="mr-name">${escapeHtml(h.title)}</span> <span class="mr-by">by ${escapeHtml(h.author||"")}</span></div>
+        <div class="mr-row-desc">${escapeHtml((h.description||""))}</div>
+        <div class="mr-row-tags">${catTags}${loaderTags}${extra>0?`<span class="mr-tag more">+${extra}</span>`:""}</div>
       </div>
-      <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}">تثبيت</button>`;
-    results.appendChild(card);
+      <div class="mr-row-side">
+        <div class="mr-stat">⬇ ${formatNum(h.downloads)}</div>
+        <div class="mr-stat heart">♥ ${formatNum(h.follows)}</div>
+        <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}">تثبيت</button>
+      </div>`;
+    results.appendChild(row);
   });
   results.querySelectorAll(".mr-install").forEach((btn) => btn.addEventListener("click", () => installModrinth(btn.dataset.slug, btn.dataset.title)));
+
+  // Pager
+  const totalPages = Math.max(1, Math.ceil(mrTotal / mrLimit));
+  const currentPage = Math.floor(mrOffset / mrLimit) + 1;
+  document.getElementById("mr-page-label").textContent = currentPage + " / " + totalPages;
+  document.getElementById("mr-prev").disabled = currentPage <= 1;
+  document.getElementById("mr-next").disabled = currentPage >= totalPages;
+  pager.classList.remove("hidden");
 }
+
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
 function installModrinth(slug, title) {
   if (!confirm(`تثبيت "${title}"؟ سيتطلب إعادة تشغيل السيرفر بعد التحميل.`)) return;

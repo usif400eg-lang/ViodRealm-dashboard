@@ -270,13 +270,32 @@
                 </div>
 
                 <div class="panel owner-only" id="plugin-install-panel">
-                    <div class="panel-head"><span class="ctrl-icon i-purple">⬇</span><h3>تثبيت بلجن من Modrinth</h3></div>
-                    <p class="panel-desc">ابحث في Modrinth وثبّت بلجن مباشرة. متاح للمالك فقط. يتطلب إعادة تشغيل السيرفر بعد التثبيت.</p>
-                    <div class="control-row">
-                        <input type="text" id="modrinth-search" placeholder="ابحث عن بلجن... (مثال: EssentialsX)">
+                    <div class="panel-head"><span class="ctrl-icon i-purple">⬇</span><h3>تصفّح وتثبيت من Modrinth</h3></div>
+                    <p class="panel-desc">ابحث في آلاف البلجنات وثبّتها مباشرة. متاح للمالك فقط، ويتطلب إعادة تشغيل السيرفر بعد التثبيت.</p>
+                    <div class="mr-searchbar">
+                        <span class="mr-search-icon">🔍</span>
+                        <input type="text" id="modrinth-search" placeholder="ابحث عن بلجن...">
                         <button id="modrinth-search-btn" class="btn-primary">بحث</button>
                     </div>
-                    <div id="modrinth-results" class="modrinth-grid"></div>
+                    <div class="mr-toolbar">
+                        <div class="mr-sort">
+                            <label>ترتيب:</label>
+                            <select id="modrinth-sort">
+                                <option value="relevance">الأكثر صلة</option>
+                                <option value="downloads">الأكثر تحميلاً</option>
+                                <option value="follows">الأكثر متابعة</option>
+                                <option value="newest">الأحدث</option>
+                                <option value="updated">آخر تحديث</option>
+                            </select>
+                        </div>
+                        <div id="modrinth-info" class="mr-info"></div>
+                    </div>
+                    <div id="modrinth-results" class="modrinth-list"></div>
+                    <div id="modrinth-pager" class="mr-pager hidden">
+                        <button id="mr-prev" class="btn-ghost">السابق</button>
+                        <span id="mr-page-label" class="mr-page-label">1</span>
+                        <button id="mr-next" class="btn-ghost">التالي</button>
+                    </div>
                     <p id="plugin-install-status" class="admin-add-hint"></p>
                 </div>
             </section>
