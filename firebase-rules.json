@@ -1,11 +1,11 @@
 {
   "rules": {
-    "//": "Access model: the OWNER always has full access and manages the admins list.",
-    "//2": "Other users are authorized only if their encoded email exists under /admins.",
+    "//": "Access model: OWNER always has full access and manages the admins list.",
+    "//2": "Others are authorized if their encoded email OR their auth uid exists under /admins.",
 
     "servers": {
       "$serverId": {
-        ".read": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).val() == true)",
+        ".read": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).exists() || root.child('admins').child(auth.uid).exists())",
 
         "waypoints": { ".write": false },
         "stats": { ".write": false },
@@ -17,10 +17,11 @@
         "activity": { ".write": false },
         "history": { ".write": false },
         "categoryStats": { ".write": false },
+        "worlds": { ".write": false },
 
         "commands": {
-          ".read": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).val() == true)",
-          ".write": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).val() == true)"
+          ".read": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).exists() || root.child('admins').child(auth.uid).exists())",
+          ".write": "auth != null && (auth.token.email == 'usif400.eg@gmail.com' || root.child('admins').child(auth.token.email.replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).exists() || root.child('admins').child(auth.uid).exists())"
         }
       }
     },
@@ -30,8 +31,8 @@
       ".read": "auth != null && auth.token.email == 'usif400.eg@gmail.com'",
       ".write": "auth != null && auth.token.email == 'usif400.eg@gmail.com'",
 
-      "$emailKey": {
-        "//": "Each user may read their own admin flag so the dashboard can check authorization.",
+      "$key": {
+        "//": "Each user may read their own entry (by email key or uid) to check authorization.",
         ".read": "auth != null"
       }
     }

@@ -36,21 +36,35 @@ document.getElementById("google-login-btn").addEventListener("click", () => {
 });
 document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
 document.getElementById("pending-logout-btn").addEventListener("click", () => auth.signOut());
+const pendingCopyBtn = document.getElementById("pending-copy-btn");
+if (pendingCopyBtn) pendingCopyBtn.addEventListener("click", () => {
+  const id = document.getElementById("pending-id").textContent;
+  navigator.clipboard.writeText(id).then(() => showToast("تم نسخ المعرّف", "success")).catch(() => showToast("فشل النسخ", "error"));
+});
 
 auth.onAuthStateChanged(async (user) => {
   if (!user) { showScreen("login"); return; }
   const email = (user.email || "").toLowerCase();
+  const uid = user.uid;
   currentUserIsOwner = email === OWNER_EMAIL.toLowerCase();
   let authorized = currentUserIsOwner;
   if (!authorized) {
-    try { const s = await adminsRef.child(emailKey(email)).get(); authorized = s.exists() && s.val() === true; }
-    catch (e) { authorized = false; }
+    try {
+      // Authorized if the email OR the uid is registered under /admins.
+      const byEmail = await adminsRef.child(emailKey(email)).get();
+      const byId = await adminsRef.child(uid).get();
+      authorized = (byEmail.exists() && byEmail.val() === true) || (byId.exists() && byId.val() === true) ||
+                   (byId.exists() && byId.val() && byId.val().authorized === true);
+    } catch (e) { authorized = false; }
   }
   if (authorized) {
     showDashboard(user);
     if (!listenersAttached) { attachListeners(); listenersAttached = true; }
   } else {
     document.getElementById("pending-email").textContent = user.email;
+    // Show the user's ID on the pending screen too, so they can share it.
+    const pid = document.getElementById("pending-id");
+    if (pid) pid.textContent = uid;
     showScreen("pending");
   }
 });
@@ -67,6 +81,9 @@ function showDashboard(user) {
   document.getElementById("user-email").textContent = user.email;
   const avatar = document.getElementById("user-avatar");
   if (user.photoURL) avatar.src = user.photoURL; else avatar.style.display = "none";
+  // Show the signed-in user's own ID (uid) in the admin section.
+  const myId = document.getElementById("my-admin-id");
+  if (myId) myId.textContent = user.uid;
   const navAdmins = document.getElementById("nav-admins");
   if (currentUserIsOwner) { navAdmins.style.display = ""; attachAdminManagement(); }
   else { navAdmins.style.display = "none"; }
@@ -143,7 +160,16 @@ function attachListeners() {
     setText("stat-online", s.onlinePlayers ?? "-");
     setText("stat-system", s.systemEnabled === undefined ? "-" : (s.systemEnabled ? "مفعّل" : "معطّل"));
     if (s.lastSync) document.getElementById("last-sync").textContent = "آخر تحديث: " + new Date(s.lastSync).toLocaleTimeString("ar-EG");
+    // Server health mini-stats
+    setText("ov-tps", s.tps != null ? s.tps : "-");
+    setText("ov-uptime", s.uptimeMs != null ? formatUptime(s.uptimeMs) : "-");
+    setText("ov-capacity", (s.onlinePlayers != null && s.maxPlayers != null) ? (s.onlinePlayers + " / " + s.maxPlayers) : "-");
+    setText("ov-entities", s.totalEntities != null ? s.totalEntities : "-");
+    setText("ov-chunks", s.loadedChunks != null ? s.loadedChunks : "-");
+    setText("ov-version", s.bukkitVersion || s.serverVersion || "-");
   });
+
+  serverRef.child("worlds").on("value", (snap) => renderWorlds(toArray(snap.val())));
 
   serverRef.child("players").on("value", (snap) => { onlinePlayers = toArray(snap.val()); renderOverviewPlayers(); renderPlayersTable(); });
   serverRef.child("knownPlayers").on("value", (snap) => { knownPlayers = toArray(snap.val()); renderPlayersTable(); });
@@ -153,6 +179,29 @@ function attachListeners() {
   serverRef.child("categoryStats").on("value", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); });
   serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); });
   serverRef.child("activity").limitToLast(100).on("value", (snap) => renderActivity(snap.val() || {}));
+}
+
+function formatUptime(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return h + "س " + m + "د";
+  return m + "د";
+}
+
+function renderWorlds(worlds) {
+  const c = document.getElementById("overview-worlds");
+  if (!c) return;
+  if (!worlds.length) { c.innerHTML = '<p class="empty-msg">لا توجد بيانات</p>'; return; }
+  c.innerHTML = "";
+  const nameMap = { world: "العالم الرئيسي", world_nether: "النذر", world_the_end: "الإند" };
+  worlds.forEach((w) => {
+    const item = document.createElement("div");
+    item.className = "world-item";
+    item.innerHTML = `<div class="world-name">${escapeHtml(nameMap[w.name] || w.name)}</div>
+      <div class="world-stats"><span>👥 ${w.players ?? 0}</span><span>📦 ${w.entities ?? 0}</span><span>🧩 ${w.chunks ?? 0}</span></div>`;
+    c.appendChild(item);
+  });
 }
 
 function toArray(v) { if (!v) return []; return Array.isArray(v) ? v.filter(Boolean) : Object.values(v).filter(Boolean); }
@@ -388,12 +437,16 @@ document.getElementById("console-btn").addEventListener("click", () => {
 
 // ---- Activity log ----
 function renderActivity(activity) {
-  const c = document.getElementById("activity-list");
   const entries = Object.values(activity).filter(Boolean).sort((a, b) => (b.timestamp||0) - (a.timestamp||0));
   document.getElementById("activity-count").textContent = entries.length;
-  if (!entries.length) { c.innerHTML = '<p class="empty-msg">لا توجد أحداث بعد</p>'; return; }
-  c.innerHTML = "";
-  entries.forEach((e) => {
+  const full = document.getElementById("activity-list");
+  const overview = document.getElementById("overview-activity");
+  if (!entries.length) {
+    full.innerHTML = '<p class="empty-msg">لا توجد أحداث بعد</p>';
+    if (overview) overview.innerHTML = '<p class="empty-msg">لا توجد أحداث</p>';
+    return;
+  }
+  const buildItem = (e) => {
     const when = e.timestamp ? new Date(e.timestamp).toLocaleString("ar-EG") : "";
     const by = (e.by || "dashboard").split("@")[0];
     const item = document.createElement("div");
@@ -401,8 +454,14 @@ function renderActivity(activity) {
     item.innerHTML = `<div class="act-icon">${escapeHtml(actionIcon(e.action))}</div>
       <div class="act-body"><div class="act-main"><strong>${escapeHtml(by)}</strong> — ${escapeHtml(actionLabel(e.action))} <span class="act-target">${escapeHtml(e.target||"")}</span></div>
       <div class="act-time">${escapeHtml(when)}</div></div>`;
-    c.appendChild(item);
-  });
+    return item;
+  };
+  full.innerHTML = "";
+  entries.forEach((e) => full.appendChild(buildItem(e)));
+  if (overview) {
+    overview.innerHTML = "";
+    entries.slice(0, 6).forEach((e) => overview.appendChild(buildItem(e)));
+  }
 }
 function actionLabel(a) {
   const m = { broadcast:"بث رسالة", kick:"طرد", ban:"حظر", ban_id:"حظر UUID", unban:"فك حظر", whitelist_add:"إضافة whitelist", whitelist_remove:"إزالة whitelist", set_rank:"تغيير رتبة", msg:"رسالة خاصة", tp_player:"نقل لاعب", tp_coords:"نقل لإحداثيات", gamemode:"وضع لعب", time:"تغيير الوقت", weather:"تغيير الطقس", save_all:"حفظ العالم", console:"أمر console", delete_waypoint:"حذف نقطة", rename_waypoint:"تسمية نقطة", toggle_system:"حالة النظام", create_public_waypoint:"إنشاء نقطة عامة", edit_waypoint_coords:"تعديل إحداثيات" };
@@ -465,6 +524,15 @@ function sendCommand(type, value) {
 // ---- Admin management ----
 function attachAdminManagement() {
   adminsRef.on("value", (snap) => renderAdmins(snap.val() || {}));
+
+  // Copy own ID button.
+  const copyBtn = document.getElementById("copy-id-btn");
+  if (copyBtn) copyBtn.onclick = () => {
+    const id = document.getElementById("my-admin-id").textContent;
+    navigator.clipboard.writeText(id).then(() => showToast("تم نسخ المعرّف", "success")).catch(() => showToast("فشل النسخ", "error"));
+  };
+
+  // Add by email.
   const input = document.getElementById("new-admin-email");
   const addBtn = document.getElementById("add-admin-btn");
   const submit = () => {
@@ -483,6 +551,26 @@ function attachAdminManagement() {
   };
   addBtn.onclick = submit;
   input.onkeydown = (e) => { if (e.key === "Enter") submit(); };
+
+  // Add by Admin ID (uid).
+  const idInput = document.getElementById("new-admin-id");
+  const addIdBtn = document.getElementById("add-id-btn");
+  const submitId = () => {
+    const id = idInput.value.trim();
+    if (id.length < 10) { setIdHint("أدخل معرّفاً صالحاً.", "error"); return; }
+    addIdBtn.disabled = true;
+    adminsRef.child(id).get().then((s) => {
+      if (s.exists()) { setIdHint("هذا المعرّف مضاف بالفعل.", "error"); addIdBtn.disabled = false; return; }
+      adminsRef.child(id).set({ authorized: true, addedBy: auth.currentUser.email, addedAt: Date.now() })
+        .then(() => { idInput.value = ""; setIdHint("تمت إضافة المعرّف بنجاح.", "success"); showToast("تمت إضافة المعرّف", "success"); })
+        .catch(() => setIdHint("فشل الإضافة.", "error"))
+        .finally(() => { addIdBtn.disabled = false; });
+    }).catch(() => { setIdHint("فشل الاتصال.", "error"); addIdBtn.disabled = false; });
+  };
+  if (addIdBtn) {
+    addIdBtn.onclick = submitId;
+    idInput.onkeydown = (e) => { if (e.key === "Enter") submitId(); };
+  }
 }
 function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function setAdminHint(msg, kind) {
@@ -490,9 +578,17 @@ function setAdminHint(msg, kind) {
   h.textContent = msg; h.className = "admin-add-hint " + (kind || "");
   if (kind === "success") setTimeout(() => { if (h.textContent === msg) h.textContent = ""; }, 4000);
 }
+function setIdHint(msg, kind) {
+  const h = document.getElementById("id-add-hint");
+  h.textContent = msg; h.className = "admin-add-hint " + (kind || "");
+  if (kind === "success") setTimeout(() => { if (h.textContent === msg) h.textContent = ""; }, 4000);
+}
 function renderAdmins(admins) {
   const c = document.getElementById("admins-list");
-  const entries = Object.keys(admins).filter((k) => admins[k] === true);
+  const entries = Object.keys(admins).filter((k) => {
+    const v = admins[k];
+    return v === true || (v && v.authorized === true);
+  });
   document.getElementById("admins-count").textContent = entries.length + 1;
   c.innerHTML = "";
   const o = document.createElement("div");
@@ -500,15 +596,19 @@ function renderAdmins(admins) {
   o.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar owner-avatar">${escapeHtml(OWNER_EMAIL.charAt(0).toUpperCase())}</span><span class="admin-email">${escapeHtml(OWNER_EMAIL)}</span></div><span class="admin-badge">المالك</span>`;
   c.appendChild(o);
   entries.forEach((key) => {
-    const email = key.replace(/,/g, ".");
-    if (email.toLowerCase() === OWNER_EMAIL.toLowerCase()) return;
+    const v = admins[key];
+    const isEmail = key.includes(",") && !key.match(/^[A-Za-z0-9]{20,}$/);
+    const label = isEmail ? key.replace(/,/g, ".") : key;
+    const type = isEmail ? "بريد" : "معرّف";
+    if (isEmail && label.toLowerCase() === OWNER_EMAIL.toLowerCase()) return;
     const chip = document.createElement("div");
     chip.className = "admin-chip";
-    chip.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar">${escapeHtml(email.charAt(0).toUpperCase())}</span><span class="admin-email">${escapeHtml(email)}</span></div><button class="remove-admin-btn" data-key="${escapeHtml(key)}" data-email="${escapeHtml(email)}">إزالة</button>`;
+    const displayLabel = isEmail ? label : (label.substring(0, 14) + "…");
+    chip.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar">${escapeHtml((isEmail?label:"#").charAt(0).toUpperCase())}</span><div><span class="admin-email">${escapeHtml(displayLabel)}</span><span class="admin-type">${type}</span></div></div><button class="remove-admin-btn" data-key="${escapeHtml(key)}" data-label="${escapeHtml(label)}">إزالة</button>`;
     c.appendChild(chip);
   });
   c.querySelectorAll(".remove-admin-btn").forEach((btn) => btn.addEventListener("click", () => {
-    if (confirm("إزالة صلاحية " + btn.dataset.email + "؟")) adminsRef.child(btn.dataset.key).remove().then(() => showToast("تمت الإزالة", "success")).catch(() => showToast("فشل الإزالة", "error"));
+    if (confirm("إزالة صلاحية " + btn.dataset.label + "؟")) adminsRef.child(btn.dataset.key).remove().then(() => showToast("تمت الإزالة", "success")).catch(() => showToast("فشل الإزالة", "error"));
   }));
 }
 

@@ -50,9 +50,13 @@
             </div>
             <p class="pending-msg">
                 حسابك <strong id="pending-email"></strong> غير مصرّح له بعد.<br>
-                تواصل مع مالك السيرفر ليمنحك الصلاحية.
+                شارك المعرّف التالي مع مالك السيرفر ليمنحك الصلاحية:
             </p>
-            <button id="pending-logout-btn" class="btn-ghost">تسجيل الخروج</button>
+            <div class="myid-row">
+                <code id="pending-id" class="myid-code">-</code>
+                <button id="pending-copy-btn" class="btn-primary">نسخ</button>
+            </div>
+            <button id="pending-logout-btn" class="btn-ghost full mt-8">تسجيل الخروج</button>
         </div>
         <footer class="auth-footer">ViodRealms &copy; 2026</footer>
     </div>
@@ -152,9 +156,30 @@
                     </div>
                 </div>
 
+                <!-- Server health row -->
+                <div class="mini-stats">
+                    <div class="mini-stat"><span class="ms-label">TPS</span><span class="ms-value" id="ov-tps">-</span></div>
+                    <div class="mini-stat"><span class="ms-label">Uptime</span><span class="ms-value" id="ov-uptime">-</span></div>
+                    <div class="mini-stat"><span class="ms-label">السعة</span><span class="ms-value" id="ov-capacity">-</span></div>
+                    <div class="mini-stat"><span class="ms-label">الكيانات</span><span class="ms-value" id="ov-entities">-</span></div>
+                    <div class="mini-stat"><span class="ms-label">Chunks</span><span class="ms-value" id="ov-chunks">-</span></div>
+                    <div class="mini-stat"><span class="ms-label">الإصدار</span><span class="ms-value sm" id="ov-version">-</span></div>
+                </div>
+
+                <div class="overview-cols">
+                    <div class="panel">
+                        <div class="panel-head"><h3>اللاعبون المتصلون الآن</h3><span id="overview-online-count" class="pill">0</span></div>
+                        <div id="overview-players" class="players-grid"><p class="empty-msg">لا يوجد لاعبون متصلون</p></div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head"><h3>العوالم</h3></div>
+                        <div id="overview-worlds" class="worlds-list"><p class="empty-msg">لا توجد بيانات</p></div>
+                    </div>
+                </div>
+
                 <div class="panel">
-                    <div class="panel-head"><h3>اللاعبون المتصلون الآن</h3><span id="overview-online-count" class="pill">0</span></div>
-                    <div id="overview-players" class="players-grid"><p class="empty-msg">لا يوجد لاعبون متصلون</p></div>
+                    <div class="panel-head"><h3>آخر الأحداث</h3></div>
+                    <div id="overview-activity" class="activity-list compact"><p class="empty-msg">لا توجد أحداث</p></div>
                 </div>
             </section>
 
@@ -264,20 +289,20 @@
             <!-- Control -->
             <section id="section-control" class="section">
                 <div class="control-grid">
-                    <div class="panel">
-                        <div class="panel-head"><h3>بث رسالة</h3></div>
+                    <div class="panel ctrl-panel">
+                        <div class="ctrl-head"><span class="ctrl-icon i-blue">📢</span><h3>بث رسالة</h3></div>
                         <p class="panel-desc">أرسل رسالة لكل اللاعبين في السيرفر.</p>
                         <div class="control-row">
                             <input type="text" id="broadcast-input" placeholder="اكتب رسالتك...">
                             <button id="broadcast-btn" class="btn-primary">بث</button>
                         </div>
                     </div>
-                    <div class="panel">
-                        <div class="panel-head"><h3>حالة نظام النقاط</h3></div>
+                    <div class="panel ctrl-panel">
+                        <div class="ctrl-head"><span class="ctrl-icon i-teal">⏻</span><h3>حالة نظام النقاط</h3></div>
                         <p class="panel-desc">تفعيل أو تعطيل نظام الـ Waypoints بالكامل.</p>
-                        <div class="control-row">
-                            <button id="system-on-btn" class="btn-success">تفعيل</button>
-                            <button id="system-off-btn" class="btn-danger">تعطيل</button>
+                        <div class="btn-row">
+                            <button id="system-on-btn" class="ctrl-btn ok"><span class="cb-emoji">✅</span> تفعيل</button>
+                            <button id="system-off-btn" class="ctrl-btn bad"><span class="cb-emoji">🛑</span> تعطيل</button>
                         </div>
                     </div>
                 </div>
@@ -286,32 +311,32 @@
             <!-- Server control -->
             <section id="section-server" class="section">
                 <div class="control-grid">
-                    <div class="panel">
-                        <div class="panel-head"><h3>الوقت</h3></div>
+                    <div class="panel ctrl-panel">
+                        <div class="ctrl-head"><span class="ctrl-icon i-orange">🕓</span><h3>الوقت</h3></div>
                         <p class="panel-desc">تغيير وقت اليوم في كل العوالم.</p>
                         <div class="btn-row">
-                            <button class="btn-primary time-btn" data-time="day">نهار</button>
-                            <button class="btn-primary time-btn" data-time="noon">ظهر</button>
-                            <button class="btn-primary time-btn" data-time="night">ليل</button>
-                            <button class="btn-primary time-btn" data-time="midnight">منتصف الليل</button>
+                            <button class="ctrl-btn time-btn" data-time="day"><span class="cb-emoji">☀️</span> نهار</button>
+                            <button class="ctrl-btn time-btn" data-time="noon"><span class="cb-emoji">🌤️</span> ظهر</button>
+                            <button class="ctrl-btn time-btn" data-time="night"><span class="cb-emoji">🌙</span> ليل</button>
+                            <button class="ctrl-btn time-btn" data-time="midnight"><span class="cb-emoji">🌑</span> منتصف الليل</button>
                         </div>
                     </div>
-                    <div class="panel">
-                        <div class="panel-head"><h3>الطقس</h3></div>
+                    <div class="panel ctrl-panel">
+                        <div class="ctrl-head"><span class="ctrl-icon i-teal">🌦️</span><h3>الطقس</h3></div>
                         <p class="panel-desc">تغيير الطقس في كل العوالم.</p>
                         <div class="btn-row">
-                            <button class="btn-success weather-btn" data-weather="clear">صحو</button>
-                            <button class="btn-primary weather-btn" data-weather="rain">مطر</button>
-                            <button class="btn-danger weather-btn" data-weather="thunder">عاصفة</button>
+                            <button class="ctrl-btn ok weather-btn" data-weather="clear"><span class="cb-emoji">☀️</span> صحو</button>
+                            <button class="ctrl-btn weather-btn" data-weather="rain"><span class="cb-emoji">🌧️</span> مطر</button>
+                            <button class="ctrl-btn bad weather-btn" data-weather="thunder"><span class="cb-emoji">⛈️</span> عاصفة</button>
                         </div>
                     </div>
-                    <div class="panel">
-                        <div class="panel-head"><h3>حفظ العالم</h3></div>
+                    <div class="panel ctrl-panel">
+                        <div class="ctrl-head"><span class="ctrl-icon i-green">💾</span><h3>حفظ العالم</h3></div>
                         <p class="panel-desc">حفظ كل بيانات العالم فوراً (save-all).</p>
-                        <button id="save-all-btn" class="btn-primary">حفظ الآن</button>
+                        <button id="save-all-btn" class="ctrl-btn wide"><span class="cb-emoji">💾</span> حفظ الآن</button>
                     </div>
-                    <div class="panel">
-                        <div class="panel-head"><h3>أمر Console مخصّص</h3></div>
+                    <div class="panel ctrl-panel">
+                        <div class="ctrl-head"><span class="ctrl-icon i-red">⌨️</span><h3>أمر Console مخصّص</h3></div>
                         <p class="panel-desc">نفّذ أمراً مباشرة على console السيرفر. استخدمه بحذر.</p>
                         <div class="control-row">
                             <input type="text" id="console-input" placeholder="مثال: give Player diamond 1">
@@ -351,8 +376,30 @@
             <!-- Admin management -->
             <section id="section-admins" class="section">
                 <div class="panel">
-                    <div class="panel-head"><h3>إضافة أدمن جديد</h3></div>
-                    <p class="panel-desc">امنح صلاحية الدخول للوحة التحكم لأي حساب Google. سيتمكّن من الدخول فوراً.</p>
+                    <div class="panel-head"><span class="ctrl-icon i-purple">👑</span><h3>معرّفك (Admin ID)</h3></div>
+                    <p class="panel-desc">هذا هو معرّفك الفريد. شاركه مع مالك السيرفر ليمنحك صلاحية الدخول.</p>
+                    <div class="myid-row">
+                        <code id="my-admin-id" class="myid-code">-</code>
+                        <button id="copy-id-btn" class="btn-primary">نسخ</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head"><span class="ctrl-icon i-blue">🆔</span><h3>إضافة بالمعرّف (Admin ID)</h3></div>
+                    <p class="panel-desc">الصق معرّف (ID) أي شخص سجّل دخوله ليتمكّن من التحكم في الموقع معك.</p>
+                    <div class="admin-add-form">
+                        <div class="admin-input-wrap">
+                            <span class="admin-input-icon">#</span>
+                            <input type="text" id="new-admin-id" placeholder="الصق الـ ID هنا" autocomplete="off">
+                        </div>
+                        <button id="add-id-btn" class="btn-primary"><span class="btn-plus">+</span> إضافة بالمعرّف</button>
+                    </div>
+                    <p id="id-add-hint" class="admin-add-hint"></p>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head"><span class="ctrl-icon i-green">@</span><h3>إضافة أدمن بالبريد</h3></div>
+                    <p class="panel-desc">امنح صلاحية الدخول لأي حساب Google بإدخال بريده.</p>
                     <div class="admin-add-form">
                         <div class="admin-input-wrap">
                             <span class="admin-input-icon">@</span>
@@ -363,7 +410,7 @@
                     <p id="admin-add-hint" class="admin-add-hint"></p>
                 </div>
                 <div class="panel">
-                    <div class="panel-head"><h3>الأدمنز الحاليون</h3><span id="admins-count" class="pill">0</span></div>
+                    <div class="panel-head"><span class="ctrl-icon i-orange">👥</span><h3>الأدمنز الحاليون</h3><span id="admins-count" class="pill">0</span></div>
                     <div id="admins-list" class="admins-list"><p class="empty-msg">جاري التحميل...</p></div>
                 </div>
             </section>
