@@ -102,6 +102,9 @@
                 <a href="#admins" class="nav-item owner-only" data-target="admins" id="nav-admins">
                     <img class="nav-icon-img" src="image/admins.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إدارة الأدمن</span>
                 </a>
+                <a href="#firebase" class="nav-item owner-only" data-target="firebase" id="nav-firebase">
+                    <img class="nav-icon-img" src="image/control.png" alt="" onerror="this.style.display='none'"><span class="nav-text">Firebase</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-card">
@@ -458,6 +461,55 @@
                 <div class="panel">
                     <div class="panel-head"><span class="ctrl-icon i-orange">👥</span><h3>الأدمنز الحاليون</h3><span id="admins-count" class="pill">0</span></div>
                     <div id="admins-list" class="admins-list"><p class="empty-msg">جاري التحميل...</p></div>
+                </div>
+            </section>
+
+            <!-- Firebase console -->
+            <section id="section-firebase" class="section">
+                <div class="seg-tabs fb-tabs" id="fb-tabs">
+                    <button class="seg active" data-fb="rtdb">Realtime Database</button>
+                    <button class="seg" data-fb="auth">Authentication</button>
+                    <button class="seg" data-fb="firestore">Firestore</button>
+                </div>
+
+                <!-- RTDB browser -->
+                <div class="fb-panel active" data-fb-panel="rtdb">
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h3>Realtime Database</h3>
+                            <button id="fb-refresh-rtdb" class="btn-ghost">تحديث</button>
+                        </div>
+                        <p class="panel-desc">تصفّح بيانات قاعدة البيانات الحية. اضغط على أي عقدة لفتحها.</p>
+                        <div id="fb-rtdb-tree" class="fb-tree"><p class="empty-msg">جاري التحميل...</p></div>
+                    </div>
+                </div>
+
+                <!-- Authentication -->
+                <div class="fb-panel" data-fb-panel="auth">
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h3>مستخدمو Authentication</h3>
+                            <div class="head-tools">
+                                <span id="auth-count" class="pill">0</span>
+                                <button id="fb-refresh-auth" class="btn-ghost">تحديث</button>
+                            </div>
+                        </div>
+                        <p class="panel-desc">كل الحسابات المسجّلة في المشروع. تُحدّث من السيرفر كل 5 دقائق.</p>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead><tr><th>المستخدم</th><th>البريد</th><th>المزوّد</th><th>أُنشئ</th><th>آخر دخول</th><th>الحالة</th></tr></thead>
+                                <tbody id="auth-body"><tr><td colspan="6" class="empty-msg">اضغط تحديث لجلب المستخدمين</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Firestore -->
+                <div class="fb-panel" data-fb-panel="firestore">
+                    <div class="panel">
+                        <div class="panel-head"><h3>Firestore</h3></div>
+                        <p class="panel-desc">هذا المشروع يستخدم Realtime Database. Firestore غير مُفعّل حالياً — لا توجد بيانات لعرضها.</p>
+                    </div>
                 </div>
             </section>
         </main>

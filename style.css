@@ -199,11 +199,11 @@ body {
 .stat-icon img { width: 30px; height: 30px; object-fit: contain;
     filter: brightness(0) saturate(100%) invert(47%) sepia(83%) saturate(3552%) hue-rotate(258deg) brightness(101%) contrast(94%); }
 .i-blue { background: rgba(168, 85, 247, 0.16); }
-.i-green { background: rgba(52, 211, 153, 0.16); }
-.i-purple { background: rgba(167, 139, 250, 0.16); }
-.i-orange { background: rgba(245, 158, 11, 0.16); }
-.i-red { background: rgba(251, 92, 120, 0.16); }
-.i-teal { background: rgba(124, 58, 237, 0.16); }
+.i-green { background: rgba(168, 85, 247, 0.16); }
+.i-purple { background: rgba(168, 85, 247, 0.16); }
+.i-orange { background: rgba(168, 85, 247, 0.16); }
+.i-red { background: rgba(168, 85, 247, 0.16); }
+.i-teal { background: rgba(168, 85, 247, 0.16); }
 .stat-value { font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
 .stat-label { color: var(--text-2); font-size: 13px; margin-top: 7px; }
 
@@ -397,6 +397,22 @@ canvas { max-width: 100%; }
 .plugin-desc { color: var(--text-2); font-size: 13px; margin-top: 8px; line-height: 1.5; }
 
 /* Modrinth — list style (like the official browse page) */
+.fb-tabs { margin-bottom: 20px; }
+.fb-panel { display: none; }
+.fb-panel.active { display: block; }
+.fb-tree { font-family: monospace; font-size: 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; max-height: 560px; overflow: auto; }
+.fb-node { margin: 1px 0; }
+.fb-children { padding-right: 18px; border-right: 1px solid var(--line); margin-right: 6px; }
+.fb-key { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.fb-key:hover { background: var(--surface-3); }
+.fb-caret { color: var(--brand); width: 12px; }
+.fb-name { color: var(--brand-2); font-weight: 700; }
+.fb-badge { color: var(--text-3); font-size: 11px; background: var(--surface-3); padding: 1px 7px; border-radius: 10px; }
+.fb-node.leaf { display: flex; gap: 10px; padding: 3px 6px 3px 24px; }
+.fb-node.leaf .fb-name { color: var(--text-2); font-weight: 600; }
+.fb-node.leaf .fb-name::after { content: ":"; color: var(--text-3); }
+.fb-val { color: var(--text); word-break: break-all; }
+
 .mr-searchbar { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 6px 6px 14px; }
 .mr-searchbar:focus-within { border-color: var(--brand); }
 .mr-search-icon { color: var(--text-3); font-size: 15px; }

@@ -115,7 +115,8 @@ const PAGE_INFO = {
   charts: ["الإحصائيات", "رسوم بيانية حية"],
   activity: ["سجل الأحداث", "من فعل ماذا ومتى"],
   control: ["التحكم", "التحكم العام"],
-  admins: ["إدارة الأدمن", "منح وسحب صلاحيات اللوحة"]
+  admins: ["إدارة الأدمن", "منح وسحب صلاحيات اللوحة"],
+  firebase: ["Firebase", "قاعدة البيانات والمصادقة"]
 };
 
 document.querySelectorAll(".nav-item").forEach((item) => {
@@ -132,6 +133,7 @@ document.querySelectorAll(".nav-item").forEach((item) => {
     document.getElementById("sidebar").classList.remove("open");
     if (target === "charts") renderCharts();
     if (target === "plugins") ensureModrinthDefault();
+    if (target === "firebase") ensureFirebaseConsole();
   });
 });
 document.getElementById("menu-toggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
@@ -202,6 +204,8 @@ function attachListeners() {
 
   // Installed plugins list.
   serverRef.child("plugins").on("value", (snap) => renderPlugins(toArray(snap.val())), onReadError);
+  // Auth users mirror (Firebase console).
+  serverRef.child("authUsers").on("value", (snap) => renderAuthUsers(toArray(snap.val())), onReadError);
   // Plugin install status feedback.
   serverRef.child("pluginInstall").on("value", (snap) => {
     const r = snap.val();
@@ -795,9 +799,95 @@ function formatNum(n) {
   if (n >= 1e3) return (n/1e3).toFixed(1) + "K";
   return String(n);
 }
+// ---- Firebase console (owner only) ----
+let firebaseConsoleInit = false;
+function ensureFirebaseConsole() {
+  if (!currentUserIsOwner) return;
+  if (!firebaseConsoleInit) {
+    firebaseConsoleInit = true;
+    // Tab switching
+    document.querySelectorAll("#fb-tabs .seg").forEach((seg) => seg.addEventListener("click", () => {
+      document.querySelectorAll("#fb-tabs .seg").forEach((s) => s.classList.remove("active"));
+      seg.classList.add("active");
+      document.querySelectorAll(".fb-panel").forEach((p) => p.classList.toggle("active", p.dataset.fbPanel === seg.dataset.fb));
+      if (seg.dataset.fb === "auth") loadAuthUsers();
+    }));
+    document.getElementById("fb-refresh-rtdb").addEventListener("click", loadRtdbTree);
+    document.getElementById("fb-refresh-auth").addEventListener("click", () => { sendCommand("refresh_auth", ""); showToast("جاري تحديث المستخدمين...", "success"); });
+  }
+  loadRtdbTree();
+  loadAuthUsers();
+}
+
+// RTDB tree viewer — reads the whole server node and renders a collapsible tree.
+function loadRtdbTree() {
+  const c = document.getElementById("fb-rtdb-tree");
+  c.innerHTML = '<p class="empty-msg">جاري التحميل...</p>';
+  serverRef.get().then((snap) => {
+    const val = snap.val();
+    if (!val) { c.innerHTML = '<p class="empty-msg">لا توجد بيانات</p>'; return; }
+    c.innerHTML = "";
+    c.appendChild(buildTree("servers/" + SERVER_ID, val, true));
+  }).catch((e) => { c.innerHTML = '<p class="empty-msg">فشل: ' + (e.code||e.message) + '</p>'; });
+}
+
+function buildTree(key, value, open) {
+  const node = document.createElement("div");
+  node.className = "fb-node";
+  const isObj = value !== null && typeof value === "object";
+  if (isObj) {
+    const entries = Object.keys(value);
+    const head = document.createElement("div");
+    head.className = "fb-key branch";
+    head.innerHTML = `<span class="fb-caret">${open ? "▾" : "▸"}</span><span class="fb-name">${escapeHtml(shortKey(key))}</span><span class="fb-badge">${entries.length}</span>`;
+    const children = document.createElement("div");
+    children.className = "fb-children";
+    children.style.display = open ? "block" : "none";
+    entries.forEach((k) => children.appendChild(buildTree(k, value[k], false)));
+    head.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const vis = children.style.display === "none";
+      children.style.display = vis ? "block" : "none";
+      head.querySelector(".fb-caret").textContent = vis ? "▾" : "▸";
+    });
+    node.appendChild(head);
+    node.appendChild(children);
+  } else {
+    node.className = "fb-node leaf";
+    node.innerHTML = `<span class="fb-name">${escapeHtml(shortKey(key))}</span><span class="fb-val">${escapeHtml(String(value))}</span>`;
+  }
+  return node;
+}
+function shortKey(k) { const p = String(k).split("/"); return p[p.length - 1]; }
+
+// Authentication users (mirrored to RTDB by the plugin).
+function loadAuthUsers() {
+  serverRef.child("authUsers").get().then((snap) => renderAuthUsers(toArray(snap.val()))).catch(() => {});
+}
+function renderAuthUsers(users) {
+  const body = document.getElementById("auth-body");
+  document.getElementById("auth-count").textContent = users.length;
+  if (!users.length) { body.innerHTML = '<tr><td colspan="6" class="empty-msg">لا توجد بيانات — اضغط تحديث (يجلبها السيرفر)</td></tr>'; return; }
+  body.innerHTML = "";
+  users.forEach((u) => {
+    const created = u.created ? new Date(u.created).toLocaleDateString("ar-EG") : "-";
+    const last = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString("ar-EG") : "-";
+    const initial = ((u.name || u.email || "?").charAt(0) || "?").toUpperCase();
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><div class="cell-player"><span class="cell-avatar">${escapeHtml(initial)}</span>${escapeHtml(u.name || "—")}</div></td>
+      <td>${escapeHtml(u.email || "-")}</td>
+      <td>${escapeHtml((u.provider||"").replace("google.com","Google").replace("password","بريد"))}</td>
+      <td>${created}</td>
+      <td>${last}</td>
+      <td><span class="badge ${u.disabled ? "off" : "on"}">${u.disabled ? "معطّل" : "نشط"}</span></td>`;
+    body.appendChild(row);
+  });
+}
 
 // ---- Command sender ----
-function sendCommand(type, value) {  serverRef.child("commands").push({ type, value, issuedBy: auth.currentUser ? auth.currentUser.email : "unknown", timestamp: Date.now() })
+function sendCommand(type, value) {
+  serverRef.child("commands").push({ type, value, issuedBy: auth.currentUser ? auth.currentUser.email : "unknown", timestamp: Date.now() })
     .catch(() => showToast("فشل إرسال الأمر", "error"));
 }
 
