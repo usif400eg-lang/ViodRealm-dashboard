@@ -808,21 +808,27 @@ function renderModrinth(hits) {
     const catTags = tags.map((t) => `<span class="mr-tag">${escapeHtml(cap(t))}</span>`).join("");
     const extra = cats.length - tags.length - loaders.length;
 
-    const row = document.createElement("div");
-    row.className = "mr-row";
-    row.innerHTML = `
-      <img class="mr-row-icon" src="${h.icon_url || fallbackTexture()}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-      <div class="mr-row-main">
-        <div class="mr-row-title"><span class="mr-name">${escapeHtml(h.title)}</span> <span class="mr-by">by ${escapeHtml(h.author||"")}</span></div>
-        <div class="mr-row-desc">${escapeHtml((h.description||""))}</div>
-        <div class="mr-row-tags">${catTags}${loaderTags}${extra>0?`<span class="mr-tag more">+${extra}</span>`:""}</div>
+    const card = document.createElement("div");
+    card.className = "mr-card";
+    card.innerHTML = `
+      <div class="mr-shine"></div>
+      <div class="mr-card-head">
+        <img class="mr-card-icon" src="${h.icon_url || fallbackTexture()}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div class="mr-card-title">
+          <span class="mr-name">${escapeHtml(h.title)}</span>
+          <span class="mr-by">by ${escapeHtml(h.author||"")}</span>
+        </div>
       </div>
-      <div class="mr-row-side">
-        <div class="mr-stat"><img class="mini-ic" src="image/ic-download.png" alt=""> ${formatNum(h.downloads)}</div>
-        <div class="mr-stat heart"><img class="mini-ic" src="image/ic-heart.png" alt=""> ${formatNum(h.follows)}</div>
+      <div class="mr-card-desc">${escapeHtml((h.description||""))}</div>
+      <div class="mr-card-tags">${loaderTags}${catTags}${extra>0?`<span class="mr-tag more">+${extra}</span>`:""}</div>
+      <div class="mr-card-foot">
+        <div class="mr-stats">
+          <span class="mr-stat"><img class="mini-ic" src="image/ic-download.png" alt=""> ${formatNum(h.downloads)}</span>
+          <span class="mr-stat heart"><img class="mini-ic" src="image/ic-heart.png" alt=""> ${formatNum(h.follows)}</span>
+        </div>
         <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}">تثبيت</button>
       </div>`;
-    results.appendChild(row);
+    results.appendChild(card);
   });
   results.querySelectorAll(".mr-install").forEach((btn) => btn.addEventListener("click", () => installModrinth(btn.dataset.slug, btn.dataset.title)));
 
