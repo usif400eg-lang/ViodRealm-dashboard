@@ -423,20 +423,43 @@ function buildSlot(item) {
   const slot = document.createElement("div");
   slot.className = "inv-slot";
   if (item && item.type && item.type !== "AIR") {
-    const url = itemTextureUrl(item.type);
+    const id = item.type.toLowerCase();
     const nameAttr = item.name ? item.name.replace(/§./g, "") : item.type;
-    slot.innerHTML = `<img src="${url}" alt="" loading="lazy" onerror="this.onerror=null;this.style.opacity=0.3;this.src='${fallbackTexture()}'" title="${escapeHtml(nameAttr)}">` +
-      (item.amount > 1 ? `<span class="inv-count">${item.amount}</span>` : "");
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.title = nameAttr;
+    // Try real Minecraft textures: item folder -> block folder -> generic fallback.
+    img.dataset.stage = "item";
+    img.src = mcTextureUrl("item", id);
+    img.onerror = function () {
+      if (this.dataset.stage === "item") {
+        this.dataset.stage = "block";
+        this.src = mcTextureUrl("block", id);
+      } else {
+        this.onerror = null;
+        this.style.opacity = 0.4;
+        this.src = fallbackTexture();
+      }
+    };
+    slot.appendChild(img);
+    if (item.amount > 1) {
+      const count = document.createElement("span");
+      count.className = "inv-count";
+      count.textContent = item.amount;
+      slot.appendChild(count);
+    }
     slot.title = nameAttr;
   }
   return slot;
 }
-// Real Minecraft item textures via a public CDN keyed by lowercase item id.
-function itemTextureUrl(type) {
-  return "https://raw.githubusercontent.com/Owen1212055/mc-assets/master/item/" + type.toLowerCase() + ".png";
+// Real Minecraft textures mirror (all versions, items + blocks).
+const MC_ASSET_VERSION = "1.21.4";
+function mcTextureUrl(folder, id) {
+  return `https://assets.mcasset.cloud/${MC_ASSET_VERSION}/assets/minecraft/textures/${folder}/${id}.png`;
 }
 function fallbackTexture() {
-  return "https://raw.githubusercontent.com/Owen1212055/mc-assets/master/item/barrier.png";
+  return `https://assets.mcasset.cloud/${MC_ASSET_VERSION}/assets/minecraft/textures/item/barrier.png`;
 }
 document.getElementById("pm-msg-send").addEventListener("click", () => {
   const m = document.getElementById("pm-msg-input").value.trim();
