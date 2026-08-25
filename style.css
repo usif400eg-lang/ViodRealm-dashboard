@@ -593,6 +593,18 @@ canvas { max-width: 100%; }
 .mr-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 18px; }
 .mr-page-label { color: var(--text-2); font-size: 14px; font-weight: 700; }
 
+/* Modrinth download modal */
+.mr-modal-box { max-width: 480px; }
+.mr-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.mr-modal-icon { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; background: var(--surface-3); }
+.mr-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+@media (max-width: 520px) { .mr-select-grid { grid-template-columns: 1fr; } }
+.mr-select-wrap { display: flex; flex-direction: column; gap: 6px; }
+.mr-select-wrap label { color: var(--text-3); font-size: 12.5px; font-weight: 600; }
+.mr-select-wrap select { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 11px 13px; font-family: inherit; font-size: 14px; cursor: pointer; }
+.mr-select-wrap select:focus { outline: none; border-color: var(--brand); }
+.mr-modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
 
 /* Player action modal */
 .pm-tabs { display: flex; gap: 6px; margin: 16px 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; }

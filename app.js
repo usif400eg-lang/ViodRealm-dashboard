@@ -826,11 +826,11 @@ function renderModrinth(hits) {
           <span class="mr-stat"><img class="mini-ic" src="image/ic-download.png" alt=""> ${formatNum(h.downloads)}</span>
           <span class="mr-stat heart"><img class="mini-ic" src="image/ic-heart.png" alt=""> ${formatNum(h.follows)}</span>
         </div>
-        <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}">تثبيت</button>
+        <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}" data-icon="${escapeHtml(h.icon_url||"")}">تثبيت</button>
       </div>`;
     results.appendChild(card);
   });
-  results.querySelectorAll(".mr-install").forEach((btn) => btn.addEventListener("click", () => installModrinth(btn.dataset.slug, btn.dataset.title)));
+  results.querySelectorAll(".mr-install").forEach((btn) => btn.addEventListener("click", () => installModrinth(btn.dataset.slug, btn.dataset.title, btn.dataset.icon)));
 
   // Pager
   const totalPages = Math.max(1, Math.ceil(mrTotal / mrLimit));
@@ -843,26 +843,73 @@ function renderModrinth(hits) {
 
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
-function installModrinth(slug, title) {
-  if (!confirm(`تثبيت "${title}"؟ سيتطلب إعادة تشغيل السيرفر بعد التحميل.`)) return;
-  const status = document.getElementById("plugin-install-status");
-  status.textContent = "جاري جلب ملف التحميل...";
-  status.className = "admin-add-hint";
-  // Get the latest version's primary file URL.
+// Modrinth download modal: pick game version + loader, then install the matching file.
+const mrModal = document.getElementById("mr-modal");
+let mrVersions = [];       // all versions for the current project
+let mrModalSlug = null;
+
+function installModrinth(slug, title, iconUrl) {
+  mrModalSlug = slug;
+  document.getElementById("mr-modal-title").textContent = title;
+  const icon = document.getElementById("mr-modal-icon");
+  if (iconUrl) { icon.src = iconUrl; icon.style.display = ""; } else { icon.style.display = "none"; }
+  const verSel = document.getElementById("mr-version");
+  const loaderSel = document.getElementById("mr-loader");
+  verSel.innerHTML = '<option value="">جاري التحميل...</option>';
+  loaderSel.innerHTML = '<option value="">جاري التحميل...</option>';
+  setMrHint("", "");
+  mrModal.classList.remove("hidden");
+
   fetch(`https://api.modrinth.com/v2/project/${slug}/version`)
     .then((r) => r.json())
     .then((versions) => {
-      if (!versions.length) { status.textContent = "لا توجد إصدارات متاحة."; status.className = "admin-add-hint error"; return; }
-      // Prefer a paper/spigot/bukkit compatible version; else take the first.
-      let ver = versions.find((v) => (v.loaders||[]).some((l) => ["paper","spigot","bukkit","purpur"].includes(l))) || versions[0];
-      const file = (ver.files || []).find((f) => f.primary) || (ver.files || [])[0];
-      if (!file) { status.textContent = "لا يوجد ملف قابل للتحميل."; status.className = "admin-add-hint error"; return; }
-      sendCommand("download_plugin", file.url + "|" + file.filename);
-      status.textContent = "تم إرسال أمر التثبيت. تابع الحالة بالأسفل.";
-      status.className = "admin-add-hint success";
+      mrVersions = versions || [];
+      if (!mrVersions.length) { setMrHint("لا توجد إصدارات متاحة.", "error"); return; }
+      // Unique game versions (newest first as returned) and loaders.
+      const games = [], loaders = [];
+      mrVersions.forEach((v) => {
+        (v.game_versions || []).forEach((g) => { if (!games.includes(g)) games.push(g); });
+        (v.loaders || []).forEach((l) => { if (!loaders.includes(l)) loaders.push(l); });
+      });
+      verSel.innerHTML = '<option value="">اختر الإصدار</option>' + games.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
+      // Only show server-compatible loaders in the platform list.
+      const serverLoaders = loaders.filter((l) => ["paper","spigot","bukkit","purpur","folia","bungeecord","velocity","waterfall"].includes(l.toLowerCase()));
+      const showLoaders = serverLoaders.length ? serverLoaders : loaders;
+      loaderSel.innerHTML = '<option value="">اختر المنصّة</option>' + showLoaders.map((l) => `<option value="${escapeHtml(l)}">${escapeHtml(cap(l))}</option>`).join("");
+      // Preselect a sensible default loader.
+      const pref = showLoaders.find((l) => ["paper","purpur","spigot","bukkit"].includes(l.toLowerCase()));
+      if (pref) loaderSel.value = pref;
     })
-    .catch(() => { status.textContent = "فشل جلب بيانات الإصدار."; status.className = "admin-add-hint error"; });
+    .catch(() => setMrHint("فشل جلب بيانات الإصدارات.", "error"));
 }
+
+function setMrHint(msg, kind) {
+  const h = document.getElementById("mr-modal-hint");
+  h.textContent = msg; h.className = "admin-add-hint " + (kind || "");
+}
+
+document.getElementById("mr-modal-cancel").addEventListener("click", () => mrModal.classList.add("hidden"));
+mrModal.addEventListener("click", (e) => { if (e.target === mrModal) mrModal.classList.add("hidden"); });
+
+document.getElementById("mr-modal-install").addEventListener("click", () => {
+  const gameVer = document.getElementById("mr-version").value;
+  const loader = document.getElementById("mr-loader").value;
+  if (!gameVer || !loader) { setMrHint("اختر الإصدار والمنصّة أولاً.", "error"); return; }
+
+  // Find the best version matching both the chosen game version and loader.
+  const match = mrVersions.find((v) =>
+    (v.game_versions || []).includes(gameVer) &&
+    (v.loaders || []).map((l) => l.toLowerCase()).includes(loader.toLowerCase())
+  );
+  if (!match) { setMrHint("لا يوجد إصدار متوافق مع هذا الاختيار.", "error"); return; }
+  const file = (match.files || []).find((f) => f.primary) || (match.files || [])[0];
+  if (!file) { setMrHint("لا يوجد ملف قابل للتحميل.", "error"); return; }
+
+  sendCommand("download_plugin", file.url + "|" + file.filename);
+  setMrHint("تم إرسال أمر التثبيت. تابع الحالة أسفل صفحة البلجنات.", "success");
+  showToast("جاري تثبيت " + file.filename, "success");
+  setTimeout(() => mrModal.classList.add("hidden"), 1500);
+});
 
 function formatNum(n) {
   if (n == null) return "0";
