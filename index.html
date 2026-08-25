@@ -586,11 +586,17 @@
             <div class="mr-select-grid">
                 <div class="mr-select-wrap">
                     <label>إصدار اللعبة</label>
-                    <select id="mr-version"><option value="">اختر الإصدار</option></select>
+                    <div class="cselect" id="cs-version">
+                        <button type="button" class="cselect-btn"><span class="cselect-val">اختر الإصدار</span><span class="cselect-arrow">▾</span></button>
+                        <div class="cselect-menu"></div>
+                    </div>
                 </div>
                 <div class="mr-select-wrap">
                     <label>المنصّة (Loader)</label>
-                    <select id="mr-loader"><option value="">اختر المنصّة</option></select>
+                    <div class="cselect" id="cs-loader">
+                        <button type="button" class="cselect-btn"><span class="cselect-val">اختر المنصّة</span><span class="cselect-arrow">▾</span></button>
+                        <div class="cselect-menu"></div>
+                    </div>
                 </div>
             </div>
             <p id="mr-modal-hint" class="admin-add-hint"></p>

@@ -847,16 +847,56 @@ function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 const mrModal = document.getElementById("mr-modal");
 let mrVersions = [];       // all versions for the current project
 let mrModalSlug = null;
+let mrPickedVersion = "";
+let mrPickedLoader = "";
+
+const LOADER_DOT = { paper: "#e64b6b", spigot: "#f0a01a", bukkit: "#e8663f", purpur: "#8b6cf0", folia: "#3fbf6f", bungeecord: "#d0a020", velocity: "#40a0d0", waterfall: "#5090c0" };
+
+/** Populates a custom dropdown (.cselect) with options and a change callback. */
+function fillCSelect(id, items, placeholder, onPick, renderItem) {
+  const root = document.getElementById(id);
+  const valEl = root.querySelector(".cselect-val");
+  const menu = root.querySelector(".cselect-menu");
+  valEl.textContent = placeholder;
+  valEl.classList.add("placeholder");
+  menu.innerHTML = "";
+  items.forEach((it) => {
+    const opt = document.createElement("div");
+    opt.className = "cselect-opt";
+    opt.innerHTML = renderItem ? renderItem(it) : escapeHtml(it);
+    opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      valEl.innerHTML = renderItem ? renderItem(it) : escapeHtml(it);
+      valEl.classList.remove("placeholder");
+      menu.querySelectorAll(".cselect-opt").forEach((o) => o.classList.remove("sel"));
+      opt.classList.add("sel");
+      root.classList.remove("open");
+      onPick(it);
+    });
+    menu.appendChild(opt);
+  });
+}
+
+// Toggle dropdowns + close on outside click.
+document.addEventListener("click", (e) => {
+  document.querySelectorAll(".cselect").forEach((cs) => {
+    if (cs.contains(e.target)) {
+      const btn = e.target.closest(".cselect-btn");
+      if (btn) { const wasOpen = cs.classList.contains("open"); document.querySelectorAll(".cselect").forEach((x) => x.classList.remove("open")); cs.classList.toggle("open", !wasOpen); }
+    } else {
+      cs.classList.remove("open");
+    }
+  });
+});
 
 function installModrinth(slug, title, iconUrl) {
   mrModalSlug = slug;
+  mrPickedVersion = ""; mrPickedLoader = "";
   document.getElementById("mr-modal-title").textContent = title;
   const icon = document.getElementById("mr-modal-icon");
   if (iconUrl) { icon.src = iconUrl; icon.style.display = ""; } else { icon.style.display = "none"; }
-  const verSel = document.getElementById("mr-version");
-  const loaderSel = document.getElementById("mr-loader");
-  verSel.innerHTML = '<option value="">جاري التحميل...</option>';
-  loaderSel.innerHTML = '<option value="">جاري التحميل...</option>';
+  fillCSelect("cs-version", [], "جاري التحميل...", () => {});
+  fillCSelect("cs-loader", [], "جاري التحميل...", () => {});
   setMrHint("", "");
   mrModal.classList.remove("hidden");
 
@@ -865,20 +905,17 @@ function installModrinth(slug, title, iconUrl) {
     .then((versions) => {
       mrVersions = versions || [];
       if (!mrVersions.length) { setMrHint("لا توجد إصدارات متاحة.", "error"); return; }
-      // Unique game versions (newest first as returned) and loaders.
       const games = [], loaders = [];
       mrVersions.forEach((v) => {
         (v.game_versions || []).forEach((g) => { if (!games.includes(g)) games.push(g); });
         (v.loaders || []).forEach((l) => { if (!loaders.includes(l)) loaders.push(l); });
       });
-      verSel.innerHTML = '<option value="">اختر الإصدار</option>' + games.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
-      // Only show server-compatible loaders in the platform list.
+      fillCSelect("cs-version", games, "اختر الإصدار", (g) => { mrPickedVersion = g; });
       const serverLoaders = loaders.filter((l) => ["paper","spigot","bukkit","purpur","folia","bungeecord","velocity","waterfall"].includes(l.toLowerCase()));
       const showLoaders = serverLoaders.length ? serverLoaders : loaders;
-      loaderSel.innerHTML = '<option value="">اختر المنصّة</option>' + showLoaders.map((l) => `<option value="${escapeHtml(l)}">${escapeHtml(cap(l))}</option>`).join("");
-      // Preselect a sensible default loader.
-      const pref = showLoaders.find((l) => ["paper","purpur","spigot","bukkit"].includes(l.toLowerCase()));
-      if (pref) loaderSel.value = pref;
+      fillCSelect("cs-loader", showLoaders, "اختر المنصّة",
+        (l) => { mrPickedLoader = l; },
+        (l) => `<span class="cs-dot" style="background:${LOADER_DOT[l.toLowerCase()]||'#888'}"></span>${escapeHtml(cap(l))}`);
     })
     .catch(() => setMrHint("فشل جلب بيانات الإصدارات.", "error"));
 }
@@ -892,11 +929,9 @@ document.getElementById("mr-modal-cancel").addEventListener("click", () => mrMod
 mrModal.addEventListener("click", (e) => { if (e.target === mrModal) mrModal.classList.add("hidden"); });
 
 document.getElementById("mr-modal-install").addEventListener("click", () => {
-  const gameVer = document.getElementById("mr-version").value;
-  const loader = document.getElementById("mr-loader").value;
+  const gameVer = mrPickedVersion;
+  const loader = mrPickedLoader;
   if (!gameVer || !loader) { setMrHint("اختر الإصدار والمنصّة أولاً.", "error"); return; }
-
-  // Find the best version matching both the chosen game version and loader.
   const match = mrVersions.find((v) =>
     (v.game_versions || []).includes(gameVer) &&
     (v.loaders || []).map((l) => l.toLowerCase()).includes(loader.toLowerCase())
@@ -904,7 +939,6 @@ document.getElementById("mr-modal-install").addEventListener("click", () => {
   if (!match) { setMrHint("لا يوجد إصدار متوافق مع هذا الاختيار.", "error"); return; }
   const file = (match.files || []).find((f) => f.primary) || (match.files || [])[0];
   if (!file) { setMrHint("لا يوجد ملف قابل للتحميل.", "error"); return; }
-
   sendCommand("download_plugin", file.url + "|" + file.filename);
   setMrHint("تم إرسال أمر التثبيت. تابع الحالة أسفل صفحة البلجنات.", "success");
   showToast("جاري تثبيت " + file.filename, "success");
