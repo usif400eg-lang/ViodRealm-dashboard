@@ -285,16 +285,16 @@ function renderPlayersTable() {
       <td>${p.online && p.gamemode ? escapeHtml(p.gamemode) : "-"}</td>
       <td>${p.online && p.ping!=null ? p.ping+"ms" : "-"}</td>
       <td><div class="row-actions">
-        ${p.online ? `<button class="mini-btn wl" data-act="inv" data-name="${escapeHtml(name)}">الحقيبة</button>` : ""}
-        <button class="mini-btn rank" data-act="rank" data-name="${escapeHtml(name)}">رتبة</button>
-        ${p.online ? `<button class="mini-btn rank" data-act="manage" data-name="${escapeHtml(name)}">إجراءات</button>` : ""}
-        ${p.online ? `<button class="mini-btn kick" data-act="kick" data-name="${escapeHtml(name)}">طرد</button>` : ""}
-        <button class="mini-btn wl" data-act="wl" data-name="${escapeHtml(name)}">WL</button>
-        <button class="mini-btn ban" data-act="ban" data-name="${escapeHtml(name)}">حظر</button>
+        ${p.online ? `<button class="icon-btn wl" data-act="inv" data-name="${escapeHtml(name)}"><img src="image/btn-inventory.png" alt=""><span class="ib-label">الحقيبة</span></button>` : ""}
+        <button class="icon-btn rank" data-act="rank" data-name="${escapeHtml(name)}"><img src="image/btn-rank.png" alt=""><span class="ib-label">رتبة</span></button>
+        ${p.online ? `<button class="icon-btn rank" data-act="manage" data-name="${escapeHtml(name)}"><img src="image/btn-actions.png" alt=""><span class="ib-label">إجراءات</span></button>` : ""}
+        ${p.online ? `<button class="icon-btn kick" data-act="kick" data-name="${escapeHtml(name)}"><img src="image/btn-kick.png" alt=""><span class="ib-label">طرد</span></button>` : ""}
+        <button class="icon-btn wl" data-act="wl" data-name="${escapeHtml(name)}"><img src="image/btn-whitelist.png" alt=""><span class="ib-label">WL</span></button>
+        <button class="icon-btn ban" data-act="ban" data-name="${escapeHtml(name)}"><img src="image/btn-ban.png" alt=""><span class="ib-label">حظر</span></button>
       </div></td>`;
     body.appendChild(row);
   });
-  body.querySelectorAll(".mini-btn").forEach((btn) => btn.addEventListener("click", () => handlePlayerAction(btn.dataset.act, btn.dataset.name)));
+  body.querySelectorAll(".icon-btn").forEach((btn) => btn.addEventListener("click", () => handlePlayerAction(btn.dataset.act, btn.dataset.name)));
 }
 
 function handlePlayerAction(act, name) {

@@ -278,6 +278,39 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .mini-btn.wl { background: rgba(52, 211, 153, 0.15); color: var(--ok); }
 .mini-btn:hover { filter: brightness(1.2); }
 
+/* Icon buttons: show icon only, expand to icon + label on hover. */
+.icon-btn {
+    display: inline-flex; align-items: center; gap: 0;
+    background: var(--surface-3); border: 1px solid var(--line);
+    border-radius: 9px; padding: 7px; cursor: pointer;
+    transition: gap 0.18s ease, padding 0.18s ease, background 0.15s, border-color 0.15s;
+    overflow: hidden;
+}
+.icon-btn img {
+    width: 16px; height: 16px; object-fit: contain; flex-shrink: 0;
+    filter: brightness(0) saturate(100%) invert(80%);
+}
+.icon-btn .ib-label {
+    max-width: 0; opacity: 0; white-space: nowrap; font-size: 12px; font-weight: 700;
+    transition: max-width 0.18s ease, opacity 0.18s ease, margin 0.18s ease;
+}
+.icon-btn:hover { gap: 7px; padding: 7px 12px; }
+.icon-btn:hover .ib-label { max-width: 80px; opacity: 1; }
+
+/* Per-action colours (icon tint + hover background/label). */
+.icon-btn.wl:hover { background: rgba(52, 211, 153, 0.15); border-color: var(--ok); }
+.icon-btn.wl:hover img, .icon-btn.wl .ib-label { filter: none; color: var(--ok); }
+.icon-btn.wl:hover img { filter: brightness(0) saturate(100%) invert(64%) sepia(58%) saturate(500%) hue-rotate(100deg); }
+.icon-btn.rank:hover { background: rgba(168, 85, 247, 0.15); border-color: var(--brand); }
+.icon-btn.rank .ib-label { color: var(--brand); }
+.icon-btn.rank:hover img { filter: brightness(0) saturate(100%) invert(47%) sepia(83%) saturate(3552%) hue-rotate(258deg); }
+.icon-btn.kick:hover { background: rgba(245, 158, 11, 0.15); border-color: var(--amber); }
+.icon-btn.kick .ib-label { color: var(--amber); }
+.icon-btn.kick:hover img { filter: brightness(0) saturate(100%) invert(70%) sepia(60%) saturate(1000%) hue-rotate(0deg); }
+.icon-btn.ban:hover { background: rgba(251, 92, 120, 0.15); border-color: var(--bad); }
+.icon-btn.ban .ib-label { color: var(--bad); }
+.icon-btn.ban:hover img { filter: brightness(0) saturate(100%) invert(45%) sepia(60%) saturate(3000%) hue-rotate(320deg); }
+
 .badge { font-size: 12px; padding: 3px 10px; border-radius: 7px; font-weight: 700; }
 .badge.on { background: rgba(52, 211, 153, 0.15); color: var(--ok); }
 .badge.off { background: rgba(95, 107, 133, 0.16); color: var(--text-3); }
