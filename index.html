@@ -575,6 +575,19 @@
         </div>
     </div>
 
+    <!-- Generic confirm / prompt modal (styled, replaces browser dialogs) -->
+    <div id="ask-modal" class="modal hidden">
+        <div class="modal-box ask-box">
+            <div class="ask-head"><span id="ask-icon" class="ask-icon">?</span><h3 id="ask-title">تأكيد</h3></div>
+            <p id="ask-msg" class="panel-desc"></p>
+            <div id="ask-fields" class="ask-fields"></div>
+            <div class="ask-actions">
+                <button id="ask-ok" class="btn-primary full">تأكيد</button>
+                <button id="ask-cancel" class="btn-ghost full">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modrinth download / version picker modal -->
     <div id="mr-modal" class="modal hidden">
         <div class="modal-box mr-modal-box">
