@@ -480,13 +480,21 @@ canvas { max-width: 100%; }
 .inv-count { position: absolute; bottom: 1px; left: 3px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 #000; }
 
 /* Plugins */
-.plugins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
-.plugin-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
-.plugin-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
-.plugin-name { font-weight: 800; font-size: 15px; }
-.plugin-ver { color: var(--brand-2); font-size: 13px; font-family: monospace; }
-.plugin-auth { color: var(--text-3); font-size: 12px; margin-top: 4px; }
-.plugin-desc { color: var(--text-2); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+/* Plugins — list rows */
+.plugins-grid { display: flex; flex-direction: column; gap: 10px; }
+.plugin-row { display: flex; align-items: center; gap: 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; transition: border-color 0.15s, transform 0.15s, background 0.15s; }
+.plugin-row:hover { border-color: var(--brand); transform: translateX(-4px); background: var(--surface-3); }
+.plugin-row.disabled { opacity: 0.6; }
+.pl-logo { position: relative; width: 46px; height: 46px; border-radius: 12px; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #fff; flex-shrink: 0; }
+.pl-status { position: absolute; bottom: -2px; left: -2px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--surface-2); }
+.pl-status.on { background: var(--ok); }
+.pl-status.off { background: var(--text-3); }
+.pl-main { flex: 1; min-width: 0; }
+.pl-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-name { font-weight: 800; font-size: 15px; }
+.pl-ver { color: var(--brand-2); font-size: 12px; font-family: monospace; background: var(--surface-3); padding: 2px 8px; border-radius: 6px; }
+.pl-auth { color: var(--text-3); font-size: 12px; margin-top: 3px; }
+.pl-desc { color: var(--text-2); font-size: 13px; margin-top: 6px; line-height: 1.5; }
 
 /* Modrinth — list style (like the official browse page) */
 .fb-tabs { margin-bottom: 20px; }
