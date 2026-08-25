@@ -150,6 +150,19 @@ document.getElementById("player-search").addEventListener("input", renderPlayers
 // ---- Live listeners ----
 let historyPoints = [];
 let categoryStats = {};
+let readErrorShown = false;
+
+// Shared error handler for all realtime reads. Surfaces permission problems once.
+function onReadError(err) {
+  if (readErrorShown) return;
+  readErrorShown = true;
+  const code = err && err.code ? err.code : (err && err.message ? err.message : "unknown");
+  if (String(code).toUpperCase().includes("PERMISSION")) {
+    showToast("رُفض الوصول للبيانات — تأكد من نشر قواعد Firebase", "error");
+  } else {
+    showToast("خطأ في قراءة البيانات: " + code, "error");
+  }
+}
 
 function attachListeners() {
   db.ref(".info/connected").on("value", (snap) => {
@@ -174,21 +187,21 @@ function attachListeners() {
     setText("ov-entities", s.totalEntities != null ? s.totalEntities : "-");
     setText("ov-chunks", s.loadedChunks != null ? s.loadedChunks : "-");
     setText("ov-version", s.bukkitVersion || s.serverVersion || "-");
-  });
+  }, onReadError);
 
-  serverRef.child("worlds").on("value", (snap) => renderWorlds(toArray(snap.val())));
+  serverRef.child("worlds").on("value", (snap) => renderWorlds(toArray(snap.val())), onReadError);
 
-  serverRef.child("players").on("value", (snap) => { onlinePlayers = toArray(snap.val()); renderOverviewPlayers(); renderPlayersTable(); });
-  serverRef.child("knownPlayers").on("value", (snap) => { knownPlayers = toArray(snap.val()); renderPlayersTable(); });
-  serverRef.child("waypoints").on("value", (snap) => { allWaypoints = toArray(snap.val()); renderWaypoints(allWaypoints); });
-  serverRef.child("bans").on("value", (snap) => { const b = snap.val() || {}; renderBans(b); setText("stat-bans", Object.keys(b).length); });
-  serverRef.child("whitelist").on("value", (snap) => renderWhitelist(snap.val() || {}));
-  serverRef.child("categoryStats").on("value", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); });
-  serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); });
-  serverRef.child("activity").limitToLast(100).on("value", (snap) => renderActivity(snap.val() || {}));
+  serverRef.child("players").on("value", (snap) => { onlinePlayers = toArray(snap.val()); renderOverviewPlayers(); renderPlayersTable(); }, onReadError);
+  serverRef.child("knownPlayers").on("value", (snap) => { knownPlayers = toArray(snap.val()); renderPlayersTable(); }, onReadError);
+  serverRef.child("waypoints").on("value", (snap) => { allWaypoints = toArray(snap.val()); renderWaypoints(allWaypoints); }, onReadError);
+  serverRef.child("bans").on("value", (snap) => { const b = snap.val() || {}; renderBans(b); setText("stat-bans", Object.keys(b).length); }, onReadError);
+  serverRef.child("whitelist").on("value", (snap) => renderWhitelist(snap.val() || {}), onReadError);
+  serverRef.child("categoryStats").on("value", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); }, onReadError);
+  serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); }, onReadError);
+  serverRef.child("activity").limitToLast(100).on("value", (snap) => renderActivity(snap.val() || {}), onReadError);
 
   // Installed plugins list.
-  serverRef.child("plugins").on("value", (snap) => renderPlugins(toArray(snap.val())));
+  serverRef.child("plugins").on("value", (snap) => renderPlugins(toArray(snap.val())), onReadError);
   // Plugin install status feedback.
   serverRef.child("pluginInstall").on("value", (snap) => {
     const r = snap.val();
@@ -406,7 +419,7 @@ function buildSlot(item) {
   if (item && item.type && item.type !== "AIR") {
     const url = itemTextureUrl(item.type);
     const nameAttr = item.name ? item.name.replace(/§./g, "") : item.type;
-    slot.innerHTML = `<img src="${url}" alt="" loading="lazy" onerror="this.style.opacity=0.3;this.src='${fallbackTexture()}'" title="${escapeHtml(nameAttr)}">` +
+    slot.innerHTML = `<img src="${url}" alt="" loading="lazy" onerror="this.onerror=null;this.style.opacity=0.3;this.src='${fallbackTexture()}'" title="${escapeHtml(nameAttr)}">` +
       (item.amount > 1 ? `<span class="inv-count">${item.amount}</span>` : "");
     slot.title = nameAttr;
   }
@@ -469,9 +482,10 @@ function renderWaypoints(waypoints) {
   body.innerHTML = "";
   waypoints.forEach((w) => {
     const row = document.createElement("tr");
+    const rc = (v) => Number.isFinite(w[v]) ? Math.round(w[v]) : "-";
     row.innerHTML = `
       <td>${w.id}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.owner)}</td><td>${escapeHtml(w.world)}</td>
-      <td>${Math.round(w.x)}, ${Math.round(w.y)}, ${Math.round(w.z)}</td>
+      <td>${rc("x")}, ${rc("y")}, ${rc("z")}</td>
       <td><span class="tag">${escapeHtml(w.category || "OTHER")}</span></td>
       <td>${w.public ? '<span class="tag public">عام</span>' : "-"}</td>
       <td><div class="row-actions">
@@ -601,10 +615,15 @@ function actionIcon(a) {
 }
 
 // ---- Charts ----
+function chartsVisible() {
+  const s = document.getElementById("section-charts");
+  return s && s.classList.contains("active");
+}
 function renderCharts() { updateTimeCharts(); updateCategoryChart(); }
 
 function updateTimeCharts() {
   if (typeof Chart === "undefined") return;
+  if (!chartsVisible()) return; // avoid building on a hidden (0x0) canvas
   const labels = historyPoints.map((h) => new Date(h.t).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }));
   const online = historyPoints.map((h) => h.online || 0);
   const wps = historyPoints.map((h) => h.waypoints || 0);
@@ -626,6 +645,7 @@ function drawLine(canvasId, key, labels, data, label, color) {
 
 function updateCategoryChart() {
   if (typeof Chart === "undefined") return;
+  if (!chartsVisible()) return;
   const el = document.getElementById("chart-categories");
   if (!el) return;
   const labels = Object.keys(categoryStats);
