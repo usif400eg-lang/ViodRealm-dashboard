@@ -194,9 +194,21 @@ body {
     background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 60%); pointer-events: none;
 }
 .stat-card:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }
-.stat-icon { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 25px; flex-shrink: 0; overflow: hidden; }
+.stat-icon { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 25px; flex-shrink: 0; overflow: hidden; background: rgba(168, 85, 247, 0.16); }
 /* Tint the (black) stat PNG icons to the brand purple. */
 .stat-icon img { width: 30px; height: 30px; object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(47%) sepia(83%) saturate(3552%) hue-rotate(258deg) brightness(101%) contrast(94%); }
+
+/* Purple tint used across all UI icons (converts black/white PNGs to brand purple). */
+.ctrl-icon img, .cb-icon, .mini-ic, .mr-search-icon img {
+    filter: brightness(0) saturate(100%) invert(47%) sepia(83%) saturate(3552%) hue-rotate(258deg) brightness(101%) contrast(94%);
+}
+.ctrl-icon { overflow: hidden; }
+.ctrl-icon img { width: 22px; height: 22px; object-fit: contain; }
+.cb-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; }
+.mini-ic { width: 14px; height: 14px; object-fit: contain; vertical-align: middle; margin-left: 2px; }
+.mr-search-icon img { width: 16px; height: 16px; object-fit: contain; }
+.act-icon img { width: 18px; height: 18px; object-fit: contain;
     filter: brightness(0) saturate(100%) invert(47%) sepia(83%) saturate(3552%) hue-rotate(258deg) brightness(101%) contrast(94%); }
 .i-blue { background: rgba(168, 85, 247, 0.16); }
 .i-green { background: rgba(168, 85, 247, 0.16); }

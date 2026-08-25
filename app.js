@@ -234,7 +234,7 @@ function renderWorlds(worlds) {
     const item = document.createElement("div");
     item.className = "world-item";
     item.innerHTML = `<div class="world-name">${escapeHtml(nameMap[w.name] || w.name)}</div>
-      <div class="world-stats"><span>👥 ${w.players ?? 0}</span><span>📦 ${w.entities ?? 0}</span><span>🧩 ${w.chunks ?? 0}</span></div>`;
+      <div class="world-stats"><span><img class="mini-ic" src="image/ic-player.png" alt=""> ${w.players ?? 0}</span><span><img class="mini-ic" src="image/ic-entity.png" alt=""> ${w.entities ?? 0}</span><span><img class="mini-ic" src="image/ic-chunk.png" alt=""> ${w.chunks ?? 0}</span></div>`;
     c.appendChild(item);
   });
 }
@@ -394,7 +394,7 @@ function renderInspect(d) {
   }
   document.getElementById("insp-level").textContent = d.level || 0;
   document.getElementById("insp-meta").innerHTML =
-    `<span>🎮 ${escapeHtml(d.gamemode||"-")}</span><span>🌍 ${escapeHtml(d.world||"-")}</span><span>📍 ${d.x}, ${d.y}, ${d.z}</span>`;
+    `<span><img class="mini-ic" src="image/ic-gamemode.png" alt=""> ${escapeHtml(d.gamemode||"-")}</span><span><img class="mini-ic" src="image/ic-world.png" alt=""> ${escapeHtml(d.world||"-")}</span><span><img class="mini-ic" src="image/ic-location.png" alt=""> ${d.x}, ${d.y}, ${d.z}</span>`;
 
   renderInvRow("inv-armor", buildArmorRow(d));
   renderInvGrid("inv-main", toArray(d.main));
@@ -618,7 +618,7 @@ function renderActivity(activity) {
     const by = (e.by || "dashboard").split("@")[0];
     const item = document.createElement("div");
     item.className = "activity-item";
-    item.innerHTML = `<div class="act-icon">${escapeHtml(actionIcon(e.action))}</div>
+    item.innerHTML = `<div class="act-icon"><img src="image/${actionIcon(e.action)}" alt=""></div>
       <div class="act-body"><div class="act-main"><strong>${escapeHtml(by)}</strong> — ${escapeHtml(actionLabel(e.action))} <span class="act-target">${escapeHtml(e.target||"")}</span></div>
       <div class="act-time">${escapeHtml(when)}</div></div>`;
     return item;
@@ -635,12 +635,12 @@ function actionLabel(a) {
   return m[a] || a;
 }
 function actionIcon(a) {
-  if (["ban","ban_id","kick","unban"].includes(a)) return "🛡";
-  if (["set_rank"].includes(a)) return "👑";
-  if (["msg","broadcast"].includes(a)) return "✉";
-  if (["time","weather","save_all","console"].includes(a)) return "⚙";
-  if (a && a.includes("waypoint")) return "✦";
-  return "•";
+  if (["ban","ban_id","kick","unban"].includes(a)) return "act-mod.png";
+  if (["set_rank"].includes(a)) return "act-rank.png";
+  if (["msg","broadcast"].includes(a)) return "act-msg.png";
+  if (["time","weather","save_all","console"].includes(a)) return "act-server.png";
+  if (a && a.includes("waypoint")) return "act-waypoint.png";
+  return "act-default.png";
 }
 
 // ---- Charts ----
@@ -778,8 +778,8 @@ function renderModrinth(hits) {
         <div class="mr-row-tags">${catTags}${loaderTags}${extra>0?`<span class="mr-tag more">+${extra}</span>`:""}</div>
       </div>
       <div class="mr-row-side">
-        <div class="mr-stat">⬇ ${formatNum(h.downloads)}</div>
-        <div class="mr-stat heart">♥ ${formatNum(h.follows)}</div>
+        <div class="mr-stat"><img class="mini-ic" src="image/ic-download.png" alt=""> ${formatNum(h.downloads)}</div>
+        <div class="mr-stat heart"><img class="mini-ic" src="image/ic-heart.png" alt=""> ${formatNum(h.follows)}</div>
         <button class="btn-primary mr-install" data-slug="${escapeHtml(h.slug)}" data-title="${escapeHtml(h.title)}">تثبيت</button>
       </div>`;
     results.appendChild(row);
