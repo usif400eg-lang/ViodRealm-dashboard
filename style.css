@@ -480,21 +480,48 @@ canvas { max-width: 100%; }
 .inv-count { position: absolute; bottom: 1px; left: 3px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 #000; }
 
 /* Plugins */
-/* Plugins — list rows */
-.plugins-grid { display: flex; flex-direction: column; gap: 10px; }
-.plugin-row { display: flex; align-items: center; gap: 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; transition: border-color 0.15s, transform 0.15s, background 0.15s; }
-.plugin-row:hover { border-color: var(--brand); transform: translateX(-4px); background: var(--surface-3); }
-.plugin-row.disabled { opacity: 0.6; }
-.pl-logo { position: relative; width: 46px; height: 46px; border-radius: 12px; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #fff; flex-shrink: 0; }
-.pl-status { position: absolute; bottom: -2px; left: -2px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--surface-2); }
-.pl-status.on { background: var(--ok); }
-.pl-status.off { background: var(--text-3); }
-.pl-main { flex: 1; min-width: 0; }
-.pl-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.pl-name { font-weight: 800; font-size: 15px; }
-.pl-ver { color: var(--brand-2); font-size: 12px; font-family: monospace; background: var(--surface-3); padding: 2px 8px; border-radius: 6px; }
-.pl-auth { color: var(--text-3); font-size: 12px; margin-top: 3px; }
-.pl-desc { color: var(--text-2); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+/* Plugins — legendary cards */
+.plugins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+.plugin-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(160deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--line); border-radius: 18px; padding: 20px;
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), border-color 0.25s, box-shadow 0.25s;
+}
+.plugin-card::before {
+    content: ""; position: absolute; inset: 0; padding: 1px; border-radius: inherit;
+    background: linear-gradient(140deg, rgba(168,85,247,0.6), transparent 40%, transparent 60%, rgba(34,211,238,0.4));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.plugin-card:hover { transform: translateY(-6px); border-color: transparent; box-shadow: 0 20px 50px -18px rgba(168,85,247,0.55); }
+.plugin-card:hover::before { opacity: 1; }
+.plugin-card.disabled { opacity: 0.55; }
+
+/* Rotating glow behind the logo */
+.pc-glow { position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.35), transparent 70%); filter: blur(10px); pointer-events: none; }
+/* Diagonal shine sweep on hover */
+.pc-shine { position: absolute; top: 0; left: -120%; width: 60%; height: 100%; pointer-events: none;
+    background: linear-gradient(105deg, transparent, rgba(255,255,255,0.08), transparent);
+    transition: left 0.6s ease; }
+.plugin-card:hover .pc-shine { left: 140%; }
+
+.pc-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; position: relative; z-index: 1; }
+.pc-logo { width: 56px; height: 56px; border-radius: 16px; background: var(--brand-grad);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 24px; color: #fff;
+    box-shadow: 0 8px 20px -6px rgba(168,85,247,0.6); }
+.pc-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 20px; }
+.pc-badge.on { background: rgba(52,211,153,0.15); color: var(--ok); }
+.pc-badge.off { background: rgba(95,107,133,0.16); color: var(--text-3); }
+.pc-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pc-badge.on .pc-dot { animation: pulse 1.8s ease-in-out infinite; }
+.pc-name { font-weight: 800; font-size: 18px; position: relative; z-index: 1; }
+.pc-ver { display: inline-block; color: var(--brand-2); font-size: 12px; font-family: monospace; background: var(--surface-3); padding: 2px 9px; border-radius: 6px; margin-top: 6px; position: relative; z-index: 1; }
+.pc-auth { color: var(--text-3); font-size: 12px; margin-top: 8px; position: relative; z-index: 1; }
+.pc-desc { color: var(--text-2); font-size: 13px; margin-top: 10px; line-height: 1.6; position: relative; z-index: 1; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* Modrinth — list style (like the official browse page) */
 .fb-tabs { margin-bottom: 20px; }

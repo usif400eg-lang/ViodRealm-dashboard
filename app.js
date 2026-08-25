@@ -726,27 +726,25 @@ function updateCategoryChart() {
 // ---- Plugins & Modrinth ----
 function renderPlugins(plugins) {
   const c = document.getElementById("plugins-list");
-  const enabledCount = plugins.filter((p) => p.enabled).length;
   document.getElementById("plugins-count").textContent = plugins.length;
   if (!plugins.length) { c.innerHTML = '<p class="empty-msg">لا توجد بيانات — اضغط تحديث</p>'; return; }
-  // Sort: enabled first, then alphabetical.
   const sorted = [...plugins].sort((a, b) => (b.enabled - a.enabled) || String(a.name).localeCompare(b.name));
   c.innerHTML = "";
   sorted.forEach((p) => {
     const initial = (p.name || "?").charAt(0).toUpperCase();
     const card = document.createElement("div");
-    card.className = "plugin-row" + (p.enabled ? "" : " disabled");
+    card.className = "plugin-card" + (p.enabled ? "" : " disabled");
     card.innerHTML = `
-      <div class="pl-logo">${escapeHtml(initial)}<span class="pl-status ${p.enabled ? "on" : "off"}"></span></div>
-      <div class="pl-main">
-        <div class="pl-top">
-          <span class="pl-name">${escapeHtml(p.name)}</span>
-          <span class="pl-ver">v${escapeHtml(p.version || "?")}</span>
-          <span class="badge ${p.enabled ? "on" : "off"}">${p.enabled ? "مفعّل" : "معطّل"}</span>
-        </div>
-        ${p.authors ? `<div class="pl-auth">by ${escapeHtml(p.authors)}</div>` : ""}
-        ${p.description ? `<div class="pl-desc">${escapeHtml(p.description)}</div>` : ""}
-      </div>`;
+      <div class="pc-glow"></div>
+      <div class="pc-shine"></div>
+      <div class="pc-head">
+        <div class="pc-logo">${escapeHtml(initial)}</div>
+        <span class="pc-badge ${p.enabled ? "on" : "off"}"><span class="pc-dot"></span>${p.enabled ? "مفعّل" : "معطّل"}</span>
+      </div>
+      <div class="pc-name">${escapeHtml(p.name)}</div>
+      <div class="pc-ver">v${escapeHtml(p.version || "?")}</div>
+      ${p.authors ? `<div class="pc-auth">by ${escapeHtml(p.authors)}</div>` : ""}
+      ${p.description ? `<div class="pc-desc">${escapeHtml(p.description)}</div>` : ""}`;
     c.appendChild(card);
   });
 }
