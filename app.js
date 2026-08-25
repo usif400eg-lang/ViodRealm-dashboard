@@ -138,6 +138,9 @@ document.querySelectorAll(".nav-item").forEach((item) => {
 });
 document.getElementById("menu-toggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
 
+// Attach tooltips to action icon buttons (title-like, styled).
+function tip(el, text) { if (el) el.setAttribute("data-tip", text); }
+
 // ---- Player filter ----
 document.querySelectorAll("#player-filter .seg").forEach((seg) => {
   seg.addEventListener("click", () => {
@@ -199,7 +202,7 @@ function attachListeners() {
   serverRef.child("bans").on("value", (snap) => { const b = snap.val() || {}; renderBans(b); setText("stat-bans", Object.keys(b).length); }, onReadError);
   serverRef.child("whitelist").on("value", (snap) => renderWhitelist(snap.val() || {}), onReadError);
   serverRef.child("categoryStats").on("value", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); }, onReadError);
-  serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); }, onReadError);
+  serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); updateSparklines(); }, onReadError);
   serverRef.child("activity").limitToLast(100).on("value", (snap) => renderActivity(snap.val() || {}), onReadError);
 
   // Installed plugins list.
@@ -242,6 +245,15 @@ function renderWorlds(worlds) {
 function toArray(v) { if (!v) return []; return Array.isArray(v) ? v.filter(Boolean) : Object.values(v).filter(Boolean); }
 function setText(id, v) { document.getElementById(id).textContent = v; }
 
+// Real player head avatar from mc-heads; falls back to the initial letter on error.
+function headAvatar(name, cls) {
+  const safe = escapeHtml(name || "?");
+  const initial = escapeHtml((name || "?").charAt(0).toUpperCase());
+  const url = "https://mc-heads.net/avatar/" + encodeURIComponent(name || "steve") + "/40";
+  return `<span class="${cls} head"><img src="${url}" alt="" loading="lazy" onerror="this.onerror=null;this.remove();this.parentNode.textContent='${initial}'">` +
+         `</span>`;
+}
+
 // ---- Overview ----
 function renderOverviewPlayers() {
   const c = document.getElementById("overview-players");
@@ -251,7 +263,7 @@ function renderOverviewPlayers() {
   onlinePlayers.forEach((p) => {
     const chip = document.createElement("div");
     chip.className = "player-chip";
-    chip.innerHTML = `<span class="p-avatar">${escapeHtml((p.name||"?").charAt(0).toUpperCase())}</span><span class="p-name">${escapeHtml(p.name)}</span>`;
+    chip.innerHTML = `${headAvatar(p.name, "p-avatar")}<span class="p-name">${escapeHtml(p.name)}</span>`;
     c.appendChild(chip);
   });
 }
@@ -277,7 +289,7 @@ function renderPlayersTable() {
     const rank = (p.rank || "member").toLowerCase();
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><div class="cell-player"><span class="cell-avatar">${escapeHtml(name.charAt(0).toUpperCase())}</span>${escapeHtml(name)}</div></td>
+      <td><div class="cell-player">${headAvatar(name, "cell-avatar")}${escapeHtml(name)}</div></td>
       <td><span class="badge ${p.online?"on":"off"}">${p.online?"متصل":"غير متصل"}</span></td>
       <td><span class="rank-badge ${rank}">${rank.toUpperCase()}</span></td>
       <td>${escapeHtml(p.world || "-")}</td>
@@ -383,6 +395,7 @@ function renderInspect(d) {
     const half = !filled && (i * 2 + 1) === health;
     hearts.innerHTML += `<span class="heart ${filled ? "full" : half ? "half" : "empty"}">❤</span>`;
   }
+  hearts.innerHTML += `<div class="vbar"><div class="vbar-fill hp" style="width:${Math.min(100, (health/maxHealth)*100)}%"></div></div><span class="vbar-txt">${health}/${maxHealth}</span>`;
   // Hunger (each = 2 points, max 20 = 10 icons).
   const food = d.food || 0;
   const hunger = document.getElementById("insp-food");
@@ -392,6 +405,7 @@ function renderInspect(d) {
     const half = !filled && (i * 2 + 1) === food;
     hunger.innerHTML += `<span class="drumstick ${filled ? "full" : half ? "half" : "empty"}">🍗</span>`;
   }
+  hunger.innerHTML += `<div class="vbar"><div class="vbar-fill food" style="width:${Math.min(100, (food/20)*100)}%"></div></div><span class="vbar-txt">${food}/20</span>`;
   document.getElementById("insp-level").textContent = d.level || 0;
   document.getElementById("insp-meta").innerHTML =
     `<span><img class="mini-ic" src="image/ic-gamemode.png" alt=""> ${escapeHtml(d.gamemode||"-")}</span><span><img class="mini-ic" src="image/ic-world.png" alt=""> ${escapeHtml(d.world||"-")}</span><span><img class="mini-ic" src="image/ic-location.png" alt=""> ${d.x}, ${d.y}, ${d.z}</span>`;
@@ -562,7 +576,7 @@ function renderBans(bans) {
     const b = bans[k] || {}; const name = b.name || k;
     const item = document.createElement("div");
     item.className = "mod-item";
-    item.innerHTML = `<div class="mod-item-info"><span class="p-avatar">${escapeHtml((name||"?").charAt(0).toUpperCase())}</span><div><div class="m-name">${escapeHtml(name)}</div>${b.reason?`<div class="m-reason">${escapeHtml(b.reason)}</div>`:""}</div></div><button class="unban-btn" data-name="${escapeHtml(name)}">فك الحظر</button>`;
+    item.innerHTML = `<div class="mod-item-info">${headAvatar(name, "p-avatar")}<div><div class="m-name">${escapeHtml(name)}</div>${b.reason?`<div class="m-reason">${escapeHtml(b.reason)}</div>`:""}</div></div><button class="unban-btn" data-name="${escapeHtml(name)}">فك الحظر</button>`;
     c.appendChild(item);
   });
   c.querySelectorAll(".unban-btn").forEach((btn) => btn.addEventListener("click", () => { sendCommand("unban", btn.dataset.name); showToast(`فك حظر ${btn.dataset.name}`, "success"); }));
@@ -578,7 +592,7 @@ function renderWhitelist(wl) {
     const name = (wl[k] && wl[k].name) || k;
     const item = document.createElement("div");
     item.className = "mod-item";
-    item.innerHTML = `<div class="mod-item-info"><span class="p-avatar">${escapeHtml((name||"?").charAt(0).toUpperCase())}</span><div class="m-name">${escapeHtml(name)}</div></div><button class="unban-btn" data-name="${escapeHtml(name)}">إزالة</button>`;
+    item.innerHTML = `<div class="mod-item-info">${headAvatar(name, "p-avatar")}<div class="m-name">${escapeHtml(name)}</div></div><button class="unban-btn" data-name="${escapeHtml(name)}">إزالة</button>`;
     c.appendChild(item);
   });
   c.querySelectorAll(".unban-btn").forEach((btn) => btn.addEventListener("click", () => { sendCommand("whitelist_remove", btn.dataset.name); showToast(`إزالة ${btn.dataset.name}`, "success"); }));
@@ -648,6 +662,27 @@ function chartsVisible() {
   const s = document.getElementById("section-charts");
   return s && s.classList.contains("active");
 }
+
+// Mini sparklines inside the overview stat cards (online + total waypoints trend).
+function updateSparklines() {
+  if (typeof Chart === "undefined" || !historyPoints.length) return;
+  const online = historyPoints.map((h) => h.online || 0);
+  const wps = historyPoints.map((h) => h.waypoints || 0);
+  drawSpark("spark-online", online, "#a855f7");
+  drawSpark("spark-waypoints", wps, "#7c3aed");
+}
+function drawSpark(id, data, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const labels = data.map(() => "");
+  if (charts[id]) { charts[id].data.labels = labels; charts[id].data.datasets[0].data = data; charts[id].update("none"); return; }
+  charts[id] = new Chart(el, {
+    type: "line",
+    data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color + "22", fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: false }
+  });
+}
+
 function renderCharts() { updateTimeCharts(); updateCategoryChart(); }
 
 function updateTimeCharts() {
