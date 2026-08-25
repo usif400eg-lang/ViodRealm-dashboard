@@ -285,6 +285,7 @@ function renderPlayersTable() {
       <td>${p.online && p.gamemode ? escapeHtml(p.gamemode) : "-"}</td>
       <td>${p.online && p.ping!=null ? p.ping+"ms" : "-"}</td>
       <td><div class="row-actions">
+        ${p.online ? `<button class="mini-btn wl" data-act="inv" data-name="${escapeHtml(name)}">الحقيبة</button>` : ""}
         <button class="mini-btn rank" data-act="rank" data-name="${escapeHtml(name)}">رتبة</button>
         ${p.online ? `<button class="mini-btn rank" data-act="manage" data-name="${escapeHtml(name)}">إجراءات</button>` : ""}
         ${p.online ? `<button class="mini-btn kick" data-act="kick" data-name="${escapeHtml(name)}">طرد</button>` : ""}
@@ -303,6 +304,7 @@ function handlePlayerAction(act, name) {
     case "wl": sendCommand("whitelist_add", name); showToast(`تمت إضافة ${name} للـ whitelist`, "success"); break;
     case "rank": openRankModal(name); break;
     case "manage": openPlayerModal(name); break;
+    case "inv": openPlayerModal(name); break;
   }
 }
 
