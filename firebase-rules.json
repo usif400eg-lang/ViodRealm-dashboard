@@ -30,6 +30,16 @@
       "$key": {
         ".read": "auth != null"
       }
+    },
+    "profiles": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "siteConfig": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email.toLowerCase() == 'usif400.eg@gmail.com'"
     }
   }
 }

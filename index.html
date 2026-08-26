@@ -94,10 +94,10 @@
     <div id="dashboard" class="app hidden">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <div class="brand-logo small">VR</div>
+                <div class="brand-logo small" id="site-logo">VR</div>
                 <div class="sidebar-brand-text">
-                    <span class="sb-title">ViodRealms</span>
-                    <span class="sb-sub">Control Panel</span>
+                    <span class="sb-title" id="site-title">ViodRealms</span>
+                    <span class="sb-sub" id="site-sub">Control Panel</span>
                 </div>
             </div>
             <nav class="sidebar-nav">
@@ -134,16 +134,33 @@
                 <a href="#admins" class="nav-item owner-only" data-target="admins" id="nav-admins">
                     <img class="nav-icon-img" src="image/admins.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إدارة الأدمن</span>
                 </a>
+                <a href="#site" class="nav-item owner-only" data-target="site" id="nav-site">
+                    <img class="nav-icon-img" src="image/ic-system.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إعدادات الموقع</span>
+                </a>
                 <a href="#firebase" class="nav-item owner-only" data-target="firebase" id="nav-firebase">
                     <img class="nav-icon-img" src="image/ic-firebase.webp" alt="" onerror="this.style.display='none'"><span class="nav-text">Firebase</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <div class="user-card">
+                <div class="user-card" id="user-card">
                     <img id="user-avatar" class="user-avatar" alt="" referrerpolicy="no-referrer">
                     <div class="user-info">
                         <span id="user-name" class="user-name"></span>
                         <span id="user-email" class="user-email"></span>
+                    </div>
+                    <!-- Hover profile popup -->
+                    <div class="user-popup" id="user-popup">
+                        <div class="up-banner" id="up-banner"></div>
+                        <div class="up-body">
+                            <img id="up-avatar" class="up-avatar" alt="" referrerpolicy="no-referrer">
+                            <div class="up-name" id="up-name">-</div>
+                            <span id="up-role" class="up-role">عضو</span>
+                            <div class="up-email" id="up-email">-</div>
+                            <div class="up-actions">
+                                <button class="up-btn" data-target="profile" id="up-profile-btn">ملفّي الشخصي</button>
+                                <button class="up-btn owner-only" data-target="site" id="up-site-btn">إعدادات الموقع</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <button id="logout-btn" class="btn-ghost full">تسجيل الخروج</button>
@@ -168,7 +185,7 @@
             <!-- Profile -->
             <section id="section-profile" class="section">
                 <div class="profile-hero">
-                    <div class="profile-cover"></div>
+                    <div class="profile-cover" id="profile-cover"></div>
                     <div class="profile-main">
                         <img id="profile-avatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
                         <div class="profile-id">
@@ -199,12 +216,61 @@
                 </div>
                 <div class="panel">
                     <div class="panel-head"><h3>تعديل الملف الشخصي</h3></div>
-                    <p class="panel-desc">حدّث اسمك الظاهر في اللوحة.</p>
-                    <div class="control-row">
-                        <input type="text" id="profile-newname" placeholder="الاسم الجديد">
-                        <button id="profile-save" class="btn-primary">حفظ</button>
+                    <p class="panel-desc">حدّث اسمك، صورتك، وصورة الغلاف (البانر).</p>
+                    <div class="edit-grid">
+                        <div class="edit-field">
+                            <label>الاسم</label>
+                            <input type="text" id="profile-newname" placeholder="الاسم الجديد">
+                        </div>
+                        <div class="edit-field">
+                            <label>رابط صورة البروفايل</label>
+                            <input type="text" id="profile-photo" placeholder="https://... رابط صورة">
+                        </div>
+                        <div class="edit-field">
+                            <label>رابط صورة الغلاف (بانر)</label>
+                            <input type="text" id="profile-banner" placeholder="https://... رابط صورة">
+                        </div>
                     </div>
+                    <button id="profile-save" class="btn-primary mt-8">حفظ التغييرات</button>
                     <p id="profile-hint" class="admin-add-hint"></p>
+                </div>
+            </section>
+
+            <!-- Site settings (owner only) -->
+            <section id="section-site" class="section">
+                <div class="panel">
+                    <div class="panel-head"><span class="ctrl-icon"><img src="image/ic-system.png" alt=""></span><h3>إعدادات الموقع</h3></div>
+                    <p class="panel-desc">غيّر اسم الموقع وشعاره. تُحفظ في Firebase وتظهر لكل المستخدمين.</p>
+                    <div class="edit-grid">
+                        <div class="edit-field">
+                            <label>اسم الموقع</label>
+                            <input type="text" id="site-name-input" placeholder="ViodRealms">
+                        </div>
+                        <div class="edit-field">
+                            <label>العنوان الفرعي</label>
+                            <input type="text" id="site-sub-input" placeholder="Control Panel">
+                        </div>
+                        <div class="edit-field">
+                            <label>رابط شعار الموقع (اللوجو)</label>
+                            <input type="text" id="site-logo-input" placeholder="https://... رابط صورة اللوجو">
+                        </div>
+                        <div class="edit-field">
+                            <label>نص اللوجو (لو مفيش صورة)</label>
+                            <input type="text" id="site-logotext-input" placeholder="VR" maxlength="3">
+                        </div>
+                    </div>
+                    <button id="site-save" class="btn-primary mt-8">حفظ إعدادات الموقع</button>
+                    <p id="site-hint" class="admin-add-hint"></p>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h3>معاينة</h3></div>
+                    <div class="site-preview">
+                        <div class="brand-logo small" id="site-preview-logo">VR</div>
+                        <div class="sidebar-brand-text">
+                            <span class="sb-title" id="site-preview-title">ViodRealms</span>
+                            <span class="sb-sub" id="site-preview-sub">Control Panel</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 

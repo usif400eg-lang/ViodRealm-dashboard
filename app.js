@@ -12,6 +12,8 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 const SERVER_ID = window.SERVER_ID || "server1";
 const serverRef = db.ref("servers/" + SERVER_ID);
 const adminsRef = db.ref("admins");
+const profilesRef = db.ref("profiles");   // per-user profile extras (photo, banner)
+const siteRef = db.ref("siteConfig");      // global site name/logo
 
 const loginScreen = document.getElementById("login-screen");
 const pendingScreen = document.getElementById("pending-screen");
@@ -201,30 +203,60 @@ function providerLabel(user) {
 
 function fillProfile(user) {
   const av = document.getElementById("profile-avatar");
-  if (user.photoURL) { av.src = user.photoURL; av.style.display = ""; }
-  else { av.src = "https://mc-heads.net/avatar/steve/80"; }
+  // Load saved profile extras (custom photo + banner) from Firebase.
+  profilesRef.child(user.uid).get().then((snap) => {
+    const p = snap.val() || {};
+    const photo = p.photo || user.photoURL;
+    if (photo) { av.src = photo; av.style.display = ""; }
+    else { av.src = "https://mc-heads.net/avatar/steve/80"; }
+    const cover = document.getElementById("profile-cover");
+    if (p.banner) { cover.style.backgroundImage = `url('${p.banner}')`; cover.style.backgroundSize = "cover"; cover.style.backgroundPosition = "center"; }
+    // Prefill edit fields.
+    document.getElementById("profile-photo").value = p.photo || "";
+    document.getElementById("profile-banner").value = p.banner || "";
+    // Reflect custom photo in sidebar + popup too.
+    if (p.photo) { document.getElementById("user-avatar").src = p.photo; document.getElementById("up-avatar").src = p.photo; }
+    if (p.banner) document.getElementById("up-banner").style.backgroundImage = `url('${p.banner}')`;
+  }).catch(() => {
+    if (user.photoURL) { av.src = user.photoURL; } else { av.src = "https://mc-heads.net/avatar/steve/80"; }
+  });
+
   document.getElementById("profile-name").textContent = user.displayName || (user.email ? user.email.split("@")[0] : "مستخدم");
-  document.getElementById("profile-role").textContent = currentUserIsOwner ? "المالك" : "أدمن";
-  document.getElementById("profile-role").className = "profile-role" + (currentUserIsOwner ? " owner" : "");
+  const roleEl = document.getElementById("profile-role");
+  roleEl.textContent = currentUserIsOwner ? "المالك" : "أدمن";
+  roleEl.className = "profile-role" + (currentUserIsOwner ? " owner" : "");
   document.getElementById("profile-email").textContent = user.email || "-";
   document.getElementById("profile-provider").textContent = providerLabel(user);
   document.getElementById("profile-uid").textContent = user.uid;
   const md = user.metadata || {};
   document.getElementById("profile-created").textContent = md.creationTime ? new Date(md.creationTime).toLocaleDateString("ar-EG") : "-";
   document.getElementById("profile-last").textContent = md.lastSignInTime ? new Date(md.lastSignInTime).toLocaleString("ar-EG") : "-";
+
+  // Fill the hover popup.
+  document.getElementById("up-name").textContent = user.displayName || (user.email ? user.email.split("@")[0] : "مستخدم");
+  const upRole = document.getElementById("up-role");
+  upRole.textContent = currentUserIsOwner ? "المالك" : "أدمن";
+  upRole.className = "up-role" + (currentUserIsOwner ? " owner" : "");
+  document.getElementById("up-email").textContent = user.email || "-";
+  const upAv = document.getElementById("up-avatar");
+  upAv.src = user.photoURL || ("https://mc-heads.net/avatar/" + encodeURIComponent(user.displayName || user.email || "steve") + "/80");
 }
 
 const profileSave = document.getElementById("profile-save");
 if (profileSave) profileSave.addEventListener("click", () => {
   const name = document.getElementById("profile-newname").value.trim();
+  const photo = document.getElementById("profile-photo").value.trim();
+  const banner = document.getElementById("profile-banner").value.trim();
   const hint = document.getElementById("profile-hint");
-  if (!name) { hint.textContent = "أدخل اسماً."; hint.className = "admin-add-hint error"; return; }
-  currentUser.updateProfile({ displayName: name }).then(() => {
-    hint.textContent = "تم تحديث الاسم."; hint.className = "admin-add-hint success";
-    document.getElementById("profile-name").textContent = name;
-    document.getElementById("user-name").textContent = name;
-    document.getElementById("profile-newname").value = "";
-  }).catch(() => { hint.textContent = "فشل التحديث."; hint.className = "admin-add-hint error"; });
+  const tasks = [];
+  if (name) tasks.push(currentUser.updateProfile({ displayName: name }));
+  tasks.push(profilesRef.child(currentUser.uid).update({ photo: photo || null, banner: banner || null }));
+  Promise.all(tasks).then(() => {
+    hint.textContent = "تم حفظ التغييرات."; hint.className = "admin-add-hint success";
+    if (name) { document.getElementById("profile-name").textContent = name; document.getElementById("user-name").textContent = name; }
+    if (photo) { document.getElementById("profile-avatar").src = photo; document.getElementById("user-avatar").src = photo; document.getElementById("up-avatar").src = photo; }
+    if (banner) { const cov = document.getElementById("profile-cover"); cov.style.backgroundImage = `url('${banner}')`; cov.style.backgroundSize = "cover"; cov.style.backgroundPosition = "center"; document.getElementById("up-banner").style.backgroundImage = `url('${banner}')`; }
+  }).catch(() => { hint.textContent = "فشل الحفظ."; hint.className = "admin-add-hint error"; });
 });
 
 function showDashboard(user) {
@@ -239,9 +271,9 @@ function showDashboard(user) {
   const myId = document.getElementById("my-admin-id");
   if (myId) myId.textContent = user.uid;
   const navAdmins = document.getElementById("nav-admins");
-  if (currentUserIsOwner) { navAdmins.style.display = ""; attachAdminManagement(); }
+  if (currentUserIsOwner) { navAdmins.style.display = ""; attachAdminManagement(); attachSiteSettings(); }
   else { navAdmins.style.display = "none"; }
-  // Owner-only elements (e.g. plugin install panel).
+  // Owner-only elements (admin nav, site settings, plugin install panel, popup buttons).
   document.querySelectorAll(".owner-only").forEach((el) => {
     if (el.id === "nav-admins") return;
     el.style.display = currentUserIsOwner ? "" : "none";
@@ -270,6 +302,7 @@ function translateAuthError(code) {
 const PAGE_INFO = {
   overview: ["نظرة عامة", "لوحة تحكم السيرفر"],
   profile: ["ملفّي الشخصي", "معلومات حسابك"],
+  site: ["إعدادات الموقع", "اسم الموقع وشعاره"],
   players: ["إدارة اللاعبين", "عرض وإدارة اللاعبين والرتب"],
   waypoints: ["النقاط", "إدارة نقاط اللاعبين"],
   plugins: ["البلجنات", "البلجنات المثبّتة وتثبيت جديد"],
@@ -285,21 +318,30 @@ const PAGE_INFO = {
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", (e) => {
     e.preventDefault();
-    const target = item.dataset.target;
-    document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
-    item.classList.add("active");
-    document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
-    document.getElementById("section-" + target).classList.add("active");
-    const info = PAGE_INFO[target] || ["", ""];
-    document.getElementById("page-title").textContent = info[0];
-    document.getElementById("page-sub").textContent = info[1];
-    document.getElementById("sidebar").classList.remove("open");
-    if (target === "charts") renderCharts();
-    if (target === "plugins") ensureModrinthDefault();
-    if (target === "firebase") ensureFirebaseConsole();
+    navigateTo(item.dataset.target);
   });
 });
 document.getElementById("menu-toggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+
+// Central navigation used by nav items and the profile popup buttons.
+function navigateTo(target) {
+  const navItem = document.querySelector(`.nav-item[data-target="${target}"]`);
+  document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+  if (navItem) navItem.classList.add("active");
+  document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+  const sec = document.getElementById("section-" + target);
+  if (sec) sec.classList.add("active");
+  const info = PAGE_INFO[target] || ["", ""];
+  document.getElementById("page-title").textContent = info[0];
+  document.getElementById("page-sub").textContent = info[1];
+  document.getElementById("sidebar").classList.remove("open");
+  if (target === "charts") renderCharts();
+  if (target === "plugins") ensureModrinthDefault();
+  if (target === "firebase") ensureFirebaseConsole();
+}
+
+// Profile popup buttons.
+document.querySelectorAll(".up-btn").forEach((btn) => btn.addEventListener("click", () => navigateTo(btn.dataset.target)));
 
 // Attach tooltips to action icon buttons (title-like, styled).
 function tip(el, text) { if (el) el.setAttribute("data-tip", text); }
@@ -1212,8 +1254,73 @@ function sendCommand(type, value) {
 }
 
 // ---- Admin management ----
-function attachAdminManagement() {
-  adminsRef.on("value", (snap) => renderAdmins(snap.val() || {}));
+// Applies global site config (name/logo) live for everyone.
+siteRef.on("value", (snap) => {
+  const cfg = snap.val() || {};
+  const title = cfg.name || "ViodRealms";
+  const sub = cfg.sub || "Control Panel";
+  const logoText = cfg.logoText || "VR";
+  const logoImg = cfg.logo || "";
+  document.title = title + " — Control Panel";
+  const setLogo = (el) => {
+    if (!el) return;
+    if (logoImg) { el.innerHTML = `<img src="${logoImg}" alt="">`; el.classList.add("has-img"); }
+    else { el.textContent = logoText; el.classList.remove("has-img"); }
+  };
+  setLogo(document.getElementById("site-logo"));
+  const st = document.getElementById("site-title"); if (st) st.textContent = title;
+  const ss = document.getElementById("site-sub"); if (ss) ss.textContent = sub;
+  // Preview + inputs (if the owner is on the settings page).
+  setLogo(document.getElementById("site-preview-logo"));
+  const pt = document.getElementById("site-preview-title"); if (pt) pt.textContent = title;
+  const ps = document.getElementById("site-preview-sub"); if (ps) ps.textContent = sub;
+});
+
+function attachSiteSettings() {
+  siteRef.get().then((snap) => {
+    const cfg = snap.val() || {};
+    const g = (id) => document.getElementById(id);
+    if (g("site-name-input")) g("site-name-input").value = cfg.name || "";
+    if (g("site-sub-input")) g("site-sub-input").value = cfg.sub || "";
+    if (g("site-logo-input")) g("site-logo-input").value = cfg.logo || "";
+    if (g("site-logotext-input")) g("site-logotext-input").value = cfg.logoText || "";
+  });
+  const saveBtn = document.getElementById("site-save");
+  if (saveBtn && !saveBtn.dataset.bound) {
+    saveBtn.dataset.bound = "1";
+    // Live preview as the owner types.
+    ["site-name-input","site-sub-input","site-logo-input","site-logotext-input"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updateSitePreview);
+    });
+    saveBtn.addEventListener("click", () => {
+      const hint = document.getElementById("site-hint");
+      const data = {
+        name: document.getElementById("site-name-input").value.trim() || "ViodRealms",
+        sub: document.getElementById("site-sub-input").value.trim() || "Control Panel",
+        logo: document.getElementById("site-logo-input").value.trim() || null,
+        logoText: document.getElementById("site-logotext-input").value.trim() || "VR"
+      };
+      siteRef.set(data)
+        .then(() => { hint.textContent = "تم حفظ إعدادات الموقع."; hint.className = "admin-add-hint success"; showToast("تم حفظ إعدادات الموقع", "success"); })
+        .catch(() => { hint.textContent = "فشل الحفظ — تأكد من صلاحياتك."; hint.className = "admin-add-hint error"; });
+    });
+  }
+}
+
+function updateSitePreview() {
+  const name = document.getElementById("site-name-input").value.trim() || "ViodRealms";
+  const sub = document.getElementById("site-sub-input").value.trim() || "Control Panel";
+  const logo = document.getElementById("site-logo-input").value.trim();
+  const logoText = document.getElementById("site-logotext-input").value.trim() || "VR";
+  const pl = document.getElementById("site-preview-logo");
+  if (logo) { pl.innerHTML = `<img src="${logo}" alt="">`; pl.classList.add("has-img"); }
+  else { pl.textContent = logoText; pl.classList.remove("has-img"); }
+  document.getElementById("site-preview-title").textContent = name;
+  document.getElementById("site-preview-sub").textContent = sub;
+}
+
+function attachAdminManagement() {  adminsRef.on("value", (snap) => renderAdmins(snap.val() || {}));
 
   // Copy own ID button.
   const copyBtn = document.getElementById("copy-id-btn");

@@ -144,6 +144,39 @@ body {
 .pf-label { color: var(--text-3); font-size: 12px; margin-bottom: 6px; }
 .pf-value { font-size: 15px; font-weight: 700; word-break: break-all; }
 .pf-mono { font-family: monospace; font-size: 12px; color: var(--brand-2); }
+
+/* Edit grids (profile + site settings) */
+.edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.edit-field { display: flex; flex-direction: column; gap: 6px; }
+.edit-field label { color: var(--text-3); font-size: 12.5px; font-weight: 600; }
+
+/* Sidebar logo image support */
+.brand-logo.small.has-img { padding: 0; overflow: hidden; }
+.brand-logo.small img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+
+/* Site settings preview */
+.site-preview { display: flex; align-items: center; gap: 13px; padding: 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); }
+
+/* Sidebar user card hover popup */
+.user-card { position: relative; }
+.user-popup {
+    position: absolute; bottom: calc(100% + 12px); left: 0; right: 0; z-index: 60;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+    overflow: hidden; box-shadow: var(--shadow-lg);
+    opacity: 0; visibility: hidden; transform: translateY(10px) scale(0.98);
+    transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+}
+.user-card:hover .user-popup { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.up-banner { height: 60px; background: linear-gradient(120deg, #a855f7, #7c3aed 60%, #22d3ee); background-size: cover; background-position: center; }
+.up-body { padding: 0 16px 16px; text-align: center; margin-top: -28px; }
+.up-avatar { width: 56px; height: 56px; border-radius: 16px; border: 3px solid var(--surface); object-fit: cover; background: var(--surface-2); }
+.up-name { font-weight: 800; font-size: 15px; margin-top: 8px; }
+.up-role { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: rgba(168,85,247,0.15); color: var(--brand); margin: 4px 0; }
+.up-role.owner { background: linear-gradient(135deg, var(--warn), var(--amber)); color: #2a1a00; }
+.up-email { color: var(--text-3); font-size: 12px; word-break: break-all; }
+.up-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.up-btn { background: var(--surface-2); border: 1px solid var(--line); color: var(--text); border-radius: var(--r-sm); padding: 9px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+.up-btn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
 .auth-footer { color: var(--text-3); font-size: 13px; z-index: 1; letter-spacing: 0.5px; }
 
 .pending-logo { background: linear-gradient(135deg, var(--warn), var(--amber)); box-shadow: 0 12px 34px rgba(251, 191, 36, 0.4); }
