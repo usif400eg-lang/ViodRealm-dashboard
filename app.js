@@ -178,7 +178,8 @@ auth.onAuthStateChanged(async (user) => {
   }
   if (authorized) {
     showDashboard(user);
-    if (!listenersAttached) { attachListeners(); listenersAttached = true; }
+    if (!listenersAttached) { attachListeners(); listenersAttached = true; showSkeletons(); }
+    restoreLastSection();
   } else {
     document.getElementById("pending-email").textContent = user.email;
     const pid = document.getElementById("pending-id");
@@ -317,6 +318,7 @@ const PAGE_INFO = {
   server: ["تحكم السيرفر", "الوقت، الطقس، الحفظ، console"],
   charts: ["الإحصائيات", "رسوم بيانية حية"],
   activity: ["سجل الأحداث", "من فعل ماذا ومتى"],
+  chat: ["الشات المباشر", "دردشة السيرفر الحية"],
   control: ["التحكم", "التحكم العام"],
   admins: ["إدارة الأدمن", "منح وسحب صلاحيات اللوحة"],
   firebase: ["Firebase", "قاعدة البيانات والمصادقة"]
@@ -345,7 +347,38 @@ function navigateTo(target) {
   if (target === "charts") renderCharts();
   if (target === "plugins") ensureModrinthDefault();
   if (target === "firebase") ensureFirebaseConsole();
+  if (target === "chat") ensureChat();
+  // Remember the last opened section.
+  try { localStorage.setItem("vr_last_section", target); } catch (e) {}
 }
+
+// Restore the last opened section after data listeners attach.
+function restoreLastSection() {
+  let last = null;
+  try { last = localStorage.getItem("vr_last_section"); } catch (e) {}
+  if (last && document.getElementById("section-" + last)) {
+    // Don't restore owner-only sections for non-owners.
+    const navItem = document.querySelector(`.nav-item[data-target="${last}"]`);
+    if (navItem && navItem.classList.contains("owner-only") && !currentUserIsOwner) return;
+    navigateTo(last);
+  }
+}
+
+// Keyboard shortcuts: Alt+1..9 jump to sections, Esc closes modals.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal:not(.hidden)").forEach((m) => m.classList.add("hidden"));
+    return;
+  }
+  if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+    const order = ["overview", "players", "waypoints", "plugins", "moderation", "server", "charts", "activity", "control"];
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= order.length) {
+      e.preventDefault();
+      navigateTo(order[n - 1]);
+    }
+  }
+});
 
 // Profile popup buttons.
 document.querySelectorAll(".up-btn").forEach((btn) => btn.addEventListener("click", () => navigateTo(btn.dataset.target)));
@@ -457,6 +490,30 @@ function renderWorlds(worlds) {
 function toArray(v) { if (!v) return []; return Array.isArray(v) ? v.filter(Boolean) : Object.values(v).filter(Boolean); }
 function setText(id, v) { document.getElementById(id).textContent = v; }
 
+// Builds a styled empty-state block (icon + title + subtitle).
+function emptyState(icon, title, sub) {
+  return `<div class="empty-state"><div class="es-icon"><img src="image/${icon}" alt=""></div><div class="es-title">${escapeHtml(title)}</div>${sub ? `<div class="es-sub">${escapeHtml(sub)}</div>` : ""}</div>`;
+}
+
+// Shows shimmer skeletons in the main lists/tables until real data arrives.
+function showSkeletons() {
+  const tableRows = (cols, n) => {
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      html += `<tr><td colspan="${cols}"><div class="sk-row"><div class="skeleton sk-avatar"></div><div class="sk-lines"><div class="skeleton sk-line w40"></div><div class="skeleton sk-line w60"></div></div></div></td></tr>`;
+    }
+    return html;
+  };
+  const pb = document.getElementById("players-body");
+  if (pb) pb.innerHTML = tableRows(8, 4);
+  const wb = document.getElementById("waypoints-body");
+  if (wb) wb.innerHTML = tableRows(8, 4);
+  const op = document.getElementById("overview-players");
+  if (op) op.innerHTML = '<div class="skeleton" style="height:56px;width:160px;border-radius:12px"></div>'.repeat(3);
+  const pl = document.getElementById("plugins-list");
+  if (pl) pl.innerHTML = '<div class="sk-grid">' + '<div class="skeleton sk-card"></div>'.repeat(4) + '</div>';
+}
+
 // Real player head avatar from mc-heads; falls back to the initial letter on error.
 function headAvatar(name, cls) {
   const safe = escapeHtml(name || "?");
@@ -494,7 +551,7 @@ function renderPlayersTable() {
     list = Array.from(map.values());
   }
   if (q) list = list.filter((p) => (p.name||"").toLowerCase().includes(q));
-  if (!list.length) { body.innerHTML = '<tr><td colspan="8" class="empty-msg">لا يوجد لاعبون</td></tr>'; return; }
+  if (!list.length) { body.innerHTML = `<tr><td colspan="8">${emptyState("players.png", "لا يوجد لاعبون", "لا أحد متصل بالسيرفر حالياً")}</td></tr>`; return; }
   body.innerHTML = "";
   list.forEach((p) => {
     const name = p.name || "?";
@@ -747,7 +804,7 @@ document.getElementById("wp-create-btn").addEventListener("click", () => {
 
 function renderWaypoints(waypoints) {
   const body = document.getElementById("waypoints-body");
-  if (!waypoints || !waypoints.length) { body.innerHTML = '<tr><td colspan="8" class="empty-msg">لا توجد نقاط</td></tr>'; return; }
+  if (!waypoints || !waypoints.length) { body.innerHTML = `<tr><td colspan="8">${emptyState("waypoints.png", "لا توجد نقاط", "لم يُنشئ أي لاعب نقاطاً بعد")}</td></tr>`; return; }
   body.innerHTML = "";
   waypoints.forEach((w) => {
     const row = document.createElement("tr");
@@ -1266,6 +1323,49 @@ function renderAuthUsers(users) {
       <td><span class="badge ${u.disabled ? "off" : "on"}">${u.disabled ? "معطّل" : "نشط"}</span></td>`;
     body.appendChild(row);
   });
+}
+
+// ---- Live chat ----
+let chatInit = false;
+function ensureChat() {
+  if (chatInit) return;
+  chatInit = true;
+  serverRef.child("chat").limitToLast(80).on("value", (snap) => renderChat(snap.val() || {}), onReadError);
+  const send = () => {
+    const inp = document.getElementById("chat-input");
+    const msg = inp.value.trim();
+    if (!msg) return;
+    const sender = (currentUser && (currentUser.displayName || (currentUser.email||"").split("@")[0])) || "Admin";
+    serverRef.child("chatOut").push({ sender, message: msg, t: Date.now() })
+      .then(() => { inp.value = ""; })
+      .catch(() => showToast("فشل إرسال الرسالة", "error"));
+  };
+  document.getElementById("chat-send").addEventListener("click", send);
+  document.getElementById("chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+}
+
+function renderChat(chat) {
+  const feed = document.getElementById("chat-feed");
+  const msgs = Object.values(chat).filter(Boolean).sort((a, b) => (a.t||0) - (b.t||0));
+  if (!msgs.length) { feed.innerHTML = emptyState("ic-broadcast.png", "لا توجد رسائل", "الشات فاضي حالياً"); return; }
+  const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
+  feed.innerHTML = "";
+  msgs.forEach((m) => {
+    const time = m.t ? new Date(m.t).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }) : "";
+    const kind = m.kind || "player";
+    const el = document.createElement("div");
+    if (kind === "join" || kind === "leave") {
+      el.className = "chat-event " + kind;
+      el.innerHTML = `<span class="ce-dot"></span><strong>${escapeHtml(m.sender)}</strong> ${escapeHtml(m.message)} <span class="ce-time">${time}</span>`;
+    } else {
+      const cleanSender = String(m.sender || "?").replace(/§./g, "");
+      el.className = "chat-msg" + (kind === "admin" ? " admin" : "");
+      el.innerHTML = `<img class="chat-avatar" src="https://mc-heads.net/avatar/${encodeURIComponent(cleanSender)}/32" alt="" onerror="this.onerror=null;this.style.visibility='hidden'">` +
+        `<div class="chat-body"><div class="chat-top"><span class="chat-sender">${escapeHtml(cleanSender)}</span>${kind === "admin" ? '<span class="chat-tag">أدمن</span>' : ''}<span class="chat-time">${time}</span></div><div class="chat-text">${escapeHtml(m.message)}</div></div>`;
+    }
+    feed.appendChild(el);
+  });
+  if (atBottom) feed.scrollTop = feed.scrollHeight;
 }
 
 // ---- Command sender ----

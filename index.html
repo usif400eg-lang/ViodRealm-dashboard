@@ -125,6 +125,9 @@
                 <a href="#activity" class="nav-item" data-target="activity">
                     <img class="nav-icon-img" src="image/act-default.png" alt="" onerror="this.style.display='none'"><span class="nav-text">سجل الأحداث</span>
                 </a>
+                <a href="#chat" class="nav-item" data-target="chat">
+                    <img class="nav-icon-img" src="image/ic-broadcast.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الشات المباشر</span>
+                </a>
                 <a href="#control" class="nav-item" data-target="control">
                     <img class="nav-icon-img" src="image/control.png" alt="" onerror="this.style.display='none'"><span class="nav-text">التحكم</span>
                 </a>
@@ -559,6 +562,18 @@
                     <div class="panel-head"><h3>سجل الأحداث</h3><span id="activity-count" class="pill">0</span></div>
                     <p class="panel-desc">كل إجراء تم تنفيذه من اللوحة: مين عمل إيه وإمتى.</p>
                     <div id="activity-list" class="activity-list"><p class="empty-msg">لا توجد أحداث بعد</p></div>
+                </div>
+            </section>
+
+            <!-- Live chat -->
+            <section id="section-chat" class="section">
+                <div class="panel chat-panel">
+                    <div class="panel-head"><h3>الشات المباشر</h3><span id="chat-live" class="pill">مباشر</span></div>
+                    <div id="chat-feed" class="chat-feed"><p class="empty-msg">جاري تحميل الرسائل...</p></div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chat-input" placeholder="اكتب رسالة تظهر في السيرفر...">
+                        <button id="chat-send" class="btn-primary">إرسال</button>
+                    </div>
                 </div>
             </section>
 
