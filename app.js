@@ -192,13 +192,19 @@ function showScreen(which) {
   pendingScreen.classList.toggle("hidden", which !== "pending");
   dashboard.classList.toggle("hidden", which !== "dashboard");
 }
-
 function providerLabel(user) {
   const pid = (user.providerData && user.providerData[0] && user.providerData[0].providerId) || "";
   if (pid.includes("google")) return "Google";
   if (pid.includes("github")) return "GitHub";
   if (pid.includes("password")) return "البريد وكلمة المرور";
   return pid || "-";
+}
+
+// Blue verification badge (SVG) shown next to the owner's name.
+function verifiedBadge() {
+  return ' <span class="verified-badge" title="موثّق"><svg viewBox="0 0 24 24" width="16" height="16">' +
+    '<path fill="#3ba7ff" d="M12 1.5l2.4 1.75 2.96-.02 1.1 2.82 2.46 1.65-.86 2.85.86 2.85-2.46 1.65-1.1 2.82-2.96-.02L12 22.5l-2.4-1.75-2.96.02-1.1-2.82-2.46-1.65.86-2.85-.86-2.85 2.46-1.65 1.1-2.82 2.96.02z"/>' +
+    '<path fill="#fff" d="M10.6 15.2l-2.9-2.9 1.4-1.4 1.5 1.5 3.8-3.8 1.4 1.4z"/></svg></span>';
 }
 
 function fillProfile(user) {
@@ -221,7 +227,8 @@ function fillProfile(user) {
     if (user.photoURL) { av.src = user.photoURL; } else { av.src = "https://mc-heads.net/avatar/steve/80"; }
   });
 
-  document.getElementById("profile-name").textContent = user.displayName || (user.email ? user.email.split("@")[0] : "مستخدم");
+  const dispName = user.displayName || (user.email ? user.email.split("@")[0] : "مستخدم");
+  document.getElementById("profile-name").innerHTML = escapeHtml(dispName) + (currentUserIsOwner ? verifiedBadge() : "");
   const roleEl = document.getElementById("profile-role");
   roleEl.textContent = currentUserIsOwner ? "المالك" : "أدمن";
   roleEl.className = "profile-role" + (currentUserIsOwner ? " owner" : "");
@@ -233,7 +240,7 @@ function fillProfile(user) {
   document.getElementById("profile-last").textContent = md.lastSignInTime ? new Date(md.lastSignInTime).toLocaleString("ar-EG") : "-";
 
   // Fill the hover popup.
-  document.getElementById("up-name").textContent = user.displayName || (user.email ? user.email.split("@")[0] : "مستخدم");
+  document.getElementById("up-name").innerHTML = escapeHtml(dispName) + (currentUserIsOwner ? verifiedBadge() : "");
   const upRole = document.getElementById("up-role");
   upRole.textContent = currentUserIsOwner ? "المالك" : "أدمن";
   upRole.className = "up-role" + (currentUserIsOwner ? " owner" : "");
@@ -261,7 +268,7 @@ if (profileSave) profileSave.addEventListener("click", () => {
 
 function showDashboard(user) {
   showScreen("dashboard");
-  document.getElementById("user-name").textContent = user.displayName || "Admin";
+  document.getElementById("user-name").innerHTML = escapeHtml(user.displayName || "Admin") + (currentUserIsOwner ? verifiedBadge() : "");
   document.getElementById("user-email").textContent = user.email;
   const avatar = document.getElementById("user-avatar");
   if (user.photoURL) { avatar.src = user.photoURL; }
@@ -643,12 +650,13 @@ function buildSlot(item) {
   slot.className = "inv-slot";
   if (item && item.type && item.type !== "AIR") {
     const id = item.type.toLowerCase();
-    const nameAttr = item.name ? item.name.replace(/§./g, "") : item.type;
+    // Prefer the custom display name; otherwise a prettified material id (e.g. IRON_SWORD -> Iron Sword).
+    const nameAttr = item.name ? item.name.replace(/§./g, "") : prettyItemName(item.type);
+    if (item.enchanted) slot.classList.add("enchanted");
     const img = document.createElement("img");
     img.alt = "";
     img.loading = "lazy";
-    img.title = nameAttr;
-    // Try real Minecraft textures: item folder -> block folder -> generic fallback.
+    img.className = "inv-item-img";
     img.dataset.stage = "item";
     img.src = mcTextureUrl("item", id);
     img.onerror = function () {
@@ -662,15 +670,28 @@ function buildSlot(item) {
       }
     };
     slot.appendChild(img);
+    if (item.enchanted) {
+      const glint = document.createElement("span");
+      glint.className = "inv-glint";
+      slot.appendChild(glint);
+    }
     if (item.amount > 1) {
       const count = document.createElement("span");
       count.className = "inv-count";
       count.textContent = item.amount;
       slot.appendChild(count);
     }
-    slot.title = nameAttr;
+    // Custom tooltip on hover showing the item name.
+    const tip = document.createElement("span");
+    tip.className = "inv-tip";
+    tip.textContent = nameAttr;
+    slot.appendChild(tip);
   }
   return slot;
+}
+// Converts a material id (IRON_SWORD) into a readable name (Iron Sword).
+function prettyItemName(type) {
+  return String(type).toLowerCase().split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 // Real Minecraft textures mirror (all versions, items + blocks).
 const MC_ASSET_VERSION = "1.21.4";
@@ -1386,7 +1407,7 @@ function renderAdmins(admins) {
   c.innerHTML = "";
   const o = document.createElement("div");
   o.className = "admin-chip owner";
-  o.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar head"><img src="https://mc-heads.net/avatar/${encodeURIComponent(OWNER_EMAIL.split("@")[0])}/36" alt="" onerror="this.onerror=null;this.remove();this.parentNode.textContent='${escapeHtml(OWNER_EMAIL.charAt(0).toUpperCase())}'"></span><span class="admin-email">${escapeHtml(OWNER_EMAIL)}</span></div><span class="admin-badge">المالك</span>`;
+  o.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar head"><img src="https://mc-heads.net/avatar/${encodeURIComponent(OWNER_EMAIL.split("@")[0])}/36" alt="" onerror="this.onerror=null;this.remove();this.parentNode.textContent='${escapeHtml(OWNER_EMAIL.charAt(0).toUpperCase())}'"></span><span class="admin-email">${escapeHtml(OWNER_EMAIL)}${verifiedBadge()}</span></div><span class="admin-badge">المالك</span>`;
   c.appendChild(o);
   entries.forEach((key) => {
     const v = admins[key];

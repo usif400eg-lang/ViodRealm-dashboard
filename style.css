@@ -145,6 +145,11 @@ body {
 .pf-value { font-size: 15px; font-weight: 700; word-break: break-all; }
 .pf-mono { font-family: monospace; font-size: 12px; color: var(--brand-2); }
 
+/* Verified (blue check) badge */
+.verified-badge { display: inline-flex; vertical-align: middle; margin-right: 4px; }
+.verified-badge svg { filter: drop-shadow(0 0 3px rgba(59,167,255,0.5)); }
+.profile-id h2 .verified-badge svg { width: 20px; height: 20px; }
+
 /* Edit grids (profile + site settings) */
 .edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .edit-field { display: flex; flex-direction: column; gap: 6px; }
@@ -548,9 +553,29 @@ canvas { max-width: 100%; }
 .inv-label { color: var(--text-3); font-size: 12px; margin-bottom: 8px; }
 .inv-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
 .inv-row { display: flex; gap: 5px; }
-.inv-slot { aspect-ratio: 1; background: #2a2f42; border: 1px solid var(--line); border-radius: 6px; position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; }
-.inv-slot img { width: 76%; height: 76%; object-fit: contain; image-rendering: pixelated; }
-.inv-count { position: absolute; bottom: 1px; left: 3px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 #000; }
+.inv-slot { aspect-ratio: 1; background: #2a2f42; border: 1px solid var(--line); border-radius: 6px; position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; overflow: visible; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
+.inv-slot:hover { transform: translateY(-3px) scale(1.08); border-color: var(--brand); box-shadow: 0 6px 16px -4px rgba(168,85,247,0.5); z-index: 5; }
+.inv-slot img { width: 76%; height: 76%; object-fit: contain; image-rendering: pixelated; position: relative; z-index: 1; }
+.inv-count { position: absolute; bottom: 1px; left: 3px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 #000; z-index: 3; }
+
+/* Enchanted item: purple glow + animated shimmering glint overlay */
+.inv-slot.enchanted { border-color: #b46bff; box-shadow: 0 0 10px -1px rgba(180,107,255,0.6) inset, 0 0 8px rgba(180,107,255,0.4); }
+.inv-slot.enchanted .inv-item-img { animation: itemFloat 2.4s ease-in-out infinite; filter: drop-shadow(0 0 3px rgba(180,107,255,0.9)); }
+.inv-glint { position: absolute; inset: 0; border-radius: 6px; pointer-events: none; z-index: 2;
+    background: linear-gradient(115deg, transparent 30%, rgba(200,150,255,0.55) 48%, rgba(255,255,255,0.35) 52%, transparent 70%);
+    background-size: 250% 250%; mix-blend-mode: screen; animation: glint 2.6s linear infinite; }
+@keyframes glint { 0% { background-position: 150% 150%; } 100% { background-position: -50% -50%; } }
+@keyframes itemFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* Item hover tooltip */
+.inv-tip {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(6px);
+    background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong);
+    padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; z-index: 20; box-shadow: var(--shadow-md);
+}
+.inv-slot.enchanted .inv-tip { color: #c99bff; }
+.inv-slot:hover .inv-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Plugins */
 /* Plugins — legendary cards */
