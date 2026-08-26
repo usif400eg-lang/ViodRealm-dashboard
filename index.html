@@ -25,8 +25,31 @@
                 <h1>ViodRealms</h1>
                 <p class="subtitle">Server Control Panel</p>
             </div>
-            <button id="google-login-btn" class="btn-google">
-                <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- Email / password form -->
+            <form id="email-form" class="auth-form">
+                <div class="auth-field">
+                    <span class="auth-field-icon"><img src="image/ic-at.png" alt=""></span>
+                    <input type="email" id="auth-email" placeholder="البريد الإلكتروني" autocomplete="email" required>
+                </div>
+                <div class="auth-field">
+                    <span class="auth-field-icon"><img src="image/ic-hash.png" alt=""></span>
+                    <input type="password" id="auth-password" placeholder="كلمة المرور" autocomplete="current-password" required>
+                </div>
+                <input type="text" id="auth-name" class="auth-name-field hidden" placeholder="اسمك (للحساب الجديد)" autocomplete="name">
+                <button type="submit" id="email-submit" class="btn-primary full">تسجيل الدخول</button>
+            </form>
+
+            <div class="auth-switch">
+                <span id="auth-mode-text">ليس لديك حساب؟</span>
+                <button id="auth-toggle" class="auth-link">إنشاء حساب</button>
+            </div>
+            <button id="auth-forgot" class="auth-link small">نسيت كلمة المرور؟</button>
+
+            <div class="auth-divider"><span>أو</span></div>
+
+            <button id="google-login-btn" class="btn-oauth google">
+                <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
                     <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
@@ -34,8 +57,14 @@
                 </svg>
                 <span>الدخول عبر Google</span>
             </button>
+            <button id="github-login-btn" class="btn-oauth github">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.57.1.79-.25.79-.55v-2.1c-3.2.7-3.87-1.37-3.87-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.08 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.55A11.52 11.52 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5z"/>
+                </svg>
+                <span>الدخول عبر GitHub</span>
+            </button>
+
             <p id="login-error" class="error-msg"></p>
-            <p class="auth-hint">سجّل الدخول بحساب Google الخاص بك</p>
         </div>
         <footer class="auth-footer">ViodRealms &copy; 2026</footer>
     </div>
@@ -74,6 +103,9 @@
             <nav class="sidebar-nav">
                 <a href="#overview" class="nav-item active" data-target="overview">
                     <img class="nav-icon-img" src="image/overview.png" alt="" onerror="this.style.display='none'"><span class="nav-text">نظرة عامة</span>
+                </a>
+                <a href="#profile" class="nav-item" data-target="profile">
+                    <img class="nav-icon-img" src="image/players.png" alt="" onerror="this.style.display='none'"><span class="nav-text">ملفّي الشخصي</span>
                 </a>
                 <a href="#players" class="nav-item" data-target="players">
                     <img class="nav-icon-img" src="image/players.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إدارة اللاعبين</span>
@@ -132,6 +164,49 @@
                     <span id="last-sync" class="last-sync"></span>
                 </div>
             </header>
+
+            <!-- Profile -->
+            <section id="section-profile" class="section">
+                <div class="profile-hero">
+                    <div class="profile-cover"></div>
+                    <div class="profile-main">
+                        <img id="profile-avatar" class="profile-avatar" alt="" referrerpolicy="no-referrer">
+                        <div class="profile-id">
+                            <h2 id="profile-name">-</h2>
+                            <span id="profile-role" class="profile-role">عضو</span>
+                            <div id="profile-email" class="profile-email">-</div>
+                        </div>
+                        <button id="profile-logout" class="btn-ghost">تسجيل الخروج</button>
+                    </div>
+                </div>
+                <div class="profile-grid">
+                    <div class="panel profile-card">
+                        <div class="pf-label">مزوّد الدخول</div>
+                        <div class="pf-value" id="profile-provider">-</div>
+                    </div>
+                    <div class="panel profile-card">
+                        <div class="pf-label">تاريخ الإنشاء</div>
+                        <div class="pf-value" id="profile-created">-</div>
+                    </div>
+                    <div class="panel profile-card">
+                        <div class="pf-label">آخر دخول</div>
+                        <div class="pf-value" id="profile-last">-</div>
+                    </div>
+                    <div class="panel profile-card">
+                        <div class="pf-label">المعرّف (UID)</div>
+                        <div class="pf-value pf-mono" id="profile-uid">-</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h3>تعديل الملف الشخصي</h3></div>
+                    <p class="panel-desc">حدّث اسمك الظاهر في اللوحة.</p>
+                    <div class="control-row">
+                        <input type="text" id="profile-newname" placeholder="الاسم الجديد">
+                        <button id="profile-save" class="btn-primary">حفظ</button>
+                    </div>
+                    <p id="profile-hint" class="admin-add-hint"></p>
+                </div>
+            </section>
 
             <!-- Overview -->
             <section id="section-overview" class="section active">

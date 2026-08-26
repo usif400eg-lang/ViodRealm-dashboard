@@ -87,11 +87,68 @@ function ask(opts) {
 }
 
 // ---- Auth ----
+const githubProvider = new firebase.auth.GithubAuthProvider();
+let authMode = "login"; // or "signup"
+
 document.getElementById("google-login-btn").addEventListener("click", () => {
   loginError.textContent = "";
   auth.signInWithPopup(googleProvider).catch((err) => { loginError.textContent = translateAuthError(err.code); });
 });
+document.getElementById("github-login-btn").addEventListener("click", () => {
+  loginError.textContent = "";
+  auth.signInWithPopup(githubProvider).catch((err) => { loginError.textContent = translateAuthError(err.code); });
+});
+
+// Toggle between login and signup.
+document.getElementById("auth-toggle").addEventListener("click", () => {
+  authMode = authMode === "login" ? "signup" : "login";
+  const nameField = document.getElementById("auth-name");
+  const submit = document.getElementById("email-submit");
+  const modeText = document.getElementById("auth-mode-text");
+  const toggle = document.getElementById("auth-toggle");
+  loginError.textContent = "";
+  if (authMode === "signup") {
+    nameField.classList.remove("hidden");
+    submit.textContent = "إنشاء حساب";
+    modeText.textContent = "لديك حساب بالفعل؟";
+    toggle.textContent = "تسجيل الدخول";
+  } else {
+    nameField.classList.add("hidden");
+    submit.textContent = "تسجيل الدخول";
+    modeText.textContent = "ليس لديك حساب؟";
+    toggle.textContent = "إنشاء حساب";
+  }
+});
+
+// Email/password submit (login or signup).
+document.getElementById("email-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  loginError.textContent = "";
+  const email = document.getElementById("auth-email").value.trim();
+  const pass = document.getElementById("auth-password").value;
+  if (authMode === "signup") {
+    const name = document.getElementById("auth-name").value.trim();
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then((cred) => { if (name) return cred.user.updateProfile({ displayName: name }); })
+      .catch((err) => { loginError.textContent = translateAuthError(err.code); });
+  } else {
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch((err) => { loginError.textContent = translateAuthError(err.code); });
+  }
+});
+
+// Forgot password.
+document.getElementById("auth-forgot").addEventListener("click", () => {
+  const email = document.getElementById("auth-email").value.trim();
+  if (!email) { loginError.textContent = "أدخل بريدك أولاً ثم اضغط نسيت كلمة المرور."; return; }
+  auth.sendPasswordResetEmail(email)
+    .then(() => { loginError.textContent = ""; showToast("تم إرسال رابط استعادة كلمة المرور لبريدك", "success"); })
+    .catch((err) => { loginError.textContent = translateAuthError(err.code); });
+});
+
 document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
+const profileLogout = document.getElementById("profile-logout");
+if (profileLogout) profileLogout.addEventListener("click", () => auth.signOut());
 document.getElementById("pending-logout-btn").addEventListener("click", () => auth.signOut());
 const pendingCopyBtn = document.getElementById("pending-copy-btn");
 if (pendingCopyBtn) pendingCopyBtn.addEventListener("click", () => {
@@ -99,8 +156,11 @@ if (pendingCopyBtn) pendingCopyBtn.addEventListener("click", () => {
   navigator.clipboard.writeText(id).then(() => showToast("تم نسخ المعرّف", "success")).catch(() => showToast("فشل النسخ", "error"));
 });
 
+let currentUser = null;
+
 auth.onAuthStateChanged(async (user) => {
   if (!user) { showScreen("login"); return; }
+  currentUser = user;
   const email = (user.email || "").toLowerCase();
   const uid = user.uid;
   currentUserIsOwner = email === OWNER_EMAIL.toLowerCase();
@@ -119,7 +179,6 @@ auth.onAuthStateChanged(async (user) => {
     if (!listenersAttached) { attachListeners(); listenersAttached = true; }
   } else {
     document.getElementById("pending-email").textContent = user.email;
-    // Show the user's ID on the pending screen too, so they can share it.
     const pid = document.getElementById("pending-id");
     if (pid) pid.textContent = uid;
     showScreen("pending");
@@ -132,12 +191,50 @@ function showScreen(which) {
   dashboard.classList.toggle("hidden", which !== "dashboard");
 }
 
+function providerLabel(user) {
+  const pid = (user.providerData && user.providerData[0] && user.providerData[0].providerId) || "";
+  if (pid.includes("google")) return "Google";
+  if (pid.includes("github")) return "GitHub";
+  if (pid.includes("password")) return "البريد وكلمة المرور";
+  return pid || "-";
+}
+
+function fillProfile(user) {
+  const av = document.getElementById("profile-avatar");
+  if (user.photoURL) { av.src = user.photoURL; av.style.display = ""; }
+  else { av.src = "https://mc-heads.net/avatar/steve/80"; }
+  document.getElementById("profile-name").textContent = user.displayName || (user.email ? user.email.split("@")[0] : "مستخدم");
+  document.getElementById("profile-role").textContent = currentUserIsOwner ? "المالك" : "أدمن";
+  document.getElementById("profile-role").className = "profile-role" + (currentUserIsOwner ? " owner" : "");
+  document.getElementById("profile-email").textContent = user.email || "-";
+  document.getElementById("profile-provider").textContent = providerLabel(user);
+  document.getElementById("profile-uid").textContent = user.uid;
+  const md = user.metadata || {};
+  document.getElementById("profile-created").textContent = md.creationTime ? new Date(md.creationTime).toLocaleDateString("ar-EG") : "-";
+  document.getElementById("profile-last").textContent = md.lastSignInTime ? new Date(md.lastSignInTime).toLocaleString("ar-EG") : "-";
+}
+
+const profileSave = document.getElementById("profile-save");
+if (profileSave) profileSave.addEventListener("click", () => {
+  const name = document.getElementById("profile-newname").value.trim();
+  const hint = document.getElementById("profile-hint");
+  if (!name) { hint.textContent = "أدخل اسماً."; hint.className = "admin-add-hint error"; return; }
+  currentUser.updateProfile({ displayName: name }).then(() => {
+    hint.textContent = "تم تحديث الاسم."; hint.className = "admin-add-hint success";
+    document.getElementById("profile-name").textContent = name;
+    document.getElementById("user-name").textContent = name;
+    document.getElementById("profile-newname").value = "";
+  }).catch(() => { hint.textContent = "فشل التحديث."; hint.className = "admin-add-hint error"; });
+});
+
 function showDashboard(user) {
   showScreen("dashboard");
   document.getElementById("user-name").textContent = user.displayName || "Admin";
   document.getElementById("user-email").textContent = user.email;
   const avatar = document.getElementById("user-avatar");
-  if (user.photoURL) avatar.src = user.photoURL; else avatar.style.display = "none";
+  if (user.photoURL) { avatar.src = user.photoURL; }
+  else { avatar.src = "https://mc-heads.net/avatar/" + encodeURIComponent(user.displayName || user.email || "steve") + "/44"; }
+  fillProfile(user);
   // Show the signed-in user's own ID (uid) in the admin section.
   const myId = document.getElementById("my-admin-id");
   if (myId) myId.textContent = user.uid;
@@ -157,13 +254,22 @@ function translateAuthError(code) {
     case "auth/popup-blocked": return "المتصفح منع النافذة المنبثقة.";
     case "auth/cancelled-popup-request": return "";
     case "auth/network-request-failed": return "فشل الاتصال بالشبكة.";
-    default: return "فشل تسجيل الدخول.";
+    case "auth/invalid-email": return "بريد إلكتروني غير صالح.";
+    case "auth/user-not-found": return "لا يوجد حساب بهذا البريد.";
+    case "auth/wrong-password": return "كلمة المرور غير صحيحة.";
+    case "auth/invalid-credential": return "بيانات الدخول غير صحيحة.";
+    case "auth/email-already-in-use": return "هذا البريد مستخدم بالفعل.";
+    case "auth/weak-password": return "كلمة المرور ضعيفة (6 أحرف على الأقل).";
+    case "auth/account-exists-with-different-credential": return "هذا البريد مسجّل بمزوّد آخر. جرّب طريقة دخول مختلفة.";
+    case "auth/operation-not-allowed": return "طريقة الدخول دي غير مفعّلة في Firebase.";
+    default: return "فشل تسجيل الدخول. حاول مجدداً.";
   }
 }
 
 // ---- Navigation ----
 const PAGE_INFO = {
   overview: ["نظرة عامة", "لوحة تحكم السيرفر"],
+  profile: ["ملفّي الشخصي", "معلومات حسابك"],
   players: ["إدارة اللاعبين", "عرض وإدارة اللاعبين والرتب"],
   waypoints: ["النقاط", "إدارة نقاط اللاعبين"],
   plugins: ["البلجنات", "البلجنات المثبّتة وتثبيت جديد"],
