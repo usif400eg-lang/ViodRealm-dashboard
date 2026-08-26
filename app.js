@@ -1397,10 +1397,9 @@ function renderAdmins(admins) {
     const chip = document.createElement("div");
     chip.className = "admin-chip";
     const displayLabel = isEmail ? label : (label.substring(0, 14) + "…");
-    // ID entries use the hash icon; email entries use the person's initial.
-    const avatar = isEmail
-      ? `<span class="admin-avatar">${escapeHtml(label.charAt(0).toUpperCase())}</span>`
-      : `<span class="admin-avatar id-avatar"><img src="image/ic-hash.png" alt=""></span>`;
+    // Every entry shows an NPC/player skin head (seeded by email prefix or uid).
+    const seed = isEmail ? label.split("@")[0] : key;
+    const avatar = `<span class="admin-avatar head"><img src="https://mc-heads.net/avatar/${encodeURIComponent(seed)}/36" alt="" onerror="this.onerror=null;this.remove();this.parentNode.textContent='${escapeHtml((label.charAt(0)||'#').toUpperCase())}'"></span>`;
     chip.innerHTML = `<div class="admin-chip-info">${avatar}<div><span class="admin-email">${escapeHtml(displayLabel)}</span><span class="admin-type">${type}</span></div></div><button class="remove-admin-btn" data-key="${escapeHtml(key)}" data-label="${escapeHtml(label)}">إزالة</button>`;
     c.appendChild(chip);
   });
