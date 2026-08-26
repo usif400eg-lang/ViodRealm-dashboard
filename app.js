@@ -57,7 +57,11 @@ function ask(opts) {
     document.getElementById("ask-msg").textContent = opts.msg || "";
     document.getElementById("ask-msg").style.display = opts.msg ? "" : "none";
     const iconEl = document.getElementById("ask-icon");
-    iconEl.textContent = opts.icon || "?";
+    if (opts.iconImg) {
+      iconEl.innerHTML = `<img src="image/${opts.iconImg}" alt="">`;
+    } else {
+      iconEl.textContent = opts.icon || "?";
+    }
     iconEl.className = "ask-icon" + (opts.danger ? " danger" : "");
     const okBtn = document.getElementById("ask-ok");
     okBtn.textContent = opts.okText || "تأكيد";
@@ -365,7 +369,7 @@ function renderPlayersTable() {
 function handlePlayerAction(act, name) {
   switch (act) {
     case "kick": sendCommand("kick", name); showToast(`تم إرسال طرد ${name}`, "success"); break;
-    case "ban": ask({ title: "حظر لاعب", msg: `هل تريد حظر ${name}؟`, icon: "⛔", danger: true, okText: "حظر" }).then((r) => { if (r) { sendCommand("ban", name); showToast(`تم إرسال حظر ${name}`, "success"); } }); break;
+    case "ban": ask({ title: "حظر لاعب", msg: `هل تريد حظر ${name}؟`, iconImg: "btn-ban.png", danger: true, okText: "حظر" }).then((r) => { if (r) { sendCommand("ban", name); showToast(`تم إرسال حظر ${name}`, "success"); } }); break;
     case "wl": sendCommand("whitelist_add", name); showToast(`تمت إضافة ${name} للـ whitelist`, "success"); break;
     case "rank": openRankModal(name); break;
     case "manage": openPlayerModal(name); break;
@@ -594,13 +598,13 @@ function renderWaypoints(waypoints) {
   body.querySelectorAll("[data-act]").forEach((btn) => btn.addEventListener("click", () => {
     const id = btn.dataset.id;
     if (btn.dataset.act === "delete") {
-      ask({ title: "حذف نقطة", msg: "هل تريد حذف هذه النقطة نهائياً؟", icon: "🗑", danger: true, okText: "حذف" })
+      ask({ title: "حذف نقطة", msg: "هل تريد حذف هذه النقطة نهائياً؟", iconImg: "ic-trash.png", danger: true, okText: "حذف" })
         .then((r) => { if (r) { sendCommand("delete_waypoint", String(id)); showToast("تم إرسال الحذف", "success"); } });
     } else if (btn.dataset.act === "rename") {
-      ask({ title: "إعادة تسمية", msg: "أدخل الاسم الجديد للنقطة:", icon: "✎", fields: [{ placeholder: "الاسم الجديد" }], okText: "حفظ" })
+      ask({ title: "إعادة تسمية", msg: "أدخل الاسم الجديد للنقطة:", iconImg: "ic-edit.png", fields: [{ placeholder: "الاسم الجديد" }], okText: "حفظ" })
         .then((r) => { if (r && r[0]) { sendCommand("rename_waypoint", id + ":" + r[0]); showToast("تم إرسال التسمية", "success"); } });
     } else if (btn.dataset.act === "coords") {
-      ask({ title: "تعديل الإحداثيات", msg: "أدخل الإحداثيات الجديدة:", icon: "📍", fields: [{ placeholder: "X", type: "number" }, { placeholder: "Y", type: "number" }, { placeholder: "Z", type: "number" }], okText: "حفظ" })
+      ask({ title: "تعديل الإحداثيات", msg: "أدخل الإحداثيات الجديدة:", iconImg: "ic-location.png", fields: [{ placeholder: "X", type: "number" }, { placeholder: "Y", type: "number" }, { placeholder: "Z", type: "number" }], okText: "حفظ" })
         .then((r) => { if (r && r[0] && r[1] && r[2]) { sendCommand("edit_waypoint_coords", `${id}:${r[0]}:${r[1]}:${r[2]}`); showToast("تم إرسال التعديل", "success"); } });
     }
   }));
@@ -670,7 +674,7 @@ document.getElementById("save-all-btn").addEventListener("click", () => { sendCo
 document.getElementById("console-btn").addEventListener("click", () => {
   const i = document.getElementById("console-input"); const cmd = i.value.trim();
   if (!cmd) return;
-  ask({ title: "تنفيذ أمر Console", msg: "سيُنفّذ على السيرفر مباشرة:\n" + cmd, icon: "⌨", danger: true, okText: "تنفيذ" })
+  ask({ title: "تنفيذ أمر Console", msg: "سيُنفّذ على السيرفر مباشرة:\n" + cmd, iconImg: "ic-console.png", danger: true, okText: "تنفيذ" })
     .then((r) => { if (r) { sendCommand("console", cmd); i.value = ""; showToast("تم إرسال الأمر", "success"); } });
 });
 
@@ -1184,7 +1188,7 @@ function renderAdmins(admins) {
     c.appendChild(chip);
   });
   c.querySelectorAll(".remove-admin-btn").forEach((btn) => btn.addEventListener("click", () => {
-    ask({ title: "إزالة أدمن", msg: "إزالة صلاحية " + btn.dataset.label + "؟", icon: "⛔", danger: true, okText: "إزالة" })
+    ask({ title: "إزالة أدمن", msg: "إزالة صلاحية " + btn.dataset.label + "؟", iconImg: "ic-users.png", danger: true, okText: "إزالة" })
       .then((r) => { if (r) adminsRef.child(btn.dataset.key).remove().then(() => showToast("تمت الإزالة", "success")).catch(() => showToast("فشل الإزالة", "error")); });
   }));
 }
