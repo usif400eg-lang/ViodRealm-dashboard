@@ -1279,7 +1279,7 @@ function renderAdmins(admins) {
   c.innerHTML = "";
   const o = document.createElement("div");
   o.className = "admin-chip owner";
-  o.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar owner-avatar">${escapeHtml(OWNER_EMAIL.charAt(0).toUpperCase())}</span><span class="admin-email">${escapeHtml(OWNER_EMAIL)}</span></div><span class="admin-badge">المالك</span>`;
+  o.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar head"><img src="https://mc-heads.net/avatar/${encodeURIComponent(OWNER_EMAIL.split("@")[0])}/36" alt="" onerror="this.onerror=null;this.remove();this.parentNode.textContent='${escapeHtml(OWNER_EMAIL.charAt(0).toUpperCase())}'"></span><span class="admin-email">${escapeHtml(OWNER_EMAIL)}</span></div><span class="admin-badge">المالك</span>`;
   c.appendChild(o);
   entries.forEach((key) => {
     const v = admins[key];
@@ -1290,7 +1290,11 @@ function renderAdmins(admins) {
     const chip = document.createElement("div");
     chip.className = "admin-chip";
     const displayLabel = isEmail ? label : (label.substring(0, 14) + "…");
-    chip.innerHTML = `<div class="admin-chip-info"><span class="admin-avatar">${escapeHtml((isEmail?label:"#").charAt(0).toUpperCase())}</span><div><span class="admin-email">${escapeHtml(displayLabel)}</span><span class="admin-type">${type}</span></div></div><button class="remove-admin-btn" data-key="${escapeHtml(key)}" data-label="${escapeHtml(label)}">إزالة</button>`;
+    // ID entries use the hash icon; email entries use the person's initial.
+    const avatar = isEmail
+      ? `<span class="admin-avatar">${escapeHtml(label.charAt(0).toUpperCase())}</span>`
+      : `<span class="admin-avatar id-avatar"><img src="image/ic-hash.png" alt=""></span>`;
+    chip.innerHTML = `<div class="admin-chip-info">${avatar}<div><span class="admin-email">${escapeHtml(displayLabel)}</span><span class="admin-type">${type}</span></div></div><button class="remove-admin-btn" data-key="${escapeHtml(key)}" data-label="${escapeHtml(label)}">إزالة</button>`;
     c.appendChild(chip);
   });
   c.querySelectorAll(".remove-admin-btn").forEach((btn) => btn.addEventListener("click", () => {
