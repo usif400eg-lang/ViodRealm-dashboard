@@ -688,14 +688,19 @@
                         <div class="vital"><span class="vital-label">المستوى</span><span id="insp-level" class="vital-num">0</span></div>
                     </div>
                     <div class="inspect-meta" id="insp-meta"></div>
-                    <div class="inv-section">
-                        <div class="inv-label">الدرع + اليد الثانية</div>
-                        <div id="inv-armor" class="inv-row"></div>
+
+                    <!-- Top section: armor column + player + offhand (like the game) -->
+                    <div class="mc-top">
+                        <div class="mc-armor" id="inv-armor"></div>
+                        <div class="mc-player">
+                            <img id="inv-player-skin" class="mc-skin" alt="">
+                        </div>
+                        <div class="mc-offhand" id="inv-offhand"></div>
                     </div>
-                    <div class="inv-section">
-                        <div class="inv-label">الحقيبة</div>
-                        <div id="inv-main" class="inv-grid"></div>
-                    </div>
+
+                    <!-- Main storage (3 rows) then hotbar row, exactly like the game -->
+                    <div class="mc-storage" id="inv-storage"></div>
+                    <div class="mc-hotbar" id="inv-hotbar"></div>
                 </div>
             </div>
             <div class="pm-panel" data-pm-panel="msg">

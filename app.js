@@ -679,12 +679,47 @@ function renderInspect(d) {
   document.getElementById("insp-meta").innerHTML =
     `<span><img class="mini-ic" src="image/ic-gamemode.png" alt=""> ${escapeHtml(d.gamemode||"-")}</span><span><img class="mini-ic" src="image/ic-world.png" alt=""> ${escapeHtml(d.world||"-")}</span><span><img class="mini-ic" src="image/ic-location.png" alt=""> ${d.x}, ${d.y}, ${d.z}</span>`;
 
-  renderInvRow("inv-armor", buildArmorRow(d));
-  renderInvGrid("inv-main", toArray(d.main));
+  // Game-accurate layout.
+  renderArmorColumn(d);
+  renderStorageAndHotbar(toArray(d.main));
+  // Player skin (full body) between armor and offhand, like the game.
+  const skin = document.getElementById("inv-player-skin");
+  if (skin) {
+    const nm = (d.name || pmTarget || "steve");
+    skin.src = "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/100";
+    skin.onerror = function () { this.onerror = null; this.style.visibility = "hidden"; };
+  }
+}
+
+// Armor column: helmet, chestplate, leggings, boots (top to bottom, like the game).
+function renderArmorColumn(d) {
+  const armor = toArray(d.armor); // Bukkit order: [boots, leggings, chestplate, helmet]
+  const col = document.getElementById("inv-armor");
+  if (col) {
+    col.innerHTML = "";
+    [armor[3], armor[2], armor[1], armor[0]].forEach((it) => col.appendChild(buildSlot(it || { type: "AIR" })));
+  }
+  const off = document.getElementById("inv-offhand");
+  if (off) { off.innerHTML = ""; off.appendChild(buildSlot(d.offhand || { type: "AIR" })); }
+}
+
+// Storage array: indices 0-8 = hotbar, 9-35 = main 3 rows.
+// The game shows the 3 main rows on top and the hotbar row separated at the bottom.
+function renderStorageAndHotbar(items) {
+  const storage = document.getElementById("inv-storage");
+  const hotbar = document.getElementById("inv-hotbar");
+  if (storage) {
+    storage.innerHTML = "";
+    for (let i = 9; i < 36; i++) storage.appendChild(buildSlot(items[i] || { type: "AIR" }));
+  }
+  if (hotbar) {
+    hotbar.innerHTML = "";
+    for (let i = 0; i < 9; i++) hotbar.appendChild(buildSlot(items[i] || { type: "AIR" }));
+  }
 }
 
 function buildArmorRow(d) {
-  // Armor order from Bukkit: [boots, leggings, chestplate, helmet]. Show helmet first.
+  // Kept for compatibility; no longer used by the new layout.
   const armor = toArray(d.armor);
   const ordered = [armor[3], armor[2], armor[1], armor[0]];
   ordered.push(d.offhand || { type: "AIR" });
