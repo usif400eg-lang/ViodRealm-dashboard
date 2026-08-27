@@ -264,6 +264,20 @@ body {
 .srv-dot.off { background: var(--text-3); }
 .srv-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Server cards on overview */
+.servers-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.srv-card { position: relative; display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.srv-card:hover { border-color: var(--brand); transform: translateY(-3px); }
+.srv-card.active { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+.srv-card-img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+.srv-card-img.placeholder { background: var(--brand-grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; color: #1a1400; }
+.srv-card-body { flex: 1; min-width: 0; }
+.srv-card-name { font-weight: 800; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srv-card-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); margin-top: 3px; }
+.srv-card-edit { background: var(--surface-3); border: 1px solid var(--line); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.srv-card-edit img { width: 15px; height: 15px; filter: brightness(0) saturate(100%) invert(78%) sepia(60%) saturate(900%) hue-rotate(1deg) brightness(95%) contrast(92%); }
+.srv-card-edit:hover { border-color: var(--brand); }
+
 .section { display: none; }
 .section.active { display: block; animation: sectionIn 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes fade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -619,6 +633,15 @@ canvas { max-width: 100%; }
 .inv-slot { aspect-ratio: 1; background: #2a2f42; border: 1px solid var(--line); border-radius: 6px; position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; overflow: visible; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
 .inv-slot:hover { transform: translateY(-3px) scale(1.08); border-color: var(--brand); box-shadow: 0 6px 16px -4px rgba(245, 197, 24,0.5); z-index: 5; }
 .inv-slot img { width: 76%; height: 76%; object-fit: contain; image-rendering: pixelated; position: relative; z-index: 1; }
+
+/* 3D isometric block cube (built from a single block texture) */
+.mc-cube { position: relative; width: 26px; height: 26px; transform-style: preserve-3d; transform: rotateX(-22deg) rotateY(-45deg); z-index: 1; }
+.cube-face { position: absolute; width: 26px; height: 26px; background-size: cover; image-rendering: pixelated; }
+.cube-top { transform: rotateX(90deg) translateZ(13px); filter: brightness(1.1); }
+.cube-left { transform: rotateY(-90deg) translateZ(13px); filter: brightness(0.7); }
+.cube-right { transform: translateZ(13px); filter: brightness(0.92); }
+.inv-slot:hover .mc-cube { animation: cubeSpin 3s linear infinite; }
+@keyframes cubeSpin { from { transform: rotateX(-22deg) rotateY(-45deg); } to { transform: rotateX(-22deg) rotateY(315deg); } }
 .inv-count { position: absolute; bottom: 1px; left: 3px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 #000; z-index: 3; }
 
 /* Enchanted item: purple glow + animated shimmering glint overlay */

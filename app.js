@@ -786,8 +786,13 @@ function buildSlot(item) {
     img.src = mcTextureUrl("item", id);
     img.onerror = function () {
       if (this.dataset.stage === "item") {
+        // Not a flat item — it's a block. Render a 3D isometric cube from the block texture.
+        const blockUrl = mcTextureUrl("block", id);
+        const probe = new Image();
+        probe.onload = () => { this.remove(); slot.insertBefore(build3DCube(blockUrl), slot.firstChild); };
+        probe.onerror = () => { this.onerror = null; this.style.opacity = 0.4; this.src = fallbackTexture(); };
+        probe.src = blockUrl;
         this.dataset.stage = "block";
-        this.src = mcTextureUrl("block", id);
       } else {
         this.onerror = null;
         this.style.opacity = 0.4;
@@ -817,6 +822,17 @@ function buildSlot(item) {
 // Converts a material id (IRON_SWORD) into a readable name (Iron Sword).
 function prettyItemName(type) {
   return String(type).toLowerCase().split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+// Builds a 3D isometric cube from a single block texture (3 visible faces: top, left, right).
+function build3DCube(textureUrl) {
+  const cube = document.createElement("div");
+  cube.className = "mc-cube";
+  const top = document.createElement("span"); top.className = "cube-face cube-top"; top.style.backgroundImage = `url('${textureUrl}')`;
+  const left = document.createElement("span"); left.className = "cube-face cube-left"; left.style.backgroundImage = `url('${textureUrl}')`;
+  const right = document.createElement("span"); right.className = "cube-face cube-right"; right.style.backgroundImage = `url('${textureUrl}')`;
+  cube.appendChild(top); cube.appendChild(left); cube.appendChild(right);
+  return cube;
 }
 // Local Minecraft textures (extracted from the game jar into dashboard/mc-textures).
 function mcTextureUrl(folder, id) {
@@ -1462,6 +1478,7 @@ function renderServerSwitcher() {
   const menu = document.getElementById("server-menu");
   const ids = Object.keys(myServers);
   menu.innerHTML = "";
+  renderServerCards();
   if (!ids.length) {
     menu.innerHTML = '<div class="cselect-opt" style="cursor:default;color:var(--text-3)">لا توجد سيرفرات — اضغط إضافة سيرفر</div>';
     document.getElementById("active-server-name").textContent = "لا يوجد سيرفر";
@@ -1477,7 +1494,6 @@ function renderServerSwitcher() {
     opt.addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("server-switch").classList.remove("open"); switchServer(sid); });
     menu.appendChild(opt);
   });
-  // Auto-select the first server if none active yet (or restore saved).
   if (!ACTIVE_SERVER || !myServers[ACTIVE_SERVER]) {
     let saved = null;
     try { saved = localStorage.getItem("vr_active_server"); } catch (e) {}
@@ -1485,6 +1501,35 @@ function renderServerSwitcher() {
   } else {
     updateActiveServerName();
   }
+}
+
+// Renders the server cards on the overview page.
+function renderServerCards() {
+  const c = document.getElementById("servers-cards");
+  if (!c) return;
+  const ids = Object.keys(myServers);
+  if (!ids.length) { c.innerHTML = '<p class="empty-msg">لا توجد سيرفرات — اضغط إضافة سيرفر</p>'; return; }
+  c.innerHTML = "";
+  ids.forEach((sid) => {
+    const info = myServers[sid] || {};
+    const label = info.label || info.name || sid;
+    const online = info.online;
+    const card = document.createElement("div");
+    card.className = "srv-card" + (sid === ACTIVE_SERVER ? " active" : "");
+    const img = info.image
+      ? `<img class="srv-card-img" src="${escapeHtml(info.image)}" alt="" onerror="this.style.display='none'">`
+      : `<div class="srv-card-img placeholder">${escapeHtml(label.charAt(0).toUpperCase())}</div>`;
+    card.innerHTML = `
+      ${img}
+      <div class="srv-card-body">
+        <div class="srv-card-name">${escapeHtml(label)}</div>
+        <div class="srv-card-status"><span class="srv-dot ${online ? "on" : "off"}"></span>${online ? "متصل" : "غير متصل"}</div>
+      </div>
+      <button class="srv-card-edit" data-sid="${escapeHtml(sid)}" title="تعديل"><img src="image/ic-edit.png" alt=""></button>`;
+    card.addEventListener("click", (e) => { if (!e.target.closest(".srv-card-edit")) switchServer(sid); });
+    c.appendChild(card);
+  });
+  c.querySelectorAll(".srv-card-edit").forEach((btn) => btn.addEventListener("click", (e) => { e.stopPropagation(); openEditServer(btn.dataset.sid); }));
 }
 
 function updateActiveServerName() {
@@ -1506,7 +1551,10 @@ function switchServer(sid) {
 
 // Add-server (pairing) modal.
 const pairModal = document.getElementById("pair-modal");
-document.getElementById("add-server-btn").addEventListener("click", () => { document.getElementById("pair-code").value = ""; document.getElementById("pair-label").value = ""; setPairHint("", ""); pairModal.classList.remove("hidden"); });
+function openPairModal() { document.getElementById("pair-code").value = ""; document.getElementById("pair-label").value = ""; setPairHint("", ""); pairModal.classList.remove("hidden"); }
+document.getElementById("add-server-btn").addEventListener("click", openPairModal);
+const addBtn2 = document.getElementById("add-server-btn2");
+if (addBtn2) addBtn2.addEventListener("click", openPairModal);
 document.getElementById("pair-cancel").addEventListener("click", () => pairModal.classList.add("hidden"));
 pairModal.addEventListener("click", (e) => { if (e.target === pairModal) pairModal.classList.add("hidden"); });
 function setPairHint(msg, kind) { const h = document.getElementById("pair-hint"); h.textContent = msg; h.className = "admin-add-hint " + (kind || ""); }
@@ -1529,6 +1577,44 @@ document.getElementById("pair-submit").addEventListener("click", () => {
       })
       .catch((err) => setPairHint("فشل الربط: " + (err.code || err.message), "error"));
   }).catch((err) => setPairHint("فشل التحقق: " + (err.code || err.message), "error"));
+});
+
+// Edit-server modal (rename + image + remove).
+const editSrvModal = document.getElementById("editsrv-modal");
+let editSrvId = null;
+function openEditServer(sid) {
+  editSrvId = sid;
+  const info = myServers[sid] || {};
+  document.getElementById("editsrv-name").value = info.label || info.name || "";
+  document.getElementById("editsrv-image").value = info.image || "";
+  document.getElementById("editsrv-hint").textContent = "";
+  editSrvModal.classList.remove("hidden");
+}
+document.getElementById("editsrv-cancel").addEventListener("click", () => editSrvModal.classList.add("hidden"));
+editSrvModal.addEventListener("click", (e) => { if (e.target === editSrvModal) editSrvModal.classList.add("hidden"); });
+document.getElementById("editsrv-save").addEventListener("click", () => {
+  const name = document.getElementById("editsrv-name").value.trim();
+  const image = document.getElementById("editsrv-image").value.trim();
+  const hint = document.getElementById("editsrv-hint");
+  usersServersRef.child(auth.currentUser.uid).child(editSrvId).update({ label: name || null, image: image || null })
+    .then(() => {
+      hint.textContent = "تم الحفظ."; hint.className = "admin-add-hint success";
+      // Update local cache immediately.
+      if (myServers[editSrvId]) { myServers[editSrvId].label = name; myServers[editSrvId].image = image; }
+      renderServerSwitcher();
+      setTimeout(() => editSrvModal.classList.add("hidden"), 700);
+    })
+    .catch((err) => { hint.textContent = "فشل الحفظ: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
+});
+document.getElementById("editsrv-remove").addEventListener("click", () => {
+  const hint = document.getElementById("editsrv-hint");
+  usersServersRef.child(auth.currentUser.uid).child(editSrvId).remove()
+    .then(() => {
+      showToast("تمت إزالة السيرفر", "success");
+      editSrvModal.classList.add("hidden");
+      if (ACTIVE_SERVER === editSrvId) ACTIVE_SERVER = null;
+    })
+    .catch((err) => { hint.textContent = "فشل الإزالة: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
 });
 
 // ---- Command sender ----

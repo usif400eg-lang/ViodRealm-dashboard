@@ -183,7 +183,7 @@
                         </button>
                         <div class="cselect-menu" id="server-menu"></div>
                     </div>
-                    <button id="add-server-btn" class="btn-primary add-srv-btn"><span class="btn-plus">+</span> إضافة سيرفر</button>
+                    <button id="add-server-btn" class="btn-primary add-srv-btn"><img class="cb-icon" src="image/ic-system.png" alt=""> إضافة سيرفر</button>
                     <span id="connection-status" class="status-badge offline">
                         <span class="status-dot"></span> غير متصل
                     </span>
@@ -285,6 +285,11 @@
 
             <!-- Overview -->
             <section id="section-overview" class="section active">
+                <!-- My servers cards -->
+                <div class="panel">
+                    <div class="panel-head"><h3>سيرفراتي</h3><button id="add-server-btn2" class="btn-ghost">+ إضافة سيرفر</button></div>
+                    <div id="servers-cards" class="servers-cards"><p class="empty-msg">لا توجد سيرفرات — اضغط إضافة سيرفر</p></div>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon"><img src="image/stat-waypoints.png" alt=""></div>
@@ -677,6 +682,27 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Edit server modal -->
+    <div id="editsrv-modal" class="modal hidden">
+        <div class="modal-box">
+            <div class="ask-head"><span class="ask-icon"><img src="image/ic-system.png" alt=""></span><h3>تعديل السيرفر</h3></div>
+            <div class="edit-field">
+                <label>اسم السيرفر</label>
+                <input type="text" id="editsrv-name" placeholder="اسم السيرفر">
+            </div>
+            <div class="edit-field mt-8">
+                <label>رابط صورة السيرفر</label>
+                <input type="text" id="editsrv-image" placeholder="https://... رابط صورة">
+            </div>
+            <p id="editsrv-hint" class="admin-add-hint"></p>
+            <div class="ask-actions">
+                <button id="editsrv-save" class="btn-primary full">حفظ</button>
+                <button id="editsrv-remove" class="btn-ghost full">إزالة السيرفر من حسابي</button>
+                <button id="editsrv-cancel" class="btn-ghost full">إلغاء</button>
+            </div>
+        </div>
     </div>
 
     <!-- Add server (pairing) modal -->
