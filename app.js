@@ -9,11 +9,15 @@ firebase.initializeApp(window.FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.database();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
-const SERVER_ID = window.SERVER_ID || "server1";
-const serverRef = db.ref("servers/" + SERVER_ID);
 const adminsRef = db.ref("admins");
 const profilesRef = db.ref("profiles");   // per-user profile extras (photo, banner)
 const siteRef = db.ref("siteConfig");      // global site name/logo
+
+// Multi-server: the active server id is chosen at runtime. serverRef points at it.
+let ACTIVE_SERVER = null;
+let serverRef = null;
+let myServers = {};        // { serverId: {label, name} } owned by the current user
+let serverListeners = []; // active .on() refs so we can detach on switch
 
 const loginScreen = document.getElementById("login-screen");
 const pendingScreen = document.getElementById("pending-screen");
@@ -179,6 +183,7 @@ auth.onAuthStateChanged(async (user) => {
   if (authorized) {
     showDashboard(user);
     if (!listenersAttached) { attachListeners(); listenersAttached = true; showSkeletons(); }
+    loadMyServers(user.uid);
     restoreLastSection();
   } else {
     document.getElementById("pending-email").textContent = user.email;
@@ -421,8 +426,27 @@ function attachListeners() {
     b.className = "status-badge " + (c ? "online" : "offline");
     b.innerHTML = '<span class="status-dot"></span> ' + (c ? "متصل" : "غير متصل");
   });
+  attachServerListeners();
+}
 
-  serverRef.child("stats").on("value", (snap) => {
+// Detaches all per-server listeners (used when switching servers).
+function detachServerListeners() {
+  serverListeners.forEach((ref) => { try { ref.off(); } catch (e) {} });
+  serverListeners = [];
+}
+
+// Attaches all data listeners to the currently active serverRef.
+function attachServerListeners() {
+  detachServerListeners();
+  if (!serverRef) return;
+  const on = (path, cb, opts) => {
+    let ref = serverRef.child(path);
+    if (opts && opts.limit) ref = ref.limitToLast(opts.limit);
+    ref.on("value", cb, onReadError);
+    serverListeners.push(ref);
+  };
+
+  on("stats", (snap) => {
     const s = snap.val() || {};
     setText("stat-total", s.totalWaypoints ?? "-");
     setText("stat-public", s.publicWaypoints ?? "-");
@@ -430,32 +454,26 @@ function attachListeners() {
     setText("stat-online", s.onlinePlayers ?? "-");
     setText("stat-system", s.systemEnabled === undefined ? "-" : (s.systemEnabled ? "مفعّل" : "معطّل"));
     if (s.lastSync) document.getElementById("last-sync").textContent = "آخر تحديث: " + new Date(s.lastSync).toLocaleTimeString("ar-EG");
-    // Server health mini-stats
     setText("ov-tps", s.tps != null ? s.tps : "-");
     setText("ov-uptime", s.uptimeMs != null ? formatUptime(s.uptimeMs) : "-");
     setText("ov-capacity", (s.onlinePlayers != null && s.maxPlayers != null) ? (s.onlinePlayers + " / " + s.maxPlayers) : "-");
     setText("ov-entities", s.totalEntities != null ? s.totalEntities : "-");
     setText("ov-chunks", s.loadedChunks != null ? s.loadedChunks : "-");
     setText("ov-version", s.bukkitVersion || s.serverVersion || "-");
-  }, onReadError);
+  });
 
-  serverRef.child("worlds").on("value", (snap) => renderWorlds(toArray(snap.val())), onReadError);
-
-  serverRef.child("players").on("value", (snap) => { onlinePlayers = toArray(snap.val()); renderOverviewPlayers(); renderPlayersTable(); }, onReadError);
-  serverRef.child("knownPlayers").on("value", (snap) => { knownPlayers = toArray(snap.val()); renderPlayersTable(); }, onReadError);
-  serverRef.child("waypoints").on("value", (snap) => { allWaypoints = toArray(snap.val()); renderWaypoints(allWaypoints); }, onReadError);
-  serverRef.child("bans").on("value", (snap) => { const b = snap.val() || {}; renderBans(b); setText("stat-bans", Object.keys(b).length); }, onReadError);
-  serverRef.child("whitelist").on("value", (snap) => renderWhitelist(snap.val() || {}), onReadError);
-  serverRef.child("categoryStats").on("value", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); }, onReadError);
-  serverRef.child("history").limitToLast(60).on("value", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); updateSparklines(); }, onReadError);
-  serverRef.child("activity").limitToLast(100).on("value", (snap) => renderActivity(snap.val() || {}), onReadError);
-
-  // Installed plugins list.
-  serverRef.child("plugins").on("value", (snap) => renderPlugins(toArray(snap.val())), onReadError);
-  // Auth users mirror (Firebase console).
-  serverRef.child("authUsers").on("value", (snap) => renderAuthUsers(toArray(snap.val())), onReadError);
-  // Plugin install status feedback.
-  serverRef.child("pluginInstall").on("value", (snap) => {
+  on("worlds", (snap) => renderWorlds(toArray(snap.val())));
+  on("players", (snap) => { onlinePlayers = toArray(snap.val()); renderOverviewPlayers(); renderPlayersTable(); });
+  on("knownPlayers", (snap) => { knownPlayers = toArray(snap.val()); renderPlayersTable(); });
+  on("waypoints", (snap) => { allWaypoints = toArray(snap.val()); renderWaypoints(allWaypoints); });
+  on("bans", (snap) => { const b = snap.val() || {}; renderBans(b); setText("stat-bans", Object.keys(b).length); });
+  on("whitelist", (snap) => renderWhitelist(snap.val() || {}));
+  on("categoryStats", (snap) => { categoryStats = snap.val() || {}; updateCategoryChart(); });
+  on("history", (snap) => { historyPoints = toArray(snap.val()); updateTimeCharts(); updateSparklines(); }, { limit: 60 });
+  on("activity", (snap) => renderActivity(snap.val() || {}), { limit: 100 });
+  on("plugins", (snap) => renderPlugins(toArray(snap.val())));
+  on("authUsers", (snap) => renderAuthUsers(toArray(snap.val())));
+  on("pluginInstall", (snap) => {
     const r = snap.val();
     const el = document.getElementById("plugin-install-status");
     if (!el || !r) return;
@@ -1416,6 +1434,102 @@ function renderChat(chat) {
   });
   if (atBottom) feed.scrollTop = feed.scrollHeight;
 }
+
+// ---- Multi-server management ----
+const usersServersRef = db.ref("userServers");
+const pairingCodesRef = db.ref("pairingCodes");
+const serverMetaRef = db.ref("serverMeta");
+
+// Loads the servers owned by this user; the owner sees all servers.
+function loadMyServers(uid) {
+  if (currentUserIsOwner) {
+    // Owner sees every registered server.
+    serverMetaRef.on("value", (snap) => {
+      const all = snap.val() || {};
+      myServers = {};
+      Object.keys(all).forEach((sid) => { myServers[sid] = { label: all[sid].name || sid, name: all[sid].name, online: all[sid].online }; });
+      renderServerSwitcher();
+    }, () => {});
+  } else {
+    usersServersRef.child(uid).on("value", (snap) => {
+      myServers = snap.val() || {};
+      renderServerSwitcher();
+    }, () => {});
+  }
+}
+
+function renderServerSwitcher() {
+  const menu = document.getElementById("server-menu");
+  const ids = Object.keys(myServers);
+  menu.innerHTML = "";
+  if (!ids.length) {
+    menu.innerHTML = '<div class="cselect-opt" style="cursor:default;color:var(--text-3)">لا توجد سيرفرات — اضغط إضافة سيرفر</div>';
+    document.getElementById("active-server-name").textContent = "لا يوجد سيرفر";
+    return;
+  }
+  ids.forEach((sid) => {
+    const info = myServers[sid] || {};
+    const label = info.label || info.name || sid;
+    const online = info.online;
+    const opt = document.createElement("div");
+    opt.className = "cselect-opt" + (sid === ACTIVE_SERVER ? " sel" : "");
+    opt.innerHTML = `<span class="srv-dot ${online ? "on" : "off"}"></span><span class="srv-label">${escapeHtml(label)}</span>`;
+    opt.addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("server-switch").classList.remove("open"); switchServer(sid); });
+    menu.appendChild(opt);
+  });
+  // Auto-select the first server if none active yet (or restore saved).
+  if (!ACTIVE_SERVER || !myServers[ACTIVE_SERVER]) {
+    let saved = null;
+    try { saved = localStorage.getItem("vr_active_server"); } catch (e) {}
+    switchServer((saved && myServers[saved]) ? saved : ids[0]);
+  } else {
+    updateActiveServerName();
+  }
+}
+
+function updateActiveServerName() {
+  const info = myServers[ACTIVE_SERVER] || {};
+  document.getElementById("active-server-name").textContent = info.label || info.name || ACTIVE_SERVER || "-";
+}
+
+function switchServer(sid) {
+  if (!sid) return;
+  ACTIVE_SERVER = sid;
+  try { localStorage.setItem("vr_active_server", sid); } catch (e) {}
+  serverRef = db.ref("servers/" + sid);
+  updateActiveServerName();
+  showSkeletons();
+  attachServerListeners();
+  // Reset any per-section caches that depend on the server.
+  chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false;
+}
+
+// Add-server (pairing) modal.
+const pairModal = document.getElementById("pair-modal");
+document.getElementById("add-server-btn").addEventListener("click", () => { document.getElementById("pair-code").value = ""; document.getElementById("pair-label").value = ""; setPairHint("", ""); pairModal.classList.remove("hidden"); });
+document.getElementById("pair-cancel").addEventListener("click", () => pairModal.classList.add("hidden"));
+pairModal.addEventListener("click", (e) => { if (e.target === pairModal) pairModal.classList.add("hidden"); });
+function setPairHint(msg, kind) { const h = document.getElementById("pair-hint"); h.textContent = msg; h.className = "admin-add-hint " + (kind || ""); }
+
+document.getElementById("pair-submit").addEventListener("click", () => {
+  const code = document.getElementById("pair-code").value.trim().toUpperCase();
+  const label = document.getElementById("pair-label").value.trim();
+  if (code.length < 4) { setPairHint("أدخل كود ربط صالح.", "error"); return; }
+  setPairHint("جاري التحقق...", "");
+  // Resolve pairing code -> serverId.
+  pairingCodesRef.child(code).get().then((snap) => {
+    if (!snap.exists()) { setPairHint("كود الربط غير صحيح أو السيرفر غير متصل.", "error"); return; }
+    const sid = snap.val();
+    const entry = { label: label || null, addedAt: Date.now() };
+    usersServersRef.child(auth.currentUser.uid).child(sid).set(entry)
+      .then(() => {
+        setPairHint("تم ربط السيرفر بنجاح!", "success");
+        showToast("تمت إضافة السيرفر", "success");
+        setTimeout(() => { pairModal.classList.add("hidden"); switchServer(sid); }, 900);
+      })
+      .catch((err) => setPairHint("فشل الربط: " + (err.code || err.message), "error"));
+  }).catch((err) => setPairHint("فشل التحقق: " + (err.code || err.message), "error"));
+});
 
 // ---- Command sender ----
 function sendCommand(type, value) {

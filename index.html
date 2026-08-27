@@ -175,6 +175,15 @@
                     <p class="breadcrumb" id="page-sub">لوحة تحكم السيرفر</p>
                 </div>
                 <div class="topbar-status">
+                    <!-- Server switcher -->
+                    <div class="cselect server-switch" id="server-switch">
+                        <button type="button" class="cselect-btn">
+                            <span class="cselect-val"><span class="srv-dot"></span><span id="active-server-name">اختر سيرفر</span></span>
+                            <span class="cselect-arrow">▾</span>
+                        </button>
+                        <div class="cselect-menu" id="server-menu"></div>
+                    </div>
+                    <button id="add-server-btn" class="btn-primary add-srv-btn"><span class="btn-plus">+</span> إضافة سيرفر</button>
                     <span id="connection-status" class="status-badge offline">
                         <span class="status-dot"></span> غير متصل
                     </span>
@@ -668,6 +677,27 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Add server (pairing) modal -->
+    <div id="pair-modal" class="modal hidden">
+        <div class="modal-box">
+            <div class="ask-head"><span class="ask-icon"><img src="image/ic-system.png" alt=""></span><h3>إضافة سيرفر جديد</h3></div>
+            <p class="panel-desc">ثبّت البلجن على سيرفرك، وهيظهر في console كود ربط (Pairing Code). اكتبه هنا لربط السيرفر بحسابك.</p>
+            <div class="edit-field">
+                <label>كود الربط (Pairing Code)</label>
+                <input type="text" id="pair-code" placeholder="مثال: A1B2C3D4" autocomplete="off" style="text-transform:uppercase">
+            </div>
+            <div class="edit-field mt-8">
+                <label>اسم مختصر للسيرفر (اختياري)</label>
+                <input type="text" id="pair-label" placeholder="سيرفري الرئيسي">
+            </div>
+            <p id="pair-hint" class="admin-add-hint"></p>
+            <div class="ask-actions">
+                <button id="pair-submit" class="btn-primary full">ربط السيرفر</button>
+                <button id="pair-cancel" class="btn-ghost full">إلغاء</button>
+            </div>
+        </div>
     </div>
 
     <!-- Player action modal -->

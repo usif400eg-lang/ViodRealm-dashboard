@@ -255,6 +255,15 @@ body {
 .status-badge.offline { background: rgba(251, 92, 120, 0.14); color: var(--bad); }
 .last-sync { color: var(--text-3); font-size: 13px; }
 
+/* Server switcher */
+.server-switch { min-width: 180px; }
+.server-switch .cselect-btn { padding: 8px 12px; }
+.add-srv-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; white-space: nowrap; }
+.srv-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+.srv-dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.srv-dot.off { background: var(--text-3); }
+.srv-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .section { display: none; }
 .section.active { display: block; animation: sectionIn 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes fade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
