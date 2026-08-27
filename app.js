@@ -1512,28 +1512,45 @@ function renderServerCards() {
   const c = document.getElementById("servers-cards");
   if (!c) return;
   const ids = Object.keys(myServers);
-  if (!ids.length) { c.innerHTML = '<p class="empty-msg">لا توجد سيرفرات — اضغط إضافة سيرفر</p>'; return; }
+  if (!ids.length) { c.innerHTML = emptyState("overview.png", "لا توجد سيرفرات", "اضغط إضافة سيرفر لربط سيرفرك"); return; }
   c.innerHTML = "";
   ids.forEach((sid) => {
     const info = myServers[sid] || {};
     const label = info.label || info.name || sid;
     const online = info.online;
+    const banner = info.image || "";
     const card = document.createElement("div");
     card.className = "srv-card" + (sid === ACTIVE_SERVER ? " active" : "");
-    const img = info.image
-      ? `<img class="srv-card-img" src="${escapeHtml(info.image)}" alt="" onerror="this.style.display='none'">`
-      : `<div class="srv-card-img placeholder">${escapeHtml(label.charAt(0).toUpperCase())}</div>`;
     card.innerHTML = `
-      ${img}
-      <div class="srv-card-body">
-        <div class="srv-card-name">${escapeHtml(label)}</div>
-        <div class="srv-card-status"><span class="srv-dot ${online ? "on" : "off"}"></span>${online ? "متصل" : "غير متصل"}</div>
+      <div class="srv-banner" ${banner ? `style="background-image:url('${escapeHtml(banner)}')"` : ""}>
+        <span class="srv-badge ${online ? "on" : "off"}"><span class="srv-dot ${online ? "on" : "off"}"></span>${online ? "متصل" : "غير متصل"}</span>
+        <div class="srv-banner-title">${escapeHtml(label)}</div>
+        <button class="srv-gear" data-sid="${escapeHtml(sid)}" title="تعديل"><img src="image/ic-edit.png" alt=""></button>
       </div>
-      <button class="srv-card-edit" data-sid="${escapeHtml(sid)}" title="تعديل"><img src="image/ic-edit.png" alt=""></button>`;
-    card.addEventListener("click", (e) => { if (!e.target.closest(".srv-card-edit")) switchServer(sid); });
+      <div class="srv-sub"><img class="srv-game-ic" src="image/ic-modrinth.png" alt=""> Minecraft</div>
+      <div class="srv-stats">
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-system.png" alt=""></span><div><div class="srv-stat-k">اللاعبون</div><div class="srv-stat-v" data-srv-players="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/stat-online.png" alt=""></span><div><div class="srv-stat-k">TPS</div><div class="srv-stat-v" data-srv-tps="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/stat-waypoints.png" alt=""></span><div><div class="srv-stat-k">النقاط</div><div class="srv-stat-v" data-srv-wp="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-world.png" alt=""></span><div><div class="srv-stat-k">العوالم</div><div class="srv-stat-v" data-srv-worlds="${escapeHtml(sid)}">-</div></div></div>
+      </div>
+      <button class="srv-open-btn ${sid === ACTIVE_SERVER ? "active" : ""}" data-open="${escapeHtml(sid)}">${sid === ACTIVE_SERVER ? "السيرفر النشط" : "فتح لوحة التحكم"}</button>`;
     c.appendChild(card);
+    // Pull live stats for this card.
+    db.ref("servers/" + sid + "/stats").get().then((snap) => {
+      const s = snap.val() || {};
+      const set = (attr, val) => { const el = c.querySelector(`[${attr}="${CSS.escape(sid)}"]`); if (el) el.textContent = val; };
+      set("data-srv-players", (s.onlinePlayers != null ? s.onlinePlayers : 0) + "/" + (s.maxPlayers != null ? s.maxPlayers : "?"));
+      set("data-srv-tps", s.tps != null ? s.tps : "-");
+      set("data-srv-wp", s.totalWaypoints != null ? s.totalWaypoints : "-");
+    }).catch(() => {});
+    db.ref("servers/" + sid + "/worlds").get().then((snap) => {
+      const el = c.querySelector(`[data-srv-worlds="${CSS.escape(sid)}"]`);
+      if (el) el.textContent = toArray(snap.val()).length || "-";
+    }).catch(() => {});
   });
-  c.querySelectorAll(".srv-card-edit").forEach((btn) => btn.addEventListener("click", (e) => { e.stopPropagation(); openEditServer(btn.dataset.sid); }));
+  c.querySelectorAll(".srv-gear").forEach((btn) => btn.addEventListener("click", (e) => { e.stopPropagation(); openEditServer(btn.dataset.sid); }));
+  c.querySelectorAll(".srv-open-btn").forEach((btn) => btn.addEventListener("click", () => switchServer(btn.dataset.open)));
 }
 
 function updateActiveServerName() {
