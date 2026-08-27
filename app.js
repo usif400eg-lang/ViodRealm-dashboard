@@ -1638,6 +1638,14 @@ function openEditServer(sid) {
   document.getElementById("editsrv-name").value = info.label || info.name || "";
   document.getElementById("editsrv-image").value = info.image || "";
   document.getElementById("editsrv-hint").textContent = "";
+  // Prefill existing panel config (from the server node) so the owner can edit it.
+  ["editsrv-panel-url","editsrv-panel-key","editsrv-panel-id"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
+  db.ref("servers/" + sid + "/panelConfig").get().then((snap) => {
+    const p = snap.val() || {};
+    if (document.getElementById("editsrv-panel-url")) document.getElementById("editsrv-panel-url").value = p.url || "";
+    if (document.getElementById("editsrv-panel-key")) document.getElementById("editsrv-panel-key").value = p.key || "";
+    if (document.getElementById("editsrv-panel-id")) document.getElementById("editsrv-panel-id").value = p.id || "";
+  }).catch(() => {});
   editSrvModal.classList.remove("hidden");
 }
 document.getElementById("editsrv-cancel").addEventListener("click", () => editSrvModal.classList.add("hidden"));
@@ -1645,11 +1653,21 @@ editSrvModal.addEventListener("click", (e) => { if (e.target === editSrvModal) e
 document.getElementById("editsrv-save").addEventListener("click", () => {
   const name = document.getElementById("editsrv-name").value.trim();
   const image = document.getElementById("editsrv-image").value.trim();
+  const pUrl = document.getElementById("editsrv-panel-url").value.trim();
+  const pKey = document.getElementById("editsrv-panel-key").value.trim();
+  const pId = document.getElementById("editsrv-panel-id").value.trim();
   const hint = document.getElementById("editsrv-hint");
-  usersServersRef.child(auth.currentUser.uid).child(editSrvId).update({ label: name || null, image: image || null })
+  hint.textContent = "جاري الحفظ..."; hint.className = "admin-add-hint";
+  const tasks = [
+    usersServersRef.child(auth.currentUser.uid).child(editSrvId).update({ label: name || null, image: image || null })
+  ];
+  // Save/update panel config so power controls + console work.
+  if (pUrl && pKey && pId) {
+    tasks.push(db.ref("servers/" + editSrvId + "/panelConfig").set({ url: pUrl, key: pKey, id: pId, setBy: auth.currentUser.uid }));
+  }
+  Promise.all(tasks)
     .then(() => {
       hint.textContent = "تم الحفظ."; hint.className = "admin-add-hint success";
-      // Update local cache immediately.
       if (myServers[editSrvId]) { myServers[editSrvId].label = name; myServers[editSrvId].image = image; }
       renderServerSwitcher();
       setTimeout(() => editSrvModal.classList.add("hidden"), 700);
