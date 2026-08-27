@@ -785,13 +785,12 @@ function buildSlot(item) {
 function prettyItemName(type) {
   return String(type).toLowerCase().split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
-// Real Minecraft textures mirror (all versions, items + blocks).
-const MC_ASSET_VERSION = "1.21.4";
+// Local Minecraft textures (extracted from the game jar into dashboard/mc-textures).
 function mcTextureUrl(folder, id) {
-  return `https://assets.mcasset.cloud/${MC_ASSET_VERSION}/assets/minecraft/textures/${folder}/${id}.png`;
+  return `mc-textures/${folder}/${id}.png`;
 }
 function fallbackTexture() {
-  return `https://assets.mcasset.cloud/${MC_ASSET_VERSION}/assets/minecraft/textures/item/barrier.png`;
+  return `mc-textures/item/barrier.png`;
 }
 document.getElementById("pm-msg-send").addEventListener("click", () => {
   const m = document.getElementById("pm-msg-input").value.trim();
