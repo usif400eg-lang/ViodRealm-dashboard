@@ -28,6 +28,23 @@
     --shadow-md: 0 10px 30px -8px rgba(0, 0, 0, 0.45);
     --shadow-glow: 0 0 0 1px rgba(245, 197, 24, 0.2), 0 12px 40px -10px rgba(245, 197, 24, 0.35);
 
+/* Light theme overrides */
+}
+html[data-theme="light"] {
+    --bg: #f2f4f8;
+    --bg-soft: #e9edf3;
+    --surface: #ffffff;
+    --surface-2: #f4f6fa;
+    --surface-3: #e9edf3;
+    --line: #dfe4ec;
+    --line-strong: #c7cfdb;
+    --text: #1a2030;
+    --text-2: #46506a;
+    --text-3: #8a94ab;
+    --shadow-lg: 0 24px 70px -12px rgba(60, 70, 90, 0.25);
+    --shadow-md: 0 10px 30px -8px rgba(60, 70, 90, 0.18);
+}
+
     --r-lg: 20px;
     --r: 14px;
     --r-sm: 10px;
@@ -254,6 +271,11 @@ body {
 .status-badge.online { background: rgba(52, 211, 153, 0.14); color: var(--ok); }
 .status-badge.offline { background: rgba(251, 92, 120, 0.14); color: var(--bad); }
 .last-sync { color: var(--text-3); font-size: 13px; }
+
+/* Theme + language toggle buttons */
+.icon-toggle { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); font-size: 15px; font-weight: 800; transition: border-color 0.15s, background 0.15s; }
+.icon-toggle:hover { border-color: var(--brand); }
+#lang-label { font-size: 13px; }
 
 /* Server switcher */
 .server-switch { min-width: 180px; }

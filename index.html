@@ -190,8 +190,10 @@
                         <div class="cselect-menu" id="server-menu"></div>
                     </div>
                     <button id="add-server-btn" class="btn-primary add-srv-btn"><img class="cb-icon" src="image/ic-system.png" alt=""> إضافة سيرفر</button>
+                    <button id="theme-toggle" class="icon-toggle" title="الوضع"><span id="theme-icon">🌙</span></button>
+                    <button id="lang-toggle" class="icon-toggle" title="اللغة"><span id="lang-label">EN</span></button>
                     <span id="connection-status" class="status-badge offline">
-                        <span class="status-dot"></span> غير متصل
+                        <span class="status-dot"></span> <span data-i18n="offline">غير متصل</span>
                     </span>
                     <span id="last-sync" class="last-sync"></span>
                 </div>
@@ -779,6 +781,19 @@
             <div class="edit-field mt-8">
                 <label>اسم مختصر للسيرفر (اختياري)</label>
                 <input type="text" id="pair-label" placeholder="سيرفري الرئيسي">
+            </div>
+            <div class="pair-divider"><span>بيانات لوحة الاستضافة (مطلوبة للتحكم في التشغيل/الإيقاف والكونسول)</span></div>
+            <div class="edit-field">
+                <label>رابط لوحة الاستضافة (Panel URL)</label>
+                <input type="text" id="pair-panel-url" placeholder="https://panel.example.com" autocomplete="off">
+            </div>
+            <div class="edit-field mt-8">
+                <label>مفتاح API (Client API Key)</label>
+                <input type="text" id="pair-panel-key" placeholder="ptlc_..." autocomplete="off">
+            </div>
+            <div class="edit-field mt-8">
+                <label>معرّف السيرفر في اللوحة (Server Identifier)</label>
+                <input type="text" id="pair-panel-id" placeholder="abc123" autocomplete="off">
             </div>
             <p id="pair-hint" class="admin-add-hint"></p>
             <div class="ask-actions">

@@ -1567,14 +1567,25 @@ function setPairHint(msg, kind) { const h = document.getElementById("pair-hint")
 document.getElementById("pair-submit").addEventListener("click", () => {
   const code = document.getElementById("pair-code").value.trim().toUpperCase();
   const label = document.getElementById("pair-label").value.trim();
+  const panelUrl = document.getElementById("pair-panel-url").value.trim();
+  const panelKey = document.getElementById("pair-panel-key").value.trim();
+  const panelId = document.getElementById("pair-panel-id").value.trim();
   if (code.length < 4) { setPairHint("أدخل كود ربط صالح.", "error"); return; }
+  // Panel API is required so the dashboard can control power + console.
+  if (!panelUrl || !panelKey || !panelId) { setPairHint("بيانات لوحة الاستضافة مطلوبة (الرابط، المفتاح، المعرّف).", "error"); return; }
   setPairHint("جاري التحقق...", "");
   // Resolve pairing code -> serverId.
   pairingCodesRef.child(code).get().then((snap) => {
     if (!snap.exists()) { setPairHint("كود الربط غير صحيح أو السيرفر غير متصل.", "error"); return; }
     const sid = snap.val();
-    const entry = { label: label || null, addedAt: Date.now() };
+    const entry = { label: label || null, addedAt: Date.now(),
+      panel: { url: panelUrl, key: panelKey, id: panelId } };
     usersServersRef.child(auth.currentUser.uid).child(sid).set(entry)
+      .then(() => {
+        // Also push panel config to the server node so the plugin can read it and control power.
+        return serverRef ? Promise.resolve() : Promise.resolve();
+      })
+      .then(() => db.ref("servers/" + sid + "/panelConfig").set({ url: panelUrl, key: panelKey, id: panelId, setBy: auth.currentUser.uid }).catch(() => {}))
       .then(() => {
         setPairHint("تم ربط السيرفر بنجاح!", "success");
         showToast("تمت إضافة السيرفر", "success");
@@ -1936,3 +1947,57 @@ function escapeHtml(s) {
   if (s === undefined || s === null) return "";
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
+
+// ---- Theme toggle (dark / light / system) ----
+(function initTheme() {
+  const modes = ["system", "dark", "light"];
+  const icons = { system: "🖥️", dark: "🌙", light: "☀️" };
+  let mode = "system";
+  try { mode = localStorage.getItem("vr_theme") || "system"; } catch (e) {}
+  const media = window.matchMedia("(prefers-color-scheme: light)");
+  function apply() {
+    const effective = mode === "system" ? (media.matches ? "light" : "dark") : mode;
+    document.documentElement.setAttribute("data-theme", effective);
+    const ic = document.getElementById("theme-icon");
+    if (ic) ic.textContent = icons[mode];
+  }
+  const btn = document.getElementById("theme-toggle");
+  if (btn) {
+    btn.title = "الوضع: " + mode;
+    btn.addEventListener("click", () => {
+      mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+      try { localStorage.setItem("vr_theme", mode); } catch (e) {}
+      btn.title = "الوضع: " + mode;
+      apply();
+    });
+  }
+  media.addEventListener("change", () => { if (mode === "system") apply(); });
+  apply();
+})();
+
+// ---- Language toggle (AR / EN) ----
+const I18N = {
+  offline: { ar: "غير متصل", en: "Offline" },
+  online: { ar: "متصل", en: "Online" }
+};
+(function initLang() {
+  let lang = "ar";
+  try { lang = localStorage.getItem("vr_lang") || "ar"; } catch (e) {}
+  function apply() {
+    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+    const lbl = document.getElementById("lang-label");
+    if (lbl) lbl.textContent = lang === "ar" ? "EN" : "ع";
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      if (I18N[key]) el.textContent = I18N[key][lang];
+    });
+  }
+  const btn = document.getElementById("lang-toggle");
+  if (btn) btn.addEventListener("click", () => {
+    lang = lang === "ar" ? "en" : "ar";
+    try { localStorage.setItem("vr_lang", lang); } catch (e) {}
+    apply();
+  });
+  apply();
+})();
