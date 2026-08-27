@@ -1463,13 +1463,30 @@ const serverMetaRef = db.ref("serverMeta");
 // Loads the servers owned by this user; the owner sees all servers.
 function loadMyServers(uid) {
   if (currentUserIsOwner) {
-    // Owner sees every registered server.
-    serverMetaRef.on("value", (snap) => {
-      const all = snap.val() || {};
-      myServers = {};
-      Object.keys(all).forEach((sid) => { myServers[sid] = { label: all[sid].name || sid, name: all[sid].name, online: all[sid].online }; });
-      renderServerSwitcher();
+    // Owner sees every registered server, merged with their own label/image overrides.
+    let overrides = {};
+    usersServersRef.child(uid).on("value", (osnap) => {
+      overrides = osnap.val() || {};
+      applyOwnerServers();
     }, () => {});
+    serverMetaRef.on("value", (snap) => {
+      window.__allMeta = snap.val() || {};
+      applyOwnerServers();
+    }, () => {});
+    function applyOwnerServers() {
+      const all = window.__allMeta || {};
+      myServers = {};
+      Object.keys(all).forEach((sid) => {
+        const ov = overrides[sid] || {};
+        myServers[sid] = {
+          label: ov.label || all[sid].name || sid,
+          name: all[sid].name,
+          image: ov.image || null,
+          online: all[sid].online
+        };
+      });
+      renderServerSwitcher();
+    }
   } else {
     usersServersRef.child(uid).on("value", (snap) => {
       myServers = snap.val() || {};
