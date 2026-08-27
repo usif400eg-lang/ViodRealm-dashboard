@@ -45,10 +45,10 @@ html[data-theme="light"] {
     --shadow-md: 0 10px 30px -8px rgba(90, 60, 140, 0.18);
 }
 
-    --r-lg: 20px;
-    --r: 14px;
-    --r-sm: 10px;
-    --r-xs: 8px;
+    --r-lg: 24px;
+    --r: 18px;
+    --r-sm: 13px;
+    --r-xs: 10px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -217,8 +217,9 @@ body {
     backdrop-filter: blur(18px);
     border-left: 1px solid var(--line);
     display: flex; flex-direction: column; padding: 24px 16px;
-    position: sticky; top: 0; height: 100vh;
+    position: fixed; top: 0; right: 0; height: 100vh; z-index: 40;
 }
+.main { margin-right: 272px; }
 .sidebar-brand { display: flex; align-items: center; gap: 13px; padding: 4px 8px 28px; }
 .sidebar-brand-text { display: flex; flex-direction: column; }
 .sb-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
@@ -947,6 +948,7 @@ canvas { max-width: 100%; }
 @media (max-width: 900px) {
     .sidebar { position: fixed; right: -288px; z-index: 100; transition: right 0.3s; box-shadow: var(--shadow-lg); }
     .sidebar.open { right: 0; }
+    .main { margin-right: 0; }
     .menu-toggle { display: block; }
     .main { padding: 18px 14px; }
     .topbar-title h2 { font-size: 21px; }
