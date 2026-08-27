@@ -2013,13 +2013,34 @@ const AR_EN = {
   "الأدمنز الحاليون": "Current Admins", "نسخ": "Copy", "إضافة أدمن": "Add Admin", "إضافة بالمعرّف": "Add by ID",
   "كونسول السيرفر": "Server Console", "ملفات السيرفر": "Server Files", "للأعلى": "Up", "رفع": "Upload",
   "مباشر": "Live", "بانتظار الموافقة": "Pending Approval", "تم تسجيل دخولك بنجاح": "You signed in successfully",
-  "ملفات السيرفر": "Server Files", "المستوى": "Level", "الجوع": "Hunger", "الدرع + اليد الثانية": "Armor + Offhand",
+  "المستوى": "Level", "الجوع": "Hunger", "الدرع + اليد الثانية": "Armor + Offhand",
   "تعديل الملف الشخصي": "Edit Profile", "مزوّد الدخول": "Login Provider", "تاريخ الإنشاء": "Created", "آخر دخول": "Last Login",
   "المعرّف (UID)": "UID", "اسم السيرفر": "Server Name", "تعديل السيرفر": "Edit Server", "معاينة": "Preview",
   "العنوان الفرعي": "Subtitle", "نص اللوجو (لو مفيش صورة)": "Logo text (fallback)", "رابط شعار الموقع (اللوجو)": "Logo image URL",
   "حفظ إعدادات الموقع": "Save Site Settings", "مستخدمو Authentication": "Authentication Users",
   "المستخدم": "User", "البريد": "Email", "المزوّد": "Provider", "أُنشئ": "Created", "توزيع النقاط حسب الفئة": "Waypoints by Category",
-  "نمو عدد النقاط": "Waypoints Growth", "اللاعبون المتصلون عبر الوقت": "Players Online Over Time"
+  "نمو عدد النقاط": "Waypoints Growth", "اللاعبون المتصلون عبر الوقت": "Players Online Over Time",
+  // Pairing modal + misc descriptions
+  "ثبّت البلجن على سيرفرك، وهيظهر في الكونسول كود ربط. اكتبه هنا لربط السيرفر بحسابك.": "Install the plugin on your server; a pairing code will appear in the console. Enter it here to link the server to your account.",
+  "بيانات لوحة الاستضافة (مطلوبة للتحكم في التشغيل والإيقاف والكونسول)": "Hosting panel details (required to control power & console)",
+  "احظر لاعباً بالاسم أو المعرّف الفريد.": "Ban a player by name or unique ID.",
+  "اسم اللاعب أو المعرّف": "Player name or ID",
+  "السبب (اختياري)": "Reason (optional)",
+  "الأدمنز الحاليون": "Current Admins",
+  "أرسل رسالة لكل اللاعبين في السيرفر.": "Send a message to all players on the server.",
+  "تفعيل أو تعطيل نظام الـ Waypoints بالكامل.": "Enable or disable the entire waypoint system.",
+  "تشغيل/إيقاف/إعادة تشغيل السيرفر عبر لوحة الاستضافة (Pterodactyl). يتطلب ضبط بيانات اللوحة في config.yml.": "Start/stop/restart the server via the hosting panel (Pterodactyl).",
+  "تغيير وقت اليوم في كل العوالم.": "Change the time of day in all worlds.",
+  "تغيير الطقس في كل العوالم.": "Change the weather in all worlds.",
+  "حفظ كل بيانات العالم فوراً (save-all).": "Save all world data immediately (save-all).",
+  "نفّذ أمراً مباشرة على console السيرفر. استخدمه بحذر.": "Run a command directly on the server console. Use with care.",
+  "في انتظار مخرجات السيرفر...": "Waiting for server output...",
+  "جاري التحميل...": "Loading...",
+  "لا توجد سيرفرات — اضغط إضافة سيرفر": "No servers — click Add Server",
+  "لا يوجد سيرفر": "No server",
+  "امنح صلاحية الدخول لأي حساب Google بإدخال بريده.": "Grant panel access to any Google account by email.",
+  "الصق معرّف (ID) أي شخص سجّل دخوله ليتمكّن من التحكم في الموقع معك.": "Paste the ID of anyone who signed in to let them control the panel with you.",
+  "هذا هو معرّفك الفريد. شاركه مع مالك السيرفر ليمنحك صلاحية الدخول.": "This is your unique ID. Share it with the server owner to get access."
 };
 
 // Build reverse map (EN -> AR) for restoring.
