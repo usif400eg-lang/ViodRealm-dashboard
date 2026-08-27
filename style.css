@@ -220,6 +220,12 @@ body {
     position: fixed; top: 0; right: 0; height: 100vh; z-index: 40;
 }
 .main { margin-right: 272px; }
+
+/* LTR (English): sidebar on the LEFT */
+html[dir="ltr"] .sidebar { right: auto; left: 0; border-left: none; border-right: 1px solid var(--line); }
+html[dir="ltr"] .main { margin-right: 0; margin-left: 272px; }
+html[dir="ltr"] .nav-item.active::before { right: auto; left: -4px; }
+html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: linear-gradient(to right, var(--line), transparent); }
 .sidebar-brand { display: flex; align-items: center; gap: 13px; padding: 4px 8px 28px; }
 .sidebar-brand-text { display: flex; flex-direction: column; }
 .sb-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
@@ -950,9 +956,13 @@ canvas { max-width: 100%; }
 
 /* Responsive */
 @media (max-width: 900px) {
-    .sidebar { position: fixed; right: -288px; z-index: 100; transition: right 0.3s; box-shadow: var(--shadow-lg); }
+    .sidebar { position: fixed; right: -288px; z-index: 100; transition: right 0.3s, left 0.3s; box-shadow: var(--shadow-lg); }
     .sidebar.open { right: 0; }
     .main { margin-right: 0; }
+    /* LTR mobile: slide from the left */
+    html[dir="ltr"] .sidebar { left: -288px; right: auto; }
+    html[dir="ltr"] .sidebar.open { left: 0; right: auto; }
+    html[dir="ltr"] .main { margin-left: 0; }
     .menu-toggle { display: block; }
     .main { padding: 18px 14px; }
     .topbar-title h2 { font-size: 21px; }
