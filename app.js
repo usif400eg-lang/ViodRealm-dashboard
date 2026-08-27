@@ -1005,8 +1005,8 @@ function updateSparklines() {
   if (typeof Chart === "undefined" || !historyPoints.length) return;
   const online = historyPoints.map((h) => h.online || 0);
   const wps = historyPoints.map((h) => h.waypoints || 0);
-  drawSpark("spark-online", online, "#a855f7");
-  drawSpark("spark-waypoints", wps, "#7c3aed");
+  drawSpark("spark-online", online, "#f5c518");
+  drawSpark("spark-waypoints", wps, "#d99814");
 }
 function drawSpark(id, data, color) {
   const el = document.getElementById(id);
@@ -1029,8 +1029,8 @@ function updateTimeCharts() {
   const online = historyPoints.map((h) => h.online || 0);
   const wps = historyPoints.map((h) => h.waypoints || 0);
 
-  drawLine("chart-online", "online", labels, online, "المتصلون", "#a855f7");
-  drawLine("chart-waypoints", "waypoints", labels, wps, "النقاط", "#7c3aed");
+  drawLine("chart-online", "online", labels, online, "المتصلون", "#f5c518");
+  drawLine("chart-waypoints", "waypoints", labels, wps, "النقاط", "#d99814");
 }
 
 function drawLine(canvasId, key, labels, data, label, color) {
@@ -1051,7 +1051,7 @@ function updateCategoryChart() {
   if (!el) return;
   const labels = Object.keys(categoryStats);
   const data = Object.values(categoryStats);
-  const colors = ["#a855f7", "#7c3aed", "#22d3ee", "#34d399", "#fbbf24", "#fb5c78"];
+  const colors = ["#f5c518", "#d99814", "#f7d64b", "#34d399", "#fbbf24", "#fb5c78"];
   if (charts.cat) { charts.cat.data.labels = labels; charts.cat.data.datasets[0].data = data; charts.cat.update(); return; }
   charts.cat = new Chart(el, {
     type: "doughnut",
