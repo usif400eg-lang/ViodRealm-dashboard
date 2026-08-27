@@ -278,6 +278,30 @@ body {
 .srv-card-edit img { width: 15px; height: 15px; filter: brightness(0) saturate(100%) invert(78%) sepia(60%) saturate(900%) hue-rotate(1deg) brightness(95%) contrast(92%); }
 .srv-card-edit:hover { border-color: var(--brand); }
 
+/* Console */
+.console-out { background: #05070c; border: 1px solid var(--line); border-radius: var(--r); padding: 14px; font-family: monospace; font-size: 12.5px; line-height: 1.6; height: calc(100vh - 260px); min-height: 340px; overflow-y: auto; }
+.cl-line { color: #c9d3e6; white-space: pre-wrap; word-break: break-word; }
+.cl-line.err { color: var(--bad); }
+.cl-line.warn { color: var(--warn); }
+.console-input-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.console-prompt { color: var(--brand); font-family: monospace; font-weight: 800; }
+.console-input-row input { flex: 1; font-family: monospace; }
+
+/* Files */
+.files-path { font-family: monospace; color: var(--brand-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 13px; }
+.files-list { display: flex; flex-direction: column; gap: 4px; }
+.file-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--r-sm); border: 1px solid transparent; transition: background 0.12s, border-color 0.12s; }
+.file-row:hover { background: var(--surface-2); border-color: var(--line); }
+.file-ic { font-size: 16px; width: 20px; text-align: center; }
+.file-name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: var(--text-3); font-size: 12px; font-family: monospace; }
+.file-actions { display: flex; gap: 6px; }
+.files-upload-row { display: flex; gap: 10px; margin-top: 14px; }
+.files-upload-row input { flex: 1; }
+.file-editor { width: 100%; height: 50vh; background: #05070c; border: 1px solid var(--line); border-radius: var(--r-sm); color: #c9d3e6; font-family: monospace; font-size: 13px; padding: 12px; resize: vertical; line-height: 1.6; }
+.file-editor:focus { outline: none; border-color: var(--brand); }
+.upload-btn { display: none; }
+
 .section { display: none; }
 .section.active { display: block; animation: sectionIn 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes fade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }

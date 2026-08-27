@@ -324,6 +324,8 @@ const PAGE_INFO = {
   charts: ["الإحصائيات", "رسوم بيانية حية"],
   activity: ["سجل الأحداث", "من فعل ماذا ومتى"],
   chat: ["الشات المباشر", "دردشة السيرفر الحية"],
+  console: ["الكونسول", "أوامر ومخرجات السيرفر الحية"],
+  files: ["الملفات", "تصفّح وتعديل ملفات السيرفر"],
   control: ["التحكم", "التحكم العام"],
   admins: ["إدارة الأدمن", "منح وسحب صلاحيات اللوحة"],
   firebase: ["Firebase", "قاعدة البيانات والمصادقة"]
@@ -353,6 +355,8 @@ function navigateTo(target) {
   if (target === "plugins") ensureModrinthDefault();
   if (target === "firebase") ensureFirebaseConsole();
   if (target === "chat") ensureChat();
+  if (target === "files") ensureFiles();
+  if (target === "console") ensureConsole();
   // Remember the last opened section.
   try { localStorage.setItem("vr_last_section", target); } catch (e) {}
 }
@@ -1546,7 +1550,8 @@ function switchServer(sid) {
   showSkeletons();
   attachServerListeners();
   // Reset any per-section caches that depend on the server.
-  chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false;
+  chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false; consoleInit = false; filesInit = false;
+  attachPowerResult();
 }
 
 // Add-server (pairing) modal.
@@ -1616,6 +1621,146 @@ document.getElementById("editsrv-remove").addEventListener("click", () => {
     })
     .catch((err) => { hint.textContent = "فشل الإزالة: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
 });
+
+// ---- Server power (panel API) ----
+document.querySelectorAll(".power-btn").forEach((b) => b.addEventListener("click", () => {
+  const sig = b.dataset.power;
+  const labels = { start: "تشغيل", stop: "إيقاف", restart: "إعادة تشغيل", kill: "إنهاء إجباري" };
+  ask({ title: labels[sig] || sig, msg: "هل تريد " + (labels[sig]||sig) + " السيرفر؟", iconImg: "ic-system.png", danger: sig !== "start", okText: labels[sig] })
+    .then((r) => { if (r) { sendCommand("power", sig); showToast("تم إرسال إشارة " + (labels[sig]||sig), "success"); } });
+}));
+
+// ---- Console ----
+let consoleInit = false;
+function ensureConsole() {
+  if (consoleInit) return;
+  consoleInit = true;
+  serverRef.child("consoleLog").limitToLast(200).on("value", (snap) => renderConsole(toArray(snap.val())), onReadError);
+  const run = () => {
+    const inp = document.getElementById("console-cmd");
+    const cmd = inp.value.trim();
+    if (!cmd) return;
+    sendCommand("console", cmd);
+    inp.value = "";
+    showToast("تم تنفيذ الأمر", "success");
+  };
+  document.getElementById("console-run").addEventListener("click", run);
+  document.getElementById("console-cmd").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
+}
+function renderConsole(lines) {
+  const out = document.getElementById("console-out");
+  if (!lines.length) { out.innerHTML = '<p class="empty-msg">في انتظار مخرجات السيرفر...</p>'; return; }
+  const atBottom = out.scrollHeight - out.scrollTop - out.clientHeight < 60;
+  out.innerHTML = lines.map((l) => {
+    const txt = typeof l === "string" ? l : (l.line || "");
+    let cls = "cl-line";
+    if (/error|severe|exception/i.test(txt)) cls += " err";
+    else if (/warn/i.test(txt)) cls += " warn";
+    return `<div class="${cls}">${escapeHtml(txt)}</div>`;
+  }).join("");
+  if (atBottom) out.scrollTop = out.scrollHeight;
+}
+
+// ---- Files ----
+let filesInit = false;
+let filesCwd = "";
+function ensureFiles() {
+  if (!filesInit) {
+    filesInit = true;
+    serverRef.child("files/list").on("value", (snap) => renderFiles(snap.val()), onReadError);
+    serverRef.child("files/op").on("value", (snap) => {
+      const r = snap.val(); if (!r) return;
+      showToast(r.message || "", r.status === "success" ? "success" : "error");
+    }, onReadError);
+    document.getElementById("files-up").addEventListener("click", () => {
+      if (!filesCwd) return;
+      const parts = filesCwd.split("/"); parts.pop();
+      filesLoad(parts.join("/"));
+    });
+    document.getElementById("files-upload-btn").addEventListener("click", () => {
+      const url = document.getElementById("files-upload-url").value.trim();
+      if (!url) { showToast("أدخل رابط .jar", "error"); return; }
+      sendCommand("download_plugin", url + "|");
+      document.getElementById("files-upload-url").value = "";
+      showToast("جاري رفع البلجن...", "success");
+    });
+  }
+  filesLoad(filesCwd);
+}
+function filesLoad(path) { filesCwd = path || ""; sendCommand("files_list", filesCwd); }
+function renderFiles(data) {
+  const list = document.getElementById("files-list");
+  document.getElementById("files-path").textContent = "/" + (data && data.path ? data.path : "");
+  if (!data || !data.entries || !data.entries.length) { list.innerHTML = emptyState("overview.png", "المجلد فارغ", ""); return; }
+  filesCwd = data.path || "";
+  list.innerHTML = "";
+  data.entries.forEach((e) => {
+    const row = document.createElement("div");
+    row.className = "file-row";
+    const icon = e.dir ? "📁" : (e.editable ? "📝" : "📄");
+    row.innerHTML = `
+      <span class="file-ic">${icon}</span>
+      <span class="file-name">${escapeHtml(e.name)}</span>
+      <span class="file-size">${e.dir ? "" : formatBytes(e.size)}</span>
+      <span class="file-actions"></span>`;
+    const actions = row.querySelector(".file-actions");
+    if (e.dir) {
+      row.querySelector(".file-name").style.cursor = "pointer";
+      row.querySelector(".file-name").addEventListener("click", () => filesLoad(e.path));
+    } else {
+      if (e.editable) {
+        const ed = document.createElement("button"); ed.className = "mini-btn rank"; ed.textContent = "تعديل";
+        ed.addEventListener("click", () => openFileEditor(e.path, e.name));
+        actions.appendChild(ed);
+      }
+      const del = document.createElement("button"); del.className = "mini-btn ban"; del.textContent = "حذف";
+      del.addEventListener("click", () => ask({ title: "حذف ملف", msg: "حذف " + e.name + "؟", iconImg: "ic-trash.png", danger: true, okText: "حذف" }).then((r) => { if (r) sendCommand("files_delete", e.path); }));
+      actions.appendChild(del);
+    }
+    list.appendChild(row);
+  });
+}
+function formatBytes(b) { if (b < 1024) return b + " B"; if (b < 1048576) return (b/1024).toFixed(1) + " KB"; return (b/1048576).toFixed(1) + " MB"; }
+
+// File editor modal
+const fileModal = document.getElementById("file-modal");
+let editingPath = null;
+function openFileEditor(path, name) {
+  editingPath = path;
+  document.getElementById("file-modal-name").textContent = name;
+  document.getElementById("file-editor").value = "جاري التحميل...";
+  document.getElementById("file-modal-hint").textContent = "";
+  fileModal.classList.remove("hidden");
+  // Request content, then read it once.
+  sendCommand("files_read", path);
+  const readRef = serverRef.child("files/read");
+  const handler = (snap) => {
+    const d = snap.val();
+    if (d && d.path === path && d.t && Date.now() - d.t < 30000) {
+      document.getElementById("file-editor").value = d.error ? ("// خطأ: " + d.error) : (d.content || "");
+      readRef.off("value", handler);
+    }
+  };
+  readRef.on("value", handler);
+}
+document.getElementById("file-cancel").addEventListener("click", () => fileModal.classList.add("hidden"));
+document.getElementById("file-save").addEventListener("click", () => {
+  const content = document.getElementById("file-editor").value;
+  sendCommand("files_write", editingPath + "\u0000" + content);
+  const hint = document.getElementById("file-modal-hint");
+  hint.textContent = "تم إرسال الحفظ."; hint.className = "admin-add-hint success";
+  setTimeout(() => fileModal.classList.add("hidden"), 800);
+});
+
+// Power result feedback (attached once globally after listeners).
+function attachPowerResult() {
+  if (!serverRef) return;
+  serverRef.child("power/result").on("value", (snap) => {
+    const r = snap.val(); if (!r) return;
+    const h = document.getElementById("power-hint");
+    if (h) { h.textContent = r.message || ""; h.className = "admin-add-hint " + (r.status === "success" ? "success" : "error"); }
+  }, () => {});
+}
 
 // ---- Command sender ----
 function sendCommand(type, value) {

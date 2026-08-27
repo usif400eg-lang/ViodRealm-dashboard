@@ -119,6 +119,12 @@
                 <a href="#server" class="nav-item" data-target="server">
                     <img class="nav-icon-img" src="image/ic-system.png" alt="" onerror="this.style.display='none'"><span class="nav-text">تحكم السيرفر</span>
                 </a>
+                <a href="#console" class="nav-item" data-target="console">
+                    <img class="nav-icon-img" src="image/ic-console.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الكونسول</span>
+                </a>
+                <a href="#files" class="nav-item" data-target="files">
+                    <img class="nav-icon-img" src="image/overview.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الملفات</span>
+                </a>
                 <a href="#charts" class="nav-item" data-target="charts">
                     <img class="nav-icon-img" src="image/stat-online.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الإحصائيات</span>
                 </a>
@@ -516,6 +522,17 @@
 
             <!-- Server control -->
             <section id="section-server" class="section">
+                <div class="panel ctrl-panel">
+                    <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-system.png" alt=""></span><h3>طاقة السيرفر (Power)</h3></div>
+                    <p class="panel-desc">تشغيل/إيقاف/إعادة تشغيل السيرفر عبر لوحة الاستضافة (Pterodactyl). يتطلب ضبط بيانات اللوحة في config.yml.</p>
+                    <div class="btn-row">
+                        <button class="ctrl-btn ok power-btn" data-power="start"><img class="cb-icon" src="image/ic-toggle-on.png" alt=""> تشغيل</button>
+                        <button class="ctrl-btn power-btn" data-power="restart"><img class="cb-icon" src="image/ic-system.png" alt=""> إعادة تشغيل</button>
+                        <button class="ctrl-btn bad power-btn" data-power="stop"><img class="cb-icon" src="image/ic-toggle-off.png" alt=""> إيقاف</button>
+                        <button class="ctrl-btn bad power-btn" data-power="kill"><img class="cb-icon" src="image/btn-ban.png" alt=""> إنهاء إجباري</button>
+                    </div>
+                    <p id="power-hint" class="admin-add-hint"></p>
+                </div>
                 <div class="control-grid">
                     <div class="panel ctrl-panel">
                         <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-time.png" alt=""></span><h3>الوقت</h3></div>
@@ -548,6 +565,38 @@
                             <input type="text" id="console-input" placeholder="مثال: give Player diamond 1">
                             <button id="console-btn" class="btn-danger">تنفيذ</button>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Console -->
+            <section id="section-console" class="section">
+                <div class="panel">
+                    <div class="panel-head"><h3>كونسول السيرفر</h3><span id="console-live" class="pill">مباشر</span></div>
+                    <div id="console-out" class="console-out"><p class="empty-msg">في انتظار مخرجات السيرفر...</p></div>
+                    <div class="console-input-row">
+                        <span class="console-prompt">&gt;_</span>
+                        <input type="text" id="console-cmd" placeholder="اكتب أمراً واضغط Enter... (مثال: say hello)">
+                        <button id="console-run" class="btn-primary">تنفيذ</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Files -->
+            <section id="section-files" class="section">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>ملفات السيرفر</h3>
+                        <div class="head-tools">
+                            <button id="files-up" class="btn-ghost">↑ للأعلى</button>
+                            <label class="upload-btn">رفع بلجن (.jar)<input type="text" id="upload-url" placeholder="رابط .jar مباشر" style="display:none"></label>
+                        </div>
+                    </div>
+                    <div class="files-path" id="files-path">/</div>
+                    <div id="files-list" class="files-list"><p class="empty-msg">جاري التحميل...</p></div>
+                    <div class="files-upload-row">
+                        <input type="text" id="files-upload-url" placeholder="رابط بلجن .jar لرفعه على السيرفر">
+                        <button id="files-upload-btn" class="btn-primary">رفع</button>
                     </div>
                 </div>
             </section>
@@ -682,6 +731,19 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- File editor modal -->
+    <div id="file-modal" class="modal hidden">
+        <div class="modal-box wide">
+            <div class="ask-head"><span class="ask-icon"><img src="image/ic-edit.png" alt=""></span><h3 id="file-modal-name">تعديل ملف</h3></div>
+            <textarea id="file-editor" class="file-editor" spellcheck="false"></textarea>
+            <p id="file-modal-hint" class="admin-add-hint"></p>
+            <div class="ask-actions">
+                <button id="file-save" class="btn-primary full">حفظ</button>
+                <button id="file-cancel" class="btn-ghost full">إغلاق</button>
+            </div>
+        </div>
     </div>
 
     <!-- Edit server modal -->
