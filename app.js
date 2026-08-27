@@ -683,11 +683,26 @@ function renderInspect(d) {
   renderArmorColumn(d);
   renderStorageAndHotbar(toArray(d.main));
   // Player skin (full body) between armor and offhand, like the game.
+  // Prefer the UUID (works on offline/premium alike); fall back to name, then steve.
   const skin = document.getElementById("inv-player-skin");
   if (skin) {
+    const uuid = (d.uuid || "").replace(/-/g, "");
     const nm = (d.name || pmTarget || "steve");
-    skin.src = "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/100";
-    skin.onerror = function () { this.onerror = null; this.style.visibility = "hidden"; };
+    const primary = uuid
+      ? "https://mc-heads.net/body/" + uuid + "/100"
+      : "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/100";
+    const byName = "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/100";
+    skin.dataset.stage = "primary";
+    skin.src = primary;
+    skin.onerror = function () {
+      if (this.dataset.stage === "primary" && primary !== byName) {
+        this.dataset.stage = "name";
+        this.src = byName;
+      } else {
+        this.onerror = null;
+        this.src = "https://mc-heads.net/body/steve/100";
+      }
+    };
   }
 }
 
