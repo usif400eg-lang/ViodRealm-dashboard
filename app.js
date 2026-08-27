@@ -1043,8 +1043,8 @@ function updateSparklines() {
   if (typeof Chart === "undefined" || !historyPoints.length) return;
   const online = historyPoints.map((h) => h.online || 0);
   const wps = historyPoints.map((h) => h.waypoints || 0);
-  drawSpark("spark-online", online, "#f5c518");
-  drawSpark("spark-waypoints", wps, "#d99814");
+  drawSpark("spark-online", online, "#b14bff");
+  drawSpark("spark-waypoints", wps, "#7b2fff");
 }
 function drawSpark(id, data, color) {
   const el = document.getElementById(id);
@@ -1067,8 +1067,8 @@ function updateTimeCharts() {
   const online = historyPoints.map((h) => h.online || 0);
   const wps = historyPoints.map((h) => h.waypoints || 0);
 
-  drawLine("chart-online", "online", labels, online, "المتصلون", "#f5c518");
-  drawLine("chart-waypoints", "waypoints", labels, wps, "النقاط", "#d99814");
+  drawLine("chart-online", "online", labels, online, "المتصلون", "#b14bff");
+  drawLine("chart-waypoints", "waypoints", labels, wps, "النقاط", "#7b2fff");
 }
 
 function drawLine(canvasId, key, labels, data, label, color) {
@@ -1089,7 +1089,7 @@ function updateCategoryChart() {
   if (!el) return;
   const labels = Object.keys(categoryStats);
   const data = Object.values(categoryStats);
-  const colors = ["#f5c518", "#d99814", "#f7d64b", "#34d399", "#fbbf24", "#fb5c78"];
+  const colors = ["#b14bff", "#7b2fff", "#c96bff", "#34d399", "#fbbf24", "#fb5c78"];
   if (charts.cat) { charts.cat.data.labels = labels; charts.cat.data.datasets[0].data = data; charts.cat.update(); return; }
   charts.cat = new Chart(el, {
     type: "doughnut",
@@ -1968,6 +1968,81 @@ function escapeHtml(s) {
 })();
 
 // ---- Language toggle (AR / EN) ----
+// Full Arabic -> English dictionary. The switcher walks the DOM and translates
+// element text + placeholders by matching the Arabic source, then can restore it.
+const AR_EN = {
+  // Nav + pages
+  "نظرة عامة": "Overview", "إدارة اللاعبين": "Players", "النقاط": "Waypoints", "البلجنات": "Plugins",
+  "الحظر والقوائم": "Moderation", "تحكم السيرفر": "Server", "الكونسول": "Console", "الملفات": "Files",
+  "الإحصائيات": "Statistics", "سجل الأحداث": "Activity Log", "الشات المباشر": "Live Chat",
+  "التحكم": "Controls", "إدارة الأدمن": "Admins", "Firebase": "Firebase", "ملفّي الشخصي": "My Profile",
+  "إعدادات الموقع": "Site Settings", "سيرفراتي": "My Servers",
+  "لوحة تحكم السيرفر": "Server control panel", "معلومات حسابك": "Your account info",
+  "اسم الموقع وشعاره": "Site name & logo", "عرض وإدارة اللاعبين والرتب": "View & manage players and ranks",
+  "إدارة نقاط اللاعبين": "Manage player waypoints", "البلجنات المثبّتة وتثبيت جديد": "Installed plugins & install",
+  "الحظر، القائمة البيضاء والسوداء": "Bans, whitelist & blacklist", "الوقت، الطقس، الحفظ، console": "Time, weather, save, console",
+  "رسوم بيانية حية": "Live charts", "من فعل ماذا ومتى": "Who did what and when",
+  "دردشة السيرفر الحية": "Live server chat", "أوامر ومخرجات السيرفر الحية": "Live commands & output",
+  "تصفّح وتعديل ملفات السيرفر": "Browse & edit server files", "التحكم العام": "General controls",
+  "منح وسحب صلاحيات اللوحة": "Grant/revoke panel access", "قاعدة البيانات والمصادقة": "Database & auth",
+  // Stats
+  "إجمالي النقاط": "Total Waypoints", "النقاط العامة": "Public Waypoints", "اللاعبون المعروفون": "Known Players",
+  "المتصلون الآن": "Online Now", "المحظورون": "Banned", "حالة النظام": "System Status",
+  // Common
+  "متصل": "Online", "غير متصل": "Offline", "مفعّل": "Enabled", "معطّل": "Disabled",
+  "إضافة سيرفر": "Add Server", "تسجيل الخروج": "Logout", "تسجيل الدخول": "Login", "إنشاء حساب": "Sign Up",
+  "بحث": "Search", "تحديث": "Refresh", "حفظ": "Save", "إلغاء": "Cancel", "إغلاق": "Close",
+  "حذف": "Delete", "إزالة": "Remove", "تعديل": "Edit", "تثبيت": "Install", "إضافة": "Add", "ربط السيرفر": "Link Server",
+  "حظر": "Ban", "فك الحظر": "Unban", "طرد": "Kick", "رتبة": "Rank", "إجراءات": "Actions", "الحقيبة": "Inventory",
+  "تشغيل": "Start", "إيقاف": "Stop", "إعادة تشغيل": "Restart", "إنهاء إجباري": "Kill", "تنفيذ": "Execute", "بث": "Broadcast",
+  "نهار": "Day", "ظهر": "Noon", "ليل": "Night", "منتصف الليل": "Midnight", "صحو": "Clear", "مطر": "Rain", "عاصفة": "Storm",
+  "المالك": "Owner", "أدمن": "Admin", "عضو": "Member", "موثّق": "Verified",
+  "اللاعب": "Player", "الحالة": "Status", "الرتبة": "Rank", "العالم": "World", "الصحة": "Health", "الوضع": "Mode",
+  "الاسم": "Name", "المالك": "Owner", "الإحداثيات": "Coords", "الفئة": "Category", "عام": "Public",
+  "البريد الإلكتروني": "Email", "كلمة المرور": "Password", "الدخول عبر Google": "Sign in with Google",
+  "الدخول عبر GitHub": "Sign in with GitHub", "ليس لديك حساب؟": "No account?", "لديك حساب بالفعل؟": "Already have an account?",
+  "نسيت كلمة المرور؟": "Forgot password?", "أو": "or",
+  "المحظورون": "Banned Players", "القائمة البيضاء (Whitelist)": "Whitelist", "حظر لاعب": "Ban Player",
+  "إضافة للـ Whitelist": "Add to Whitelist", "بث رسالة": "Broadcast Message", "حالة نظام النقاط": "Waypoint System",
+  "طاقة السيرفر (Power)": "Server Power", "الوقت": "Time", "الطقس": "Weather", "حفظ العالم": "Save World",
+  "أمر Console مخصّص": "Custom Console Command", "حفظ الآن": "Save Now",
+  "اللاعبون المتصلون الآن": "Players Online Now", "العوالم": "Worlds", "آخر الأحداث": "Recent Activity",
+  "إضافة سيرفر جديد": "Add New Server", "كود الربط": "Pairing Code", "اسم مختصر للسيرفر (اختياري)": "Server label (optional)",
+  "رابط لوحة الاستضافة": "Panel URL", "مفتاح الوصول (API)": "API Key", "معرّف السيرفر في اللوحة": "Server Identifier",
+  "معرّفك (Admin ID)": "Your ID (Admin ID)", "إضافة بالمعرّف (Admin ID)": "Add by ID", "إضافة أدمن بالبريد": "Add admin by email",
+  "الأدمنز الحاليون": "Current Admins", "نسخ": "Copy", "إضافة أدمن": "Add Admin", "إضافة بالمعرّف": "Add by ID",
+  "كونسول السيرفر": "Server Console", "ملفات السيرفر": "Server Files", "للأعلى": "Up", "رفع": "Upload",
+  "مباشر": "Live", "بانتظار الموافقة": "Pending Approval", "تم تسجيل دخولك بنجاح": "You signed in successfully",
+  "ملفات السيرفر": "Server Files", "المستوى": "Level", "الجوع": "Hunger", "الدرع + اليد الثانية": "Armor + Offhand",
+  "تعديل الملف الشخصي": "Edit Profile", "مزوّد الدخول": "Login Provider", "تاريخ الإنشاء": "Created", "آخر دخول": "Last Login",
+  "المعرّف (UID)": "UID", "اسم السيرفر": "Server Name", "تعديل السيرفر": "Edit Server", "معاينة": "Preview",
+  "العنوان الفرعي": "Subtitle", "نص اللوجو (لو مفيش صورة)": "Logo text (fallback)", "رابط شعار الموقع (اللوجو)": "Logo image URL",
+  "حفظ إعدادات الموقع": "Save Site Settings", "مستخدمو Authentication": "Authentication Users",
+  "المستخدم": "User", "البريد": "Email", "المزوّد": "Provider", "أُنشئ": "Created", "توزيع النقاط حسب الفئة": "Waypoints by Category",
+  "نمو عدد النقاط": "Waypoints Growth", "اللاعبون المتصلون عبر الوقت": "Players Online Over Time"
+};
+
+// Build reverse map (EN -> AR) for restoring.
+const EN_AR = {};
+Object.keys(AR_EN).forEach((ar) => { EN_AR[AR_EN[ar]] = ar; });
+
+function translateNode(root, toEn) {
+  const map = toEn ? AR_EN : EN_AR;
+  // Elements whose direct text should be translated.
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const texts = [];
+  let n; while ((n = walker.nextNode())) texts.push(n);
+  texts.forEach((tn) => {
+    const t = tn.nodeValue.trim();
+    if (t && map[t]) tn.nodeValue = tn.nodeValue.replace(t, map[t]);
+  });
+  // Placeholders.
+  root.querySelectorAll("input[placeholder], textarea[placeholder]").forEach((el) => {
+    const p = el.getAttribute("placeholder").trim();
+    if (map[p]) el.setAttribute("placeholder", map[p]);
+  });
+}
+
 const I18N = {
   offline: { ar: "غير متصل", en: "Offline" },
   online: { ar: "متصل", en: "Online" }
@@ -1980,16 +2055,26 @@ const I18N = {
     document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
     const lbl = document.getElementById("lang-label");
     if (lbl) lbl.textContent = lang === "ar" ? "EN" : "ع";
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.getAttribute("data-i18n");
-      if (I18N[key]) el.textContent = I18N[key][lang];
-    });
+    if (lang === "en") translateNode(document.body, true);
   }
   const btn = document.getElementById("lang-toggle");
   if (btn) btn.addEventListener("click", () => {
-    lang = lang === "ar" ? "en" : "ar";
+    const toEn = lang === "ar";
+    lang = toEn ? "en" : "ar";
     try { localStorage.setItem("vr_lang", lang); } catch (e) {}
-    apply();
+    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+    const lbl = document.getElementById("lang-label");
+    if (lbl) lbl.textContent = lang === "ar" ? "EN" : "ع";
+    translateNode(document.body, toEn);
+    // Re-translate dynamically after data re-renders.
+    if (lang === "en") setTimeout(() => translateNode(document.body, true), 500);
   });
+  // Keep translating dynamically-added content while in English.
+  const mo = new MutationObserver((muts) => {
+    if (lang !== "en") return;
+    muts.forEach((m) => m.addedNodes.forEach((node) => { if (node.nodeType === 1) translateNode(node, true); }));
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
   apply();
 })();
