@@ -1950,27 +1950,19 @@ function escapeHtml(s) {
 
 // ---- Theme toggle (dark / light / system) ----
 (function initTheme() {
-  const modes = ["system", "dark", "light"];
-  const icons = { system: "🖥️", dark: "🌙", light: "☀️" };
   let mode = "system";
   try { mode = localStorage.getItem("vr_theme") || "system"; } catch (e) {}
   const media = window.matchMedia("(prefers-color-scheme: light)");
   function apply() {
     const effective = mode === "system" ? (media.matches ? "light" : "dark") : mode;
     document.documentElement.setAttribute("data-theme", effective);
-    const ic = document.getElementById("theme-icon");
-    if (ic) ic.textContent = icons[mode];
+    document.querySelectorAll(".theme-opt").forEach((b) => b.classList.toggle("active", b.dataset.themeMode === mode));
   }
-  const btn = document.getElementById("theme-toggle");
-  if (btn) {
-    btn.title = "الوضع: " + mode;
-    btn.addEventListener("click", () => {
-      mode = modes[(modes.indexOf(mode) + 1) % modes.length];
-      try { localStorage.setItem("vr_theme", mode); } catch (e) {}
-      btn.title = "الوضع: " + mode;
-      apply();
-    });
-  }
+  document.querySelectorAll(".theme-opt").forEach((b) => b.addEventListener("click", () => {
+    mode = b.dataset.themeMode;
+    try { localStorage.setItem("vr_theme", mode); } catch (e) {}
+    apply();
+  }));
   media.addEventListener("change", () => { if (mode === "system") apply(); });
   apply();
 })();

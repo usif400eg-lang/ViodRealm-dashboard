@@ -277,6 +277,17 @@ body {
 .icon-toggle:hover { border-color: var(--brand); }
 #lang-label { font-size: 13px; }
 
+/* Segmented theme switcher (light / dark / system side by side) */
+.theme-group { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
+.theme-opt { background: transparent; border: none; width: 32px; height: 30px; border-radius: 7px; cursor: pointer; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.theme-opt:hover { background: var(--surface-3); }
+.theme-opt.active { background: var(--brand-grad); }
+
+/* Pairing modal divider */
+.pair-divider { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 12px; margin: 18px 0 14px; text-align: center; }
+.pair-divider::before, .pair-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.pair-divider span { flex-shrink: 0; max-width: 70%; }
+
 /* Server switcher */
 .server-switch { min-width: 180px; }
 .server-switch .cselect-btn { padding: 8px 12px; }

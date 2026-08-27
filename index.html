@@ -190,8 +190,12 @@
                         <div class="cselect-menu" id="server-menu"></div>
                     </div>
                     <button id="add-server-btn" class="btn-primary add-srv-btn"><img class="cb-icon" src="image/ic-system.png" alt=""> إضافة سيرفر</button>
-                    <button id="theme-toggle" class="icon-toggle" title="الوضع"><span id="theme-icon">🌙</span></button>
-                    <button id="lang-toggle" class="icon-toggle" title="اللغة"><span id="lang-label">EN</span></button>
+                    <div class="theme-group" id="theme-group">
+                        <button class="theme-opt" data-theme-mode="light" title="فاتح">☀️</button>
+                        <button class="theme-opt" data-theme-mode="dark" title="داكن">🌙</button>
+                        <button class="theme-opt" data-theme-mode="system" title="النظام">🖥️</button>
+                    </div>
+                    <button id="lang-toggle" class="icon-toggle" title="اللغة"><span id="lang-label">ع</span></button>
                     <span id="connection-status" class="status-badge offline">
                         <span class="status-dot"></span> <span data-i18n="offline">غير متصل</span>
                     </span>
@@ -472,9 +476,9 @@
             <section id="section-moderation" class="section">
                 <div class="mod-grid">                    <div class="panel">
                         <div class="panel-head"><h3>حظر لاعب</h3></div>
-                        <p class="panel-desc">احظر لاعباً بالاسم أو الـ UUID.</p>
+                        <p class="panel-desc">احظر لاعباً بالاسم أو المعرّف الفريد.</p>
                         <div class="control-row">
-                            <input type="text" id="ban-name" placeholder="اسم اللاعب أو UUID">
+                            <input type="text" id="ban-name" placeholder="اسم اللاعب أو المعرّف">
                             <button id="ban-btn" class="btn-danger">حظر</button>
                         </div>
                         <input type="text" id="ban-reason" class="mt-8" placeholder="السبب (اختياري)">
@@ -773,27 +777,27 @@
     <div id="pair-modal" class="modal hidden">
         <div class="modal-box">
             <div class="ask-head"><span class="ask-icon"><img src="image/ic-system.png" alt=""></span><h3>إضافة سيرفر جديد</h3></div>
-            <p class="panel-desc">ثبّت البلجن على سيرفرك، وهيظهر في console كود ربط (Pairing Code). اكتبه هنا لربط السيرفر بحسابك.</p>
+            <p class="panel-desc">ثبّت البلجن على سيرفرك، وهيظهر في الكونسول كود ربط. اكتبه هنا لربط السيرفر بحسابك.</p>
             <div class="edit-field">
-                <label>كود الربط (Pairing Code)</label>
+                <label>كود الربط</label>
                 <input type="text" id="pair-code" placeholder="مثال: A1B2C3D4" autocomplete="off" style="text-transform:uppercase">
             </div>
             <div class="edit-field mt-8">
                 <label>اسم مختصر للسيرفر (اختياري)</label>
                 <input type="text" id="pair-label" placeholder="سيرفري الرئيسي">
             </div>
-            <div class="pair-divider"><span>بيانات لوحة الاستضافة (مطلوبة للتحكم في التشغيل/الإيقاف والكونسول)</span></div>
+            <div class="pair-divider"><span>بيانات لوحة الاستضافة (مطلوبة للتحكم في التشغيل والإيقاف والكونسول)</span></div>
             <div class="edit-field">
-                <label>رابط لوحة الاستضافة (Panel URL)</label>
-                <input type="text" id="pair-panel-url" placeholder="https://panel.example.com" autocomplete="off">
+                <label>رابط لوحة الاستضافة</label>
+                <input type="text" id="pair-panel-url" placeholder="https://panel.example.com" autocomplete="off" dir="ltr">
             </div>
             <div class="edit-field mt-8">
-                <label>مفتاح API (Client API Key)</label>
-                <input type="text" id="pair-panel-key" placeholder="ptlc_..." autocomplete="off">
+                <label>مفتاح الوصول (API)</label>
+                <input type="text" id="pair-panel-key" placeholder="ptlc_..." autocomplete="off" dir="ltr">
             </div>
             <div class="edit-field mt-8">
-                <label>معرّف السيرفر في اللوحة (Server Identifier)</label>
-                <input type="text" id="pair-panel-id" placeholder="abc123" autocomplete="off">
+                <label>معرّف السيرفر في اللوحة</label>
+                <input type="text" id="pair-panel-id" placeholder="abc123" autocomplete="off" dir="ltr">
             </div>
             <p id="pair-hint" class="admin-add-hint"></p>
             <div class="ask-actions">
