@@ -970,6 +970,32 @@ canvas { max-width: 100%; }
 .r-admin { background: var(--violet); }
 .r-op { background: var(--warn); }
 
+/* Add-server wizard */
+.wizard-box { max-width: 560px; }
+.wiz-steps { display: flex; align-items: center; gap: 8px; margin: 18px 0 22px; }
+.wiz-step { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-3); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.wiz-step .wiz-num { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-3); border: 1px solid var(--line); color: var(--text-3); font-size: 14px; transition: all 0.2s; }
+.wiz-step.active { color: var(--brand); }
+.wiz-step.active .wiz-num { background: var(--brand-grad, var(--brand)); border-color: var(--brand); color: #fff; }
+.wiz-line { flex: 1; height: 2px; background: var(--line); border-radius: 2px; }
+.wiz-pane { display: none; }
+.wiz-pane.active { display: block; animation: fade 0.2s ease; }
+.config-box { position: relative; background: #0b0e16; border: 1px solid var(--line-strong); border-radius: var(--r-sm); margin: 12px 0; }
+.config-pre { margin: 0; padding: 16px; padding-top: 40px; font-family: "Consolas", "Courier New", monospace; font-size: 12.5px; line-height: 1.6; color: #cbd5e1; white-space: pre; overflow-x: auto; max-height: 340px; overflow-y: auto; direction: ltr; text-align: left; }
+.config-copy { position: absolute; top: 8px; left: 8px; z-index: 2; background: var(--surface-3); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 6px 14px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.config-copy:hover { border-color: var(--brand); color: var(--brand); }
+.wiz-install-steps { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.wiz-inst { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13.5px; }
+.wiz-inst .wi-n { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+.wiz-connect { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 28px 10px; }
+.wiz-spinner { width: 54px; height: 54px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--brand); animation: spin 0.9s linear infinite; }
+.wiz-spinner.done { border-color: var(--ok); border-top-color: var(--ok); animation: none; position: relative; }
+.wiz-spinner.done::after { content: "✓"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ok); font-size: 26px; font-weight: 800; }
+.wiz-connect-title { font-size: 17px; font-weight: 800; color: var(--text); }
+.wiz-connect-sub { font-size: 13.5px; color: var(--text-3); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.editsrv-conn-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 13.5px; color: var(--text-2); }
+
 /* Toast */
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); padding: 14px 24px; border-radius: var(--r); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 300; animation: toastIn 0.3s ease; }
 .toast.success { border-color: var(--ok); }

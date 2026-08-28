@@ -1588,56 +1588,233 @@ function switchServer(sid) {
   attachPowerResult();
 }
 
-// Add-server (pairing) modal.
+// ===== Add-server wizard (dashboard-first) =====
 const pairModal = document.getElementById("pair-modal");
-function openPairModal() { document.getElementById("pair-code").value = ""; document.getElementById("pair-label").value = ""; setPairHint("", ""); pairModal.classList.remove("hidden"); }
+let wizServerId = null, wizToken = null, wizHbListener = null;
+
+function genId() {
+  // RFC4122-ish random id.
+  return "srv-" + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+function genToken() {
+  const a = new Uint8Array(32); crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
+}
+// Config schema version the dashboard emits. Bump when the config.yml format changes.
+const CONFIG_VERSION = 2;
+function wizGoto(step) {
+  document.querySelectorAll(".wiz-step").forEach((s) => s.classList.toggle("active", +s.dataset.step <= step));
+  document.querySelectorAll(".wiz-pane").forEach((p) => p.classList.toggle("active", +p.dataset.pane === step));
+}
+function openPairModal() {
+  wizServerId = null; wizToken = null;
+  document.getElementById("wiz-name").value = "";
+  document.getElementById("wiz-panel-url").value = "";
+  document.getElementById("wiz-panel-key").value = "";
+  document.getElementById("wiz-panel-id").value = "";
+  document.getElementById("wiz-hint1").textContent = "";
+  wizGoto(1);
+  pairModal.classList.remove("hidden");
+}
 document.getElementById("add-server-btn").addEventListener("click", openPairModal);
 const addBtn2 = document.getElementById("add-server-btn2");
 if (addBtn2) addBtn2.addEventListener("click", openPairModal);
-document.getElementById("pair-cancel").addEventListener("click", () => pairModal.classList.add("hidden"));
-pairModal.addEventListener("click", (e) => { if (e.target === pairModal) pairModal.classList.add("hidden"); });
-function setPairHint(msg, kind) { const h = document.getElementById("pair-hint"); h.textContent = msg; h.className = "admin-add-hint " + (kind || ""); }
+function closeWizard() { pairModal.classList.add("hidden"); if (wizHbListener) { wizHbListener.off(); wizHbListener = null; } }
+document.getElementById("wiz-cancel1").addEventListener("click", closeWizard);
+document.getElementById("wiz-close").addEventListener("click", closeWizard);
+document.getElementById("wiz-back2").addEventListener("click", () => wizGoto(1));
+pairModal.addEventListener("click", (e) => { if (e.target === pairModal) closeWizard(); });
 
-document.getElementById("pair-submit").addEventListener("click", () => {
-  const code = document.getElementById("pair-code").value.trim().toUpperCase();
-  const label = document.getElementById("pair-label").value.trim();
-  const panelUrl = document.getElementById("pair-panel-url").value.trim();
-  const panelKey = document.getElementById("pair-panel-key").value.trim();
-  const panelId = document.getElementById("pair-panel-id").value.trim();
-  if (code.length < 4) { setPairHint("أدخل كود ربط صالح.", "error"); return; }
-  // Panel API is required so the dashboard can control power + console.
-  if (!panelUrl || !panelKey || !panelId) { setPairHint("بيانات لوحة الاستضافة مطلوبة (الرابط، المفتاح، المعرّف).", "error"); return; }
-  setPairHint("جاري التحقق...", "");
-  // Resolve pairing code -> serverId.
-  pairingCodesRef.child(code).get().then((snap) => {
-    if (!snap.exists()) { setPairHint("كود الربط غير صحيح أو السيرفر غير متصل.", "error"); return; }
-    const sid = snap.val();
-    const entry = { label: label || null, addedAt: Date.now(),
-      panel: { url: panelUrl, key: panelKey, id: panelId } };
-    usersServersRef.child(auth.currentUser.uid).child(sid).set(entry)
-      .then(() => {
-        // Also push panel config to the server node so the plugin can read it and control power.
-        return serverRef ? Promise.resolve() : Promise.resolve();
-      })
-      .then(() => db.ref("servers/" + sid + "/panelConfig").set({ url: panelUrl, key: panelKey, id: panelId, setBy: auth.currentUser.uid }).catch(() => {}))
-      .then(() => {
-        setPairHint("تم ربط السيرفر بنجاح!", "success");
-        showToast("تمت إضافة السيرفر", "success");
-        setTimeout(() => { pairModal.classList.add("hidden"); switchServer(sid); }, 900);
-      })
-      .catch((err) => setPairHint("فشل الربط: " + (err.code || err.message), "error"));
-  }).catch((err) => setPairHint("فشل التحقق: " + (err.code || err.message), "error"));
+// Step 1 -> generate identity + config, register server under the user.
+document.getElementById("wiz-next1").addEventListener("click", () => {
+  const name = document.getElementById("wiz-name").value.trim() || "My Server";
+  const pUrl = document.getElementById("wiz-panel-url").value.trim();
+  const pKey = document.getElementById("wiz-panel-key").value.trim();
+  const pId = document.getElementById("wiz-panel-id").value.trim();
+  const hint = document.getElementById("wiz-hint1");
+  hint.textContent = "جاري التوليد..."; hint.className = "admin-add-hint";
+
+  wizServerId = genId();
+  wizToken = genToken();
+  const uid = auth.currentUser.uid;
+
+  // Register: link to user + write auth token + optional panel config.
+  const tasks = [
+    usersServersRef.child(uid).child(wizServerId).set({ label: name, addedAt: Date.now() }),
+    db.ref("serverMeta/" + wizServerId).set({ name: name, authToken: wizToken, configVersion: CONFIG_VERSION, ownerUid: uid, createdAt: Date.now() })
+  ];
+  if (pUrl && pKey && pId) {
+    tasks.push(db.ref("servers/" + wizServerId + "/panelConfig").set({ url: pUrl, key: pKey, id: pId, setBy: uid }));
+  }
+  Promise.all(tasks)
+    .then(() => { renderConfigYaml(name); wizGoto(2); })
+    .catch((err) => { hint.textContent = "فشل: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
+});
+
+function buildConfigYaml(serverId, token, name) {
+  const dbUrl = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.databaseURL) || "";
+  // Complete, ready-to-use config.yml. The plugin merges missing keys from its
+  // bundled defaults, but we emit the full file so the owner can drop it in as-is.
+  return `# ============================================================
+#  ViodRealms TPU — generated by the dashboard
+#  Server: ${name}
+#  Generated: ${new Date().toISOString()}
+#  Just place this file in plugins/ViodRealmsTPU/config.yml
+#  and (re)start the server. It will connect automatically.
+# ============================================================
+
+waypoints:
+  max-per-player: 10
+  max-name-length: 32
+  max-per-category: 0
+  categories:
+    - MINE
+    - BASE
+    - FARM
+    - OTHER
+  default-icon: "ENDER_PEARL"
+
+teleport:
+  delay: 0
+  cancel-on-move: false
+  safe-teleport: true
+  particle-effects: true
+  countdown-title: true
+  cooldown-seconds: 0
+
+tpa:
+  expiry-seconds: 60
+
+share:
+  expiry-seconds: 60
+
+death-waypoints:
+  enabled: true
+  expiry-seconds: 300
+  auto-delete-on-visit: true
+  track-compass: true
+
+compass:
+  enabled: true
+  update-interval: 20
+
+language:
+  default: ar
+
+sounds:
+  enabled: true
+
+gui:
+  animated: true
+  animation-interval: 2
+
+# ============================================================
+#  ViodRealms Dashboard connection (generated — do not share)
+# ============================================================
+firebase:
+  enabled: true
+  service-account-file: "firebase-service-account.json"
+  database-url: "${dbUrl}"
+  # How often (seconds) the plugin pushes live data to the dashboard.
+  sync-interval-seconds: 3
+  # Unique server id issued by the dashboard.
+  server-id: "${serverId}"
+  # Secret token that authorizes this server. If revoked/rotated in the
+  # dashboard, the plugin safely stops syncing without crashing the server.
+  auth-token: "${token}"
+  # Config format version (used to detect outdated configs).
+  config-version: ${CONFIG_VERSION}
+  # Heartbeat interval (seconds) — how often the plugin proves it's alive.
+  heartbeat-seconds: 5
+
+files:
+  enabled: true
+  max-edit-kb: 512
+  editable-extensions:
+    - yml
+    - yaml
+    - properties
+    - json
+    - txt
+    - conf
+    - cfg
+    - toml
+
+panel:
+  enabled: false
+  base-url: ""
+  api-key: ""
+  server-identifier: ""`;
+}
+
+function renderConfigYaml(name) {
+  document.getElementById("wiz-config").textContent = buildConfigYaml(wizServerId, wizToken, name);
+}
+
+document.getElementById("wiz-copy").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("wiz-config").textContent)
+    .then(() => showToast("تم نسخ الإعداد", "success")).catch(() => showToast("فشل النسخ", "error"));
+});
+document.getElementById("wiz-download").addEventListener("click", () => {
+  const blob = new Blob([document.getElementById("wiz-config").textContent], { type: "text/yaml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "config.yml"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// Step 2 -> step 3: watch heartbeat for a live connection.
+document.getElementById("wiz-next2").addEventListener("click", () => {
+  wizGoto(3);
+  const title = document.getElementById("wiz-connect-title");
+  const sub = document.getElementById("wiz-connect-sub");
+  const spinner = document.getElementById("wiz-spinner");
+  const finish = document.getElementById("wiz-finish");
+  title.textContent = "في انتظار اتصال السيرفر...";
+  sub.textContent = "شغّل السيرفر بعد وضع config.yml.";
+  finish.disabled = true;
+  if (wizHbListener) wizHbListener.off();
+  wizHbListener = db.ref("serverMeta/" + wizServerId + "/online");
+  wizHbListener.on("value", (snap) => {
+    if (snap.val() === true) {
+      spinner.classList.add("done");
+      title.textContent = "تم الاتصال بنجاح!";
+      sub.textContent = "سيرفرك متصل الآن باللوحة.";
+      finish.disabled = false;
+      showToast("تم اتصال السيرفر", "success");
+    }
+  });
+});
+document.getElementById("wiz-finish").addEventListener("click", () => {
+  const sid = wizServerId;
+  closeWizard();
+  if (sid) switchServer(sid);
 });
 
 // Edit-server modal (rename + image + remove).
 const editSrvModal = document.getElementById("editsrv-modal");
 let editSrvId = null;
+let editSrvConnListener = null;
 function openEditServer(sid) {
   editSrvId = sid;
   const info = myServers[sid] || {};
   document.getElementById("editsrv-name").value = info.label || info.name || "";
   document.getElementById("editsrv-image").value = info.image || "";
   document.getElementById("editsrv-hint").textContent = "";
+  // Hide any previously-generated rotate config.
+  const ncBox = document.getElementById("editsrv-newconfig-box");
+  if (ncBox) ncBox.classList.add("hidden");
+  // Live connection status for this server (from serverMeta/{sid}/online).
+  if (editSrvConnListener) { try { editSrvConnListener.off(); } catch (e) {} editSrvConnListener = null; }
+  const connBadge = document.getElementById("editsrv-conn");
+  if (connBadge) {
+    editSrvConnListener = db.ref("serverMeta/" + sid + "/online");
+    editSrvConnListener.on("value", (snap) => {
+      const online = snap.val() === true;
+      connBadge.className = "status-badge " + (online ? "online" : "offline");
+      connBadge.innerHTML = '<span class="status-dot"></span> <span>' + (online ? "متصل" : "غير متصل") + "</span>";
+    }, () => {});
+  }
   // Prefill existing panel config (from the server node) so the owner can edit it.
   ["editsrv-panel-url","editsrv-panel-key","editsrv-panel-id"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
   db.ref("servers/" + sid + "/panelConfig").get().then((snap) => {
@@ -1650,6 +1827,31 @@ function openEditServer(sid) {
 }
 document.getElementById("editsrv-cancel").addEventListener("click", () => editSrvModal.classList.add("hidden"));
 editSrvModal.addEventListener("click", (e) => { if (e.target === editSrvModal) editSrvModal.classList.add("hidden"); });
+
+// Regenerate the auth token (revoke the old config, issue a fresh one). The
+// plugin's live auth watch sees the mismatch and stops syncing within seconds.
+document.getElementById("editsrv-rotate").addEventListener("click", () => {
+  const hint = document.getElementById("editsrv-hint");
+  ask({ title: "إعادة توليد الإعداد", msg: "سيتوقف الإعداد القديم فوراً عن الاتصال. تحتاج نسخ config.yml الجديد للسيرفر. متابعة؟", iconImg: "ic-system.png", danger: true, okText: "توليد جديد" })
+    .then((ok) => {
+      if (!ok) return;
+      const sid = editSrvId;
+      const newToken = genToken();
+      const name = (myServers[sid] && (myServers[sid].label || myServers[sid].name)) || "My Server";
+      hint.textContent = "جاري التوليد..."; hint.className = "admin-add-hint";
+      db.ref("serverMeta/" + sid).update({ authToken: newToken, configVersion: CONFIG_VERSION, rotatedAt: Date.now() })
+        .then(() => {
+          document.getElementById("editsrv-newconfig").textContent = buildConfigYaml(sid, newToken, name);
+          document.getElementById("editsrv-newconfig-box").classList.remove("hidden");
+          hint.textContent = "تم إبطال التوكن القديم. انسخ الإعداد الجديد للسيرفر."; hint.className = "admin-add-hint success";
+        })
+        .catch((err) => { hint.textContent = "فشل: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
+    });
+});
+document.getElementById("editsrv-copy").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("editsrv-newconfig").textContent)
+    .then(() => showToast("تم نسخ الإعداد", "success")).catch(() => showToast("فشل النسخ", "error"));
+});
 document.getElementById("editsrv-save").addEventListener("click", () => {
   const name = document.getElementById("editsrv-name").value.trim();
   const image = document.getElementById("editsrv-image").value.trim();

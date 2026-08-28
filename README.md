@@ -1,57 +1,78 @@
 # ViodRealms TPU — Dashboard
 
-لوحة تحكم ويب للتحكم في بلجن ViodRealms TPU من خارج السيرفر عبر Firebase.
+لوحة تحكم ويب للتحكم في سيرفر ViodRealms من أي مكان عبر Firebase، في الوقت الفعلي.
 
 ## المعمارية
 
 ```
-Dashboard (Render) ⇄ Firebase Realtime Database ⇄ Plugin (Minecraft Server)
+Dashboard (static)  ⇄  Firebase Realtime Database  ⇄  Plugin (Minecraft Server)
 ```
 
-- **البلجن** يرفع البيانات (waypoints, stats, players) لـ Firebase كل 30 ثانية.
-- **الداشبورد** يقرأ البيانات مباشرة (real-time) ويعرضها.
-- **الأوامر** (بث، طرد، حذف، تفعيل/تعطيل) تُكتب في `commands` ويقرأها البلجن وينفّذها.
+- **البلجن** يرفع البيانات الحية (الإحصائيات، اللاعبون، النقاط، العوالم) لـ Firebase كل بضع ثوانٍ.
+- **الداشبورد** يقرأ البيانات مباشرة ويعرضها، ويكتب الأوامر التي ينفّذها البلجن.
+- الداشبورد **لا يحمل** مفتاح الـ service account إطلاقاً — الأمان عبر Firebase Auth + Security Rules.
 
-الداشبورد لا يستخدم الـ service account إطلاقاً — الأمان عبر Firebase Auth + Security Rules.
+## المزايا
 
-## الإعداد
+- نظرة عامة حية: TPS، وقت التشغيل، المتصلون، الكيانات، العوالم
+- إدارة اللاعبين: فحص، رسائل، نقل، وضع اللعب، الرتب
+- الإشراف: الحظر والقائمة البيضاء
+- كونسول حي مع تنفيذ الأوامر وعرض المخرجات
+- مدير الملفات وتصفّح/تعديل ملفات السيرفر
+- مدير البلجنات والتثبيت من Modrinth
+- التحكم في الطاقة (تشغيل/إيقاف/إعادة تشغيل) عبر لوحة استضافة Pterodactyl
+- شات مباشر بين اللوحة واللعبة
+- تحليلات ورسوم بيانية وسجل أحداث
+- دعم عدة سيرفرات مع مبدّل سيرفر وحالة اتصال لكل سيرفر
+
+## ربط سيرفر (Add Server)
+
+الطريقة الموصى بها: **إضافة سيرفر ← توليد الإعداد ← تنزيل ← تثبيت ← إعادة تشغيل ← متصل**.
+
+1. سجّل الدخول ثم اضغط **إضافة سيرفر** واكتب اسم السيرفر.
+2. المعالج يولّد `config.yml` كامل جاهز يحتوي `server-id` و `auth-token` فريدين.
+3. انسخ أو نزّل الملف وضعه في `plugins/ViodRealmsTPU/config.yml`.
+4. أعد تشغيل السيرفر — تظهر حالة **متصل** خلال ثوانٍ.
+
+لفصل السيرفر أو تدوير المفتاح: افتح تعديل السيرفر ثم **إعادة توليد الإعداد**؛ يتوقف
+التوكن القديم فوراً وتحصل على `config.yml` جديد.
+
+## الإعداد لأول مرة
 
 ### 1. سجّل تطبيق ويب في Firebase
 - Firebase Console > Project Settings > General > Your apps > Add app > Web
-- انسخ قيم الإعدادات إلى `firebase-config.js` (استبدل كل قيم `REPLACE_WITH_...`)
-- تأكد أن `SERVER_ID` يطابق `firebase.server-id` في `config.yml` الخاص بالبلجن
+- انسخ القيم إلى `firebase-config.js`
 
-### 2. فعّل تسجيل الدخول بالبريد
-- Firebase Console > Authentication > Sign-in method > Email/Password > Enable
-- Authentication > Users > Add user (أنشئ حساب الأدمن الخاص بك)
+### 2. فعّل تسجيل الدخول
+- Authentication > Sign-in method > Email/Password (و/أو Google) > Enable
+- أنشئ حساب الأدمن الأول من Authentication > Users
 
 ### 3. طبّق قواعد الأمان
-- Firebase Console > Realtime Database > Rules
-- انسخ محتوى `firebase-rules.json` والصقه هناك ثم Publish
+- Realtime Database > Rules > الصق محتوى `firebase-rules.json` ثم Publish
+- **مهم:** تعديل الملف محلياً لا ينشر القواعد — لازم النشر من الـ Console
 
 ### 4. جرّب محلياً
-افتح `index.html` عبر خادم محلي بسيط (مش file:// مباشرة بسبب قيود CORS):
 ```
 cd dashboard
 python -m http.server 8000
 ```
 ثم افتح http://localhost:8000
 
-## النشر على Render
+## النشر (Static Hosting / Render)
 
-1. ارفع مجلد `dashboard` لمستودع Git (تأكد أن `firebase-config.js` معبّأ بالقيم الصحيحة).
-2. في Render: New > Static Site
-3. اربط المستودع
-4. الإعدادات:
-   - **Root Directory**: `dashboard` (لو المجلد داخل مستودع أكبر)
-   - **Build Command**: اتركه فارغاً
-   - **Publish Directory**: `.`
-5. Deploy
+1. ارفع مجلد `dashboard` لمستودع Git (تأكد أن `firebase-config.js` معبّأ).
+2. Render > New > Static Site > اربط المستودع.
+3. Root Directory: `dashboard` — Build Command: فارغ — Publish Directory: `.`
+4. Deploy. الموقع static بالكامل، بلا build أو backend.
 
-الموقع static بالكامل، فلا يحتاج build ولا backend.
+## نموذج الأمان
 
-## ملاحظات أمان
-- قيم `firebase-config.js` عامة وآمنة للنشر — هي معرّفات مشروع وليست مفاتيح سرية.
-- الأمان الحقيقي في Security Rules + Auth.
-- **لا ترفع** ملف الـ service account (`*-firebase-adminsdk-*.json`) — هذا للبلجن فقط ومحمي في `.gitignore`.
-- يُفضّل عدم تفعيل التسجيل الذاتي (self sign-up)؛ أنشئ حسابات الأدمن يدوياً من Firebase Console.
+- الأمان الحقيقي في **Firebase Auth + Security Rules**، لا في `firebase-config.js`
+  (قيمه عامة وآمنة للنشر — معرّفات مشروع وليست مفاتيح سرية).
+- كل سيرفر له `auth-token` سري يصدره الداشبورد. البلجن يراقب التوكن مباشرةً
+  ويتوقف فوراً عند الإبطال أو التدوير.
+- `serverMeta/{id}` قابل للكتابة من المالك فقط، و `authToken` يقرأه المالك فقط،
+  وحقول `online` / `lastSeen` / `instanceId` للقراءة فقط من العملاء.
+- **لا ترفع** ملف الـ service account (`*-firebase-adminsdk-*.json`) — للبلجن فقط
+  ومحمي في `.gitignore`.
+- يُفضّل عدم تفعيل التسجيل الذاتي؛ أنشئ حسابات الأدمن يدوياً.

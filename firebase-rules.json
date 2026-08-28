@@ -38,7 +38,18 @@
     "serverMeta": {
       ".read": "auth != null && auth.token.email.toLowerCase() == 'usif400.eg@gmail.com'",
       "$serverId": {
-        ".read": "auth != null"
+        ".write": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || !data.exists() || data.child('ownerUid').val() == auth.uid)",
+        "name":        { ".read": "auth != null" },
+        "online":      { ".read": "auth != null", ".write": false },
+        "lastSeen":    { ".read": "auth != null", ".write": false },
+        "instanceId":  { ".read": "auth != null", ".write": false },
+        "pairingCode": { ".read": "auth != null" },
+        "port":        { ".read": "auth != null" },
+        "configVersion": { ".read": "auth != null" },
+        "ownerUid":    { ".read": "auth != null" },
+        "authToken": {
+          ".read": "auth != null && data.parent().child('ownerUid').val() == auth.uid"
+        }
       }
     },
     "pairingCodes": {
