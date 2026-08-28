@@ -13,10 +13,31 @@ const adminsRef = db.ref("admins");
 const profilesRef = db.ref("profiles");   // per-user profile extras (photo, banner)
 const siteRef = db.ref("siteConfig");      // global site name/logo
 
-// Multi-server: the active server id is chosen at runtime. serverRef points at it.
+// ===== Server context =====
+// STRICT RULE: nothing server-specific may initialize until the user explicitly
+// selects a server. Before selection every field below is null/empty and zero
+// server-scoped Firebase listeners are attached.
+const ServerContext = {
+  serverId: null,          // null until an explicit user selection
+  serverData: null,        // { label, name, image, online }
+  permissions: null,       // { manage: bool } — resolved from access validation
+  connectionStatus: "UNKNOWN", // UNKNOWN | CONNECTING | ONLINE | OFFLINE
+  loadingState: "idle",    // idle | validating | loading | active | denied
+  reset() {
+    this.serverId = null;
+    this.serverData = null;
+    this.permissions = null;
+    this.connectionStatus = "UNKNOWN";
+    this.loadingState = "idle";
+  }
+};
+
+// Legacy aliases kept so the existing feature modules (players, console, files,
+// plugins, chat, waypoints, moderation, charts) keep working unchanged. They are
+// only ever populated by activateServer().
 let ACTIVE_SERVER = null;
 let serverRef = null;
-let myServers = {};        // { serverId: {label, name} } owned by the current user
+let myServers = {};        // { serverId: {label, name} } visible to the current user
 let serverListeners = []; // active .on() refs so we can detach on switch
 
 const loginScreen = document.getElementById("login-screen");
@@ -182,9 +203,12 @@ auth.onAuthStateChanged(async (user) => {
   }
   if (authorized) {
     showDashboard(user);
-    if (!listenersAttached) { attachListeners(); listenersAttached = true; showSkeletons(); }
+    // Only the global (server-agnostic) connection listener attaches here.
+    // NO server-scoped listener is created until the user picks a server.
+    if (!listenersAttached) { attachGlobalListeners(); listenersAttached = true; }
     loadMyServers(user.uid);
-    restoreLastSection();
+    // Always land on the server list, then honour an explicit deep link only.
+    handleRoute();
   } else {
     document.getElementById("pending-email").textContent = user.email;
     const pid = document.getElementById("pending-id");
@@ -314,6 +338,7 @@ function translateAuthError(code) {
 // ---- Navigation ----
 const PAGE_INFO = {
   overview: ["نظرة عامة", "لوحة تحكم السيرفر"],
+  servers: ["السيرفرات", "اختر سيرفراً لإدارته"],
   profile: ["ملفّي الشخصي", "معلومات حسابك"],
   site: ["إعدادات الموقع", "اسم الموقع وشعاره"],
   players: ["إدارة اللاعبين", "عرض وإدارة اللاعبين والرتب"],
@@ -334,43 +359,266 @@ const PAGE_INFO = {
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", (e) => {
     e.preventDefault();
-    navigateTo(item.dataset.target);
+    const t = item.dataset.target;
+    // Global targets route through the hash; server targets need an active server.
+    if (GLOBAL_SECTIONS.has(t)) { location.hash = "#/" + t; return; }
+    if (!ServerContext.serverId) { location.hash = "#/servers"; return; }
+    location.hash = `#/servers/${ServerContext.serverId}/${t}`;
   });
 });
 document.getElementById("menu-toggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
 
-// Central navigation used by nav items and the profile popup buttons.
+// Central navigation. Server-scoped targets are refused unless a server is active.
 function navigateTo(target) {
+  // Guard: server-scoped sections require an explicitly selected server.
+  if (SERVER_SCOPED_SECTIONS.has(target) && !ServerContext.serverId) {
+    showSection("servers");
+    return;
+  }
   const navItem = document.querySelector(`.nav-item[data-target="${target}"]`);
   document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
   if (navItem) navItem.classList.add("active");
-  document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
-  const sec = document.getElementById("section-" + target);
-  if (sec) sec.classList.add("active");
+  showSection(target);
   const info = PAGE_INFO[target] || ["", ""];
   document.getElementById("page-title").textContent = info[0];
   document.getElementById("page-sub").textContent = info[1];
   document.getElementById("sidebar").classList.remove("open");
+  // Lazy per-section initialization — only reachable when a server is active.
   if (target === "charts") renderCharts();
   if (target === "plugins") ensureModrinthDefault();
   if (target === "firebase") ensureFirebaseConsole();
   if (target === "chat") ensureChat();
   if (target === "files") ensureFiles();
   if (target === "console") ensureConsole();
-  // Remember the last opened section.
-  try { localStorage.setItem("vr_last_section", target); } catch (e) {}
+  // Keep the URL in sync so refresh/back behave predictably.
+  const wanted = SERVER_SCOPED_SECTIONS.has(target)
+    ? `#/servers/${ServerContext.serverId}/${target}`
+    : `#/${target}`;
+  if (location.hash !== wanted) { suppressRoute = true; location.hash = wanted; }
 }
 
-// Restore the last opened section after data listeners attach.
-function restoreLastSection() {
-  let last = null;
-  try { last = localStorage.getItem("vr_last_section"); } catch (e) {}
-  if (last && document.getElementById("section-" + last)) {
-    // Don't restore owner-only sections for non-owners.
-    const navItem = document.querySelector(`.nav-item[data-target="${last}"]`);
-    if (navItem && navItem.classList.contains("owner-only") && !currentUserIsOwner) return;
-    navigateTo(last);
+// Shows exactly one section. Used by the router and the guards.
+function showSection(id) {
+  document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+  const sec = document.getElementById("section-" + id);
+  if (sec) sec.classList.add("active");
+}
+
+// ===== Hash router =====
+// Routes:
+//   #/servers                              -> global server list (default)
+//   #/servers/:serverId/:section           -> server-scoped page (explicit only)
+//   #/admins | #/site | #/firebase | #/profile -> global pages
+const SERVER_SCOPED_SECTIONS = new Set([
+  "overview", "server", "console", "files", "plugins", "control",
+  "players", "moderation", "chat", "waypoints", "charts", "activity"
+]);
+const GLOBAL_SECTIONS = new Set(["servers", "admins", "site", "firebase", "profile"]);
+let suppressRoute = false;
+
+function parseHash() {
+  const raw = (location.hash || "").replace(/^#\/?/, "");
+  const parts = raw.split("/").filter(Boolean);
+  if (!parts.length || parts[0] !== "servers") {
+    return { kind: "global", section: parts[0] || "servers" };
   }
+  if (parts.length === 1) return { kind: "list" };
+  return { kind: "server", serverId: parts[1], section: parts[2] || "overview" };
+}
+
+async function handleRoute() {
+  if (suppressRoute) { suppressRoute = false; return; }
+  const r = parseHash();
+
+  if (r.kind === "list") { deactivateServer(); navigateTo("servers"); return; }
+
+  if (r.kind === "global") {
+    const section = GLOBAL_SECTIONS.has(r.section) ? r.section : "servers";
+    // Leaving a server via a global route must tear the server context down.
+    if (ServerContext.serverId) deactivateServer();
+    if (section !== "servers") {
+      const navItem = document.querySelector(`.nav-item[data-target="${section}"]`);
+      if (navItem && navItem.classList.contains("owner-only") && !currentUserIsOwner) {
+        navigateTo("servers");
+        return;
+      }
+    }
+    navigateTo(section);
+    return;
+  }
+
+  // Server-scoped deep link: validate before initializing anything.
+  const section = SERVER_SCOPED_SECTIONS.has(r.section) ? r.section : "overview";
+  if (ServerContext.serverId === r.serverId && ServerContext.loadingState === "active") {
+    navigateTo(section);
+    return;
+  }
+  const ok = await activateServer(r.serverId, section);
+  if (!ok) return; // activateServer already rendered the denied state
+}
+
+window.addEventListener("hashchange", handleRoute);
+
+// ===== Server activation lifecycle =====
+// State 1 (no server): serverId null, no listeners, dashboard inactive.
+// State 2 (explicit selection): validate -> load context -> attach listeners -> activate.
+async function activateServer(serverId, section) {
+  if (!serverId) { navigateTo("servers"); return false; }
+
+  // Switching servers: fully tear down the previous one first so no state leaks.
+  if (ServerContext.serverId && ServerContext.serverId !== serverId) deactivateServer();
+
+  ServerContext.loadingState = "validating";
+  showSection("loading");
+  setLoadingStep("جاري تحميل السيرفر...", "التحقق من الصلاحيات");
+
+  const access = await validateServerAccess(serverId);
+  if (!access.ok) {
+    ServerContext.reset();
+    renderDenied(access.reason);
+    return false;
+  }
+
+  // 1) Set the context (this is the only place serverId is assigned).
+  ServerContext.serverId = serverId;
+  ServerContext.serverData = access.data;
+  ServerContext.permissions = access.permissions;
+  ServerContext.connectionStatus = "CONNECTING";
+  ServerContext.loadingState = "loading";
+  ACTIVE_SERVER = serverId;
+  serverRef = db.ref("servers/" + serverId);
+
+  // 2) Reset per-section init flags so nothing from the old server is reused.
+  chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false;
+  consoleInit = false; filesInit = false;
+
+  // 3) Detach the list-page fleet listeners — a single server view must not
+  //    keep fleet-wide subscriptions alive (§10, §19).
+  detachFleet();
+  fleetCountListeners.forEach((ref) => { try { ref.off(); } catch (e) {} });
+  fleetCountListeners = [];
+
+  // 4) Attach server-scoped listeners, in order.
+  setLoadingStep("جاري تحميل السيرفر...", "الاتصال بالبلجن");
+  updateActiveServerName();
+  showSkeletons();
+  setLoadingStep("جاري تحميل السيرفر...", "تحميل المقاييس واللاعبين");
+  attachServerListeners();
+  attachPowerResult();
+  watchPerfHistory();
+  watchActiveServerPresence();
+
+  // 5) Activate.
+  ServerContext.loadingState = "active";
+  document.body.classList.add("server-active");
+  renderServerSwitcherMenu();
+  navigateTo(section || "overview");
+  return true;
+}
+
+// Validates existence + access without attaching any long-lived listener.
+async function validateServerAccess(serverId) {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(serverId)) return { ok: false, reason: "notfound" };
+  try {
+    const metaSnap = await db.ref("serverMeta/" + serverId).get();
+    if (!metaSnap.exists()) return { ok: false, reason: "notfound" };
+    const meta = metaSnap.val() || {};
+    let allowed = currentUserIsOwner;
+    if (!allowed && auth.currentUser) {
+      const memberSnap = await usersServersRef.child(auth.currentUser.uid).child(serverId).get();
+      allowed = memberSnap.exists() || meta.ownerUid === auth.currentUser.uid;
+    }
+    if (!allowed) return { ok: false, reason: "denied" };
+    const local = myServers[serverId] || {};
+    return {
+      ok: true,
+      permissions: { manage: true },
+      data: {
+        label: local.label || meta.name || serverId,
+        name: meta.name || serverId,
+        image: local.image || null,
+        online: meta.online === true
+      }
+    };
+  } catch (e) {
+    // A read rejection is an authorization signal, not a crash.
+    return { ok: false, reason: "denied" };
+  }
+}
+
+// Full teardown: every server-scoped listener is detached and state cleared, so
+// Server A data can never appear inside Server B.
+function deactivateServer() {
+  detachServerListeners();
+  if (perfListener) { try { perfListener.off(); } catch (e) {} perfListener = null; }
+  if (activePresenceRef) { try { activePresenceRef.off(); } catch (e) {} activePresenceRef = null; }
+  // Clear cached server-scoped datasets.
+  allWaypoints = []; onlinePlayers = []; knownPlayers = [];
+  historyPoints = []; categoryStats = {};
+  // Destroy server-scoped charts so no stale series survives the switch.
+  ["online", "waypoints", "cat", "perf", "spark-online", "spark-waypoints"].forEach((k) => {
+    if (charts[k]) { try { charts[k].destroy(); } catch (e) {} delete charts[k]; }
+  });
+  chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false;
+  consoleInit = false; filesInit = false;
+  ACTIVE_SERVER = null;
+  serverRef = null;
+  ServerContext.reset();
+  document.body.classList.remove("server-active");
+  const banner = document.getElementById("server-offline-banner");
+  if (banner) banner.classList.add("hidden");
+  document.body.classList.remove("agent-offline");
+  // Back on the list page, re-arm the lightweight card listeners.
+  renderServerCards();
+  watchFleetCounters();
+}
+
+function setLoadingStep(title, sub) {
+  const t = document.getElementById("loading-title");
+  const s = document.getElementById("loading-sub");
+  if (t) t.textContent = title;
+  if (s) s.textContent = sub;
+}
+
+function renderDenied(reason) {
+  const t = document.getElementById("denied-title");
+  const s = document.getElementById("denied-sub");
+  if (reason === "denied") {
+    if (t) t.textContent = "تم رفض الوصول";
+    if (s) s.textContent = "لا تملك صلاحية إدارة هذا السيرفر.";
+  } else {
+    if (t) t.textContent = "السيرفر غير موجود";
+    if (s) s.textContent = "المعرّف غير صحيح أو أن السيرفر غير مسجّل في اللوحة.";
+  }
+  showSection("denied");
+  document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+  document.getElementById("page-title").textContent = "السيرفرات";
+  document.getElementById("page-sub").textContent = "اختر سيرفراً";
+}
+
+// Live presence for the ACTIVE server only (drives the offline banner).
+let activePresenceRef = null;
+function watchActiveServerPresence() {
+  if (!ServerContext.serverId) return;
+  activePresenceRef = db.ref("serverMeta/" + ServerContext.serverId + "/online");
+  activePresenceRef.on("value", (snap) => {
+    const online = snap.val() === true;
+    ServerContext.connectionStatus = online ? "ONLINE" : "OFFLINE";
+    if (ServerContext.serverData) ServerContext.serverData.online = online;
+    const banner = document.getElementById("server-offline-banner");
+    if (banner) banner.classList.toggle("hidden", online);
+    // Offline servers stay fully open; only agent-dependent actions are disabled.
+    document.body.classList.toggle("agent-offline", !online);
+    updateActiveServerName();
+  }, () => {});
+}
+
+// Back to the global list.
+function backToServers() {
+  suppressRoute = true;
+  location.hash = "#/servers";
+  deactivateServer();
+  navigateTo("servers");
 }
 
 // Keyboard shortcuts: Alt+1..9 jump to sections, Esc closes modals.
@@ -423,14 +671,14 @@ function onReadError(err) {
   }
 }
 
-function attachListeners() {
+function attachGlobalListeners() {
+  // Server-agnostic only: the Firebase transport status. No server data here.
   db.ref(".info/connected").on("value", (snap) => {
     const c = snap.val() === true;
     const b = document.getElementById("connection-status");
     b.className = "status-badge " + (c ? "online" : "offline");
     b.innerHTML = '<span class="status-dot"></span> ' + (c ? "متصل" : "غير متصل");
   });
-  attachServerListeners();
 }
 
 // Detaches all per-server listeners (used when switching servers).
@@ -440,13 +688,19 @@ function detachServerListeners() {
 }
 
 // Attaches all data listeners to the currently active serverRef.
+// Every callback re-checks the server id so a late snapshot from a server the
+// user already left can never paint into the current dashboard (§11).
 function attachServerListeners() {
   detachServerListeners();
-  if (!serverRef) return;
+  if (!serverRef || !ServerContext.serverId) return;
+  const boundId = ServerContext.serverId;
   const on = (path, cb, opts) => {
     let ref = serverRef.child(path);
     if (opts && opts.limit) ref = ref.limitToLast(opts.limit);
-    ref.on("value", cb, onReadError);
+    ref.on("value", (snap) => {
+      if (ServerContext.serverId !== boundId) return; // stale callback guard
+      cb(snap);
+    }, onReadError);
     serverListeners.push(ref);
   };
 
@@ -1416,8 +1670,12 @@ function renderAuthUsers(users) {
 let chatInit = false;
 function ensureChat() {
   if (chatInit) return;
+  if (!serverRef || !ServerContext.serverId) return;
   chatInit = true;
-  serverRef.child("chat").limitToLast(80).on("value", (snap) => renderChat(snap.val() || {}), onReadError);
+  // Registered in serverListeners so deactivateServer() detaches it.
+  const chatRef = serverRef.child("chat").limitToLast(80);
+  chatRef.on("value", (snap) => renderChat(snap.val() || {}), onReadError);
+  serverListeners.push(chatRef);
   const send = () => {
     const inp = document.getElementById("chat-input");
     const msg = inp.value.trim();
@@ -1495,12 +1753,24 @@ function loadMyServers(uid) {
   }
 }
 
+// Rebuilds the server list UI. CRITICAL: this never selects or opens a server.
 function renderServerSwitcher() {
-  const menu = document.getElementById("server-menu");
-  const ids = Object.keys(myServers);
-  menu.innerHTML = "";
   renderServerCards();
   watchFleetCounters();
+  renderServerSwitcherMenu();
+  // If the active server disappeared (removed/revoked), fall back to the list.
+  if (ServerContext.serverId && !myServers[ServerContext.serverId] && !currentUserIsOwner) {
+    showToast("لم يعد لديك وصول لهذا السيرفر", "error");
+    backToServers();
+  }
+}
+
+// The in-dashboard switcher menu. Choosing an entry is an explicit user action.
+function renderServerSwitcherMenu() {
+  const menu = document.getElementById("server-menu");
+  if (!menu) return;
+  const ids = Object.keys(myServers);
+  menu.innerHTML = "";
   if (!ids.length) {
     menu.innerHTML = '<div class="cselect-opt" style="cursor:default;color:var(--text-3)">لا توجد سيرفرات — اضغط إضافة سيرفر</div>';
     document.getElementById("active-server-name").textContent = "لا يوجد سيرفر";
@@ -1511,35 +1781,49 @@ function renderServerSwitcher() {
     const label = info.label || info.name || sid;
     const online = info.online;
     const opt = document.createElement("div");
-    opt.className = "cselect-opt" + (sid === ACTIVE_SERVER ? " sel" : "");
+    opt.className = "cselect-opt" + (sid === ServerContext.serverId ? " sel" : "");
     opt.innerHTML = `<span class="srv-dot ${online ? "on" : "off"}"></span><span class="srv-label">${escapeHtml(label)}</span>`;
-    opt.addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("server-switch").classList.remove("open"); switchServer(sid); });
+    opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.getElementById("server-switch").classList.remove("open");
+      if (sid === ServerContext.serverId) return;
+      openServer(sid); // explicit switch: tears down the old server first
+    });
     menu.appendChild(opt);
   });
-  if (!ACTIVE_SERVER || !myServers[ACTIVE_SERVER]) {
-    let saved = null;
-    try { saved = localStorage.getItem("vr_active_server"); } catch (e) {}
-    switchServer((saved && myServers[saved]) ? saved : ids[0]);
-  } else {
-    updateActiveServerName();
-  }
+  updateActiveServerName();
 }
 
-// Renders the server cards on the overview page.
-// The card design is unchanged; live metrics are filled in by watchFleet().
+// Renders the global server list cards. Card design is unchanged.
+// IMPORTANT: rendering a card never activates a server — only an explicit click
+// on the card body or the "Open" button does (see openServer()).
 function renderServerCards() {
   const c = document.getElementById("servers-cards");
   if (!c) return;
-  const ids = Object.keys(myServers);
-  if (!ids.length) { c.innerHTML = emptyState("overview.png", "لا توجد سيرفرات", "اضغط إضافة سيرفر لربط سيرفرك"); return; }
+  const q = (document.getElementById("servers-search") || {}).value || "";
+  const needle = q.trim().toLowerCase();
+  let ids = Object.keys(myServers);
+  if (needle) {
+    ids = ids.filter((sid) => {
+      const i = myServers[sid] || {};
+      return String(i.label || i.name || sid).toLowerCase().includes(needle);
+    });
+  }
+  if (!Object.keys(myServers).length) {
+    c.innerHTML = emptyState("overview.png", "لا توجد سيرفرات", "اضغط إضافة سيرفر لربط سيرفرك");
+    paintFleetCards();
+    return;
+  }
+  if (!ids.length) { c.innerHTML = emptyState("ic-search.png", "لا نتائج", "لا يوجد سيرفر بهذا الاسم"); return; }
   c.innerHTML = "";
   ids.forEach((sid) => {
     const info = myServers[sid] || {};
     const label = info.label || info.name || sid;
     const online = info.online;
     const banner = info.image || "";
+    const isActive = sid === ServerContext.serverId;
     const card = document.createElement("div");
-    card.className = "srv-card" + (sid === ACTIVE_SERVER ? " active" : "");
+    card.className = "srv-card" + (isActive ? " active" : "");
     card.innerHTML = `
       <div class="srv-banner" ${banner ? `style="background-image:url('${escapeHtml(banner)}')"` : ""}>
         <span class="srv-badge ${online ? "on" : "off"}"><span class="srv-dot ${online ? "on" : "off"}"></span>${online ? "متصل" : "غير متصل"}</span>
@@ -1555,21 +1839,35 @@ function renderServerCards() {
         <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-chunk.png" alt=""></span><div><div class="srv-stat-k">Heap</div><div class="srv-stat-v" data-srv-heap="${escapeHtml(sid)}">-</div></div></div>
         <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-day.png" alt=""></span><div><div class="srv-stat-k">Uptime</div><div class="srv-stat-v" data-srv-uptime="${escapeHtml(sid)}">-</div></div></div>
       </div>
-      <button class="srv-open-btn ${sid === ACTIVE_SERVER ? "active" : ""}" data-open="${escapeHtml(sid)}">${sid === ACTIVE_SERVER ? "السيرفر النشط" : "فتح لوحة التحكم"}</button>`;
+      <button class="srv-open-btn" data-open="${escapeHtml(sid)}">فتح السيرفر</button>`;
+    // The card body is clickable, but activation still requires this user click.
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".srv-gear")) return;
+      openServer(sid);
+    });
     c.appendChild(card);
   });
   c.querySelectorAll(".srv-gear").forEach((btn) => btn.addEventListener("click", (e) => { e.stopPropagation(); openEditServer(btn.dataset.sid); }));
-  c.querySelectorAll(".srv-open-btn").forEach((btn) => btn.addEventListener("click", () => switchServer(btn.dataset.open)));
-  // (Re)bind the live fleet stream so the new cards fill immediately.
+  c.querySelectorAll(".srv-open-btn").forEach((btn) => btn.addEventListener("click", (e) => { e.stopPropagation(); openServer(btn.dataset.open); }));
+  // Lightweight card metrics only (see watchFleet).
   watchFleet();
-  renderPerfServerOptions();
 }
 
-// ===== Fleet-wide live metrics (top cards + per-card server metrics) =====
-// One listener per server on servers/{id}/stats, plus serverMeta/{id}/online for
-// presence. Everything is pushed by the realtime stream — no polling, no refresh.
+// The ONLY entry point that activates a server. Always driven by a user click.
+function openServer(sid) {
+  if (!sid) return;
+  location.hash = `#/servers/${sid}/overview`;
+}
+
+const searchEl = document.getElementById("servers-search");
+if (searchEl) searchEl.addEventListener("input", () => renderServerCards());
+
+// ===== Server-list metrics (lightweight, list-page only) =====
+// One listener per server on servers/{id}/stats — the minimum needed to render
+// the cards (§19). These are detached the moment a server dashboard activates,
+// so no fleet-wide listeners stay alive inside a server view.
 const fleetStats = {};      // sid -> stats snapshot
-let fleetListeners = [];    // refs to detach when the server list changes
+let fleetListeners = [];    // refs to detach when the list is left
 
 function detachFleet() {
   fleetListeners.forEach((ref) => { try { ref.off(); } catch (e) {} });
@@ -1578,8 +1876,9 @@ function detachFleet() {
 
 function watchFleet() {
   detachFleet();
-  const ids = Object.keys(myServers);
-  ids.forEach((sid) => {
+  // Never keep fleet listeners while a single server dashboard is active.
+  if (ServerContext.serverId) { paintFleetCards(); return; }
+  Object.keys(myServers).forEach((sid) => {
     const statsRef = db.ref("servers/" + sid + "/stats");
     statsRef.on("value", (snap) => {
       fleetStats[sid] = snap.val() || {};
@@ -1614,7 +1913,7 @@ function paintServerCard(sid) {
   set("data-srv-version", s.bukkitVersion || s.serverVersion || "version unknown");
 }
 
-// Aggregates the fleet counters shown in the top metric grid.
+// Aggregates the counters shown above the server list.
 function paintFleetCards() {
   const ids = Object.keys(myServers);
   let srvOnline = 0, playersOnline = 0, playersMax = 0;
@@ -1632,6 +1931,8 @@ function paintFleetCards() {
   setText2("fleet-servers-total", "/" + ids.length);
   setText2("fleet-players-online", playersOnline);
   setText2("fleet-players-max", "/" + playersMax);
+  setText2("fleet-servers-count", ids.length);
+  setText2("fleet-servers-offline", Math.max(0, ids.length - srvOnline));
   const sdot = document.getElementById("fleet-srv-dot");
   if (sdot) sdot.className = "fleet-dot " + (srvOnline > 0 ? "on" : "");
   const pdot = document.getElementById("fleet-ply-dot");
@@ -1640,65 +1941,37 @@ function paintFleetCards() {
   ids.forEach(paintServerCard);
 }
 
-// Fleet-wide moderation/alert counters, aggregated across all servers.
+// Presence for the list cards: serverMeta/{id}/online per server. Cheap (one
+// boolean each) and detached as soon as a single server dashboard activates.
 let fleetCountListeners = [];
 function watchFleetCounters() {
   fleetCountListeners.forEach((ref) => { try { ref.off(); } catch (e) {} });
   fleetCountListeners = [];
-  const ids = Object.keys(myServers);
-  const bans = {}, mutes = {}, reports = {}, tasks = {}, alerts = {};
-  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
-  const setText2 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const bind = (sid, path, bucket, elId) => {
-    const ref = db.ref("servers/" + sid + "/" + path);
+  if (ServerContext.serverId) return; // list-page only
+  Object.keys(myServers).forEach((sid) => {
+    const ref = db.ref("serverMeta/" + sid + "/online");
     ref.on("value", (snap) => {
-      bucket[sid] = Object.keys(snap.val() || {}).length;
-      setText2(elId, sum(bucket));
-    }, () => { bucket[sid] = 0; setText2(elId, sum(bucket)); });
+      if (myServers[sid]) myServers[sid].online = snap.val() === true;
+      paintFleetCards();
+    }, () => {});
     fleetCountListeners.push(ref);
-  };
-  if (!ids.length) {
-    ["fleet-alerts", "fleet-reports", "fleet-bans", "fleet-mutes", "fleet-tasks"].forEach((id) => setText2(id, 0));
-    return;
-  }
-  ids.forEach((sid) => {
-    bind(sid, "bans", bans, "fleet-bans");
-    bind(sid, "mutes", mutes, "fleet-mutes");
-    bind(sid, "reports", reports, "fleet-reports");
-    bind(sid, "scheduledTasks", tasks, "fleet-tasks");
-    bind(sid, "alerts", alerts, "fleet-alerts");
   });
+  paintFleetCards();
 }
 
-// ===== Performance history (server selector + range toggles) =====
+// ===== Performance history (ACTIVE server only) =====
 let perfRangeMin = 60;   // default 1h, matches the active toggle in the markup
-let perfServerId = null;
 let perfListener = null;
-
-function renderPerfServerOptions() {
-  const sel = document.getElementById("perf-server");
-  if (!sel) return;
-  const ids = Object.keys(myServers);
-  const prev = perfServerId;
-  sel.innerHTML = "";
-  ids.forEach((sid) => {
-    const opt = document.createElement("option");
-    opt.value = sid;
-    opt.textContent = (myServers[sid] || {}).label || (myServers[sid] || {}).name || sid;
-    sel.appendChild(opt);
-  });
-  if (!ids.length) { perfServerId = null; renderPerfChart([]); return; }
-  perfServerId = (prev && myServers[prev]) ? prev : (ACTIVE_SERVER && myServers[ACTIVE_SERVER] ? ACTIVE_SERVER : ids[0]);
-  sel.value = perfServerId;
-  watchPerfHistory();
-}
 
 function watchPerfHistory() {
   if (perfListener) { try { perfListener.off(); } catch (e) {} perfListener = null; }
-  if (!perfServerId) { renderPerfChart([]); return; }
-  // Pull a generous window and filter client-side by the selected range.
-  perfListener = db.ref("servers/" + perfServerId + "/history").limitToLast(720);
+  // Strictly scoped to the selected server; nothing loads on the list page.
+  if (!ServerContext.serverId) { renderPerfChart([]); return; }
+  const sid = ServerContext.serverId;
+  perfListener = db.ref("servers/" + sid + "/history").limitToLast(720);
   perfListener.on("value", (snap) => {
+    // Guard against a late callback from a server the user already left.
+    if (ServerContext.serverId !== sid) return;
     const all = toArray(snap.val());
     const cutoff = Date.now() - perfRangeMin * 60 * 1000;
     renderPerfChart(all.filter((h) => (h && h.t ? h.t >= cutoff : false)));
@@ -1749,42 +2022,31 @@ function renderPerfChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const sel = document.getElementById("perf-server");
-  if (sel) sel.addEventListener("change", () => { perfServerId = sel.value; watchPerfHistory(); });
   document.querySelectorAll(".perf-range").forEach((btn) => btn.addEventListener("click", () => {
     document.querySelectorAll(".perf-range").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     perfRangeMin = Number(btn.dataset.min) || 60;
     watchPerfHistory();
   }));
-  // Quick links on the fleet metric cards jump to the matching section.
+  // Quick links jump to a section of the ACTIVE server only.
   document.querySelectorAll("[data-goto]").forEach((a) => a.addEventListener("click", (e) => {
     e.preventDefault();
-    navigateTo(a.dataset.goto);
+    if (!ServerContext.serverId) { location.hash = "#/servers"; return; }
+    location.hash = `#/servers/${ServerContext.serverId}/${a.dataset.goto}`;
   }));
-  const manage = document.getElementById("manage-servers-link");
-  if (manage) manage.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (ACTIVE_SERVER) openEditServer(ACTIVE_SERVER); else openPairModal();
-  });
+  const back = document.getElementById("back-to-servers");
+  if (back) back.addEventListener("click", backToServers);
+  const deniedBack = document.getElementById("denied-back");
+  if (deniedBack) deniedBack.addEventListener("click", backToServers);
 });
 
 function updateActiveServerName() {
-  const info = myServers[ACTIVE_SERVER] || {};
-  document.getElementById("active-server-name").textContent = info.label || info.name || ACTIVE_SERVER || "-";
-}
-
-function switchServer(sid) {
-  if (!sid) return;
-  ACTIVE_SERVER = sid;
-  try { localStorage.setItem("vr_active_server", sid); } catch (e) {}
-  serverRef = db.ref("servers/" + sid);
-  updateActiveServerName();
-  showSkeletons();
-  attachServerListeners();
-  // Reset any per-section caches that depend on the server.
-  chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false; consoleInit = false; filesInit = false;
-  attachPowerResult();
+  const el = document.getElementById("active-server-name");
+  if (!el) return;
+  const sid = ServerContext.serverId;
+  if (!sid) { el.textContent = "اختر سيرفر"; return; }
+  const info = myServers[sid] || ServerContext.serverData || {};
+  el.textContent = info.label || info.name || sid;
 }
 
 // ===== Register-a-server flow (step 1 modal + step 2 token/config modal) =====
@@ -2061,9 +2323,9 @@ document.getElementById("tok-download").addEventListener("click", () => {
   URL.revokeObjectURL(a.href);
 });
 document.getElementById("tok-done").addEventListener("click", () => {
-  const sid = wizServerId;
   closeTokenModal();
-  if (sid) switchServer(sid);
+  // Stay on the server list — the user chooses when to open the new server.
+  location.hash = "#/servers";
 });
 
 // Edit-server modal (rename + image + remove).
@@ -2157,7 +2419,8 @@ document.getElementById("editsrv-remove").addEventListener("click", () => {
     .then(() => {
       showToast("تمت إزالة السيرفر", "success");
       editSrvModal.classList.add("hidden");
-      if (ACTIVE_SERVER === editSrvId) ACTIVE_SERVER = null;
+      // If the removed server was open, tear it down and return to the list.
+      if (ServerContext.serverId === editSrvId) backToServers();
     })
     .catch((err) => { hint.textContent = "فشل الإزالة: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
 });
@@ -2174,8 +2437,12 @@ document.querySelectorAll(".power-btn").forEach((b) => b.addEventListener("click
 let consoleInit = false;
 function ensureConsole() {
   if (consoleInit) return;
+  if (!serverRef || !ServerContext.serverId) return;
   consoleInit = true;
-  serverRef.child("consoleLog").limitToLast(200).on("value", (snap) => renderConsole(toArray(snap.val())), onReadError);
+  // Registered in serverListeners so deactivateServer() detaches it.
+  const logRef = serverRef.child("consoleLog").limitToLast(200);
+  logRef.on("value", (snap) => renderConsole(toArray(snap.val())), onReadError);
+  serverListeners.push(logRef);
   const run = () => {
     const inp = document.getElementById("console-cmd");
     const cmd = inp.value.trim();
@@ -2206,12 +2473,18 @@ let filesInit = false;
 let filesCwd = "";
 function ensureFiles() {
   if (!filesInit) {
+    if (!serverRef || !ServerContext.serverId) return;
     filesInit = true;
-    serverRef.child("files/list").on("value", (snap) => renderFiles(snap.val()), onReadError);
-    serverRef.child("files/op").on("value", (snap) => {
+    // Registered in serverListeners so deactivateServer() detaches them.
+    const listRef = serverRef.child("files/list");
+    listRef.on("value", (snap) => renderFiles(snap.val()), onReadError);
+    serverListeners.push(listRef);
+    const opRef = serverRef.child("files/op");
+    opRef.on("value", (snap) => {
       const r = snap.val(); if (!r) return;
       showToast(r.message || "", r.status === "success" ? "success" : "error");
     }, onReadError);
+    serverListeners.push(opRef);
     document.getElementById("files-up").addEventListener("click", () => {
       if (!filesCwd) return;
       const parts = filesCwd.split("/"); parts.pop();
@@ -2294,16 +2567,31 @@ document.getElementById("file-save").addEventListener("click", () => {
 
 // Power result feedback (attached once globally after listeners).
 function attachPowerResult() {
-  if (!serverRef) return;
-  serverRef.child("power/result").on("value", (snap) => {
+  if (!serverRef || !ServerContext.serverId) return;
+  // Registered in serverListeners so deactivateServer() detaches it.
+  const ref = serverRef.child("power/result");
+  ref.on("value", (snap) => {
     const r = snap.val(); if (!r) return;
     const h = document.getElementById("power-hint");
     if (h) { h.textContent = r.message || ""; h.className = "admin-add-hint " + (r.status === "success" ? "success" : "error"); }
   }, () => {});
+  serverListeners.push(ref);
 }
 
 // ---- Command sender ----
 function sendCommand(type, value) {
+  // No active server = no command target. Prevents a null-ref crash and makes it
+  // impossible to send a command from the global list page.
+  if (!serverRef || !ServerContext.serverId) {
+    showToast("اختر سيرفراً أولاً", "error");
+    return;
+  }
+  // Agent-dependent actions are meaningless while the plugin is offline. Power
+  // signals are allowed through because they go to the hosting panel API.
+  if (ServerContext.connectionStatus === "OFFLINE" && type !== "power") {
+    showToast("السيرفر غير متصل — هذا الإجراء يحتاج اتصال البلجن", "error");
+    return;
+  }
   serverRef.child("commands").push({ type, value, issuedBy: auth.currentUser ? auth.currentUser.email : "unknown", timestamp: Date.now() })
     .catch(() => showToast("فشل إرسال الأمر", "error"));
 }
@@ -2626,6 +2914,20 @@ const AR_EN = {
   "فتح سجل التنبيهات": "Open alert feed", "فتح قائمة التقارير": "Open report queue",
   "مركز الإشراف": "Moderation centre", "فتح المجدول": "Open scheduler",
   "السيرفرات": "Servers", "إدارة السيرفرات": "Manage servers",
+  // Strict server-selection flow
+  "اختر سيرفراً لفتح لوحة التحكم الخاصة به. لا يتم تحميل أي بيانات سيرفر قبل اختيارك.": "Pick a server to open its dashboard. No server data is loaded before you choose.",
+  "فتح السيرفر": "Open Server", "← السيرفرات": "← Servers",
+  "الرجوع للسيرفرات": "Back to Servers",
+  "السيرفر غير موجود": "Server Not Found", "تم رفض الوصول": "Access Denied",
+  "لا تملك صلاحية الوصول لهذا السيرفر، أو أنه غير مسجّل.": "You do not have access to this server, or it is not registered.",
+  "لا تملك صلاحية إدارة هذا السيرفر.": "You are not authorized to manage this server.",
+  "المعرّف غير صحيح أو أن السيرفر غير مسجّل في اللوحة.": "The ID is invalid or the server is not registered in the panel.",
+  "جاري تحميل السيرفر...": "Loading server...", "التحقق من الصلاحيات": "Verifying permissions",
+  "الاتصال بالبلجن": "Connecting agent", "تحميل المقاييس واللاعبين": "Loading metrics and players",
+  "السيرفر غير متصل": "Server Offline",
+  "إجمالي السيرفرات": "Total servers", "غير المتصلة": "Offline",
+  "بحث بالاسم...": "Search by name...", "لا نتائج": "No results",
+  "السيرفر المحدّد": "Selected server", "عام": "Global",
   "بطاقة لكل سيرفر مسجّل، تُحدَّث من بيانات الإحصائيات الحية.": "One card per registered node, updated from the metrics and server topics.",
   "سجل الأداء": "Performance history",
   "عيّنات تاريخية من مجرى البيانات الحي للسيرفر المحدّد.": "Historical samples from the metrics endpoint, extended live by the metrics topic.",

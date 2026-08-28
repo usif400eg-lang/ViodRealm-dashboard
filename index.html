@@ -101,57 +101,57 @@
                 </div>
             </div>
             <nav class="sidebar-nav">
-                <a href="#overview" class="nav-item active" data-target="overview">
+                <div class="nav-group-label">عام</div>
+                <a href="#/servers" class="nav-item active" data-target="servers">
+                    <img class="nav-icon-img" src="image/ic-system.png" alt="" onerror="this.style.display='none'"><span class="nav-text">السيرفرات</span>
+                </a>
+
+                <div class="nav-group-label server-scoped" id="scoped-label">السيرفر المحدّد</div>
+                <a href="#" class="nav-item server-scoped" data-target="overview">
                     <img class="nav-icon-img" src="image/overview.png" alt="" onerror="this.style.display='none'"><span class="nav-text">نظرة عامة</span>
                 </a>
-
-                <div class="nav-group-label">إدارة السيرفر</div>
-                <a href="#server" class="nav-item" data-target="server">
+                <a href="#" class="nav-item server-scoped" data-target="server">
                     <img class="nav-icon-img" src="image/ic-system.png" alt="" onerror="this.style.display='none'"><span class="nav-text">تحكم السيرفر</span>
                 </a>
-                <a href="#console" class="nav-item" data-target="console">
+                <a href="#" class="nav-item server-scoped" data-target="console">
                     <img class="nav-icon-img" src="image/ic-console.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الكونسول</span>
                 </a>
-                <a href="#files" class="nav-item" data-target="files">
+                <a href="#" class="nav-item server-scoped" data-target="files">
                     <img class="nav-icon-img" src="image/overview.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الملفات</span>
                 </a>
-                <a href="#plugins" class="nav-item" data-target="plugins">
+                <a href="#" class="nav-item server-scoped" data-target="plugins">
                     <img class="nav-icon-img" src="image/ic-modrinth.png" alt="" onerror="this.style.display='none'"><span class="nav-text">البلجنات</span>
                 </a>
-                <a href="#control" class="nav-item" data-target="control">
+                <a href="#" class="nav-item server-scoped" data-target="control">
                     <img class="nav-icon-img" src="image/control.png" alt="" onerror="this.style.display='none'"><span class="nav-text">التحكم</span>
                 </a>
-
-                <div class="nav-group-label">المجتمع واللاعبون</div>
-                <a href="#players" class="nav-item" data-target="players">
+                <a href="#" class="nav-item server-scoped" data-target="players">
                     <img class="nav-icon-img" src="image/players.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إدارة اللاعبين</span>
                 </a>
-                <a href="#moderation" class="nav-item" data-target="moderation">
+                <a href="#" class="nav-item server-scoped" data-target="moderation">
                     <img class="nav-icon-img" src="image/moderation.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الحظر والقوائم</span>
                 </a>
-                <a href="#chat" class="nav-item" data-target="chat">
+                <a href="#" class="nav-item server-scoped" data-target="chat">
                     <img class="nav-icon-img" src="image/ic-broadcast.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الشات المباشر</span>
                 </a>
-                <a href="#waypoints" class="nav-item" data-target="waypoints">
+                <a href="#" class="nav-item server-scoped" data-target="waypoints">
                     <img class="nav-icon-img" src="image/waypoints.png" alt="" onerror="this.style.display='none'"><span class="nav-text">النقاط</span>
                 </a>
-
-                <div class="nav-group-label">التحليلات</div>
-                <a href="#charts" class="nav-item" data-target="charts">
+                <a href="#" class="nav-item server-scoped" data-target="charts">
                     <img class="nav-icon-img" src="image/stat-online.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الإحصائيات</span>
                 </a>
-                <a href="#activity" class="nav-item" data-target="activity">
+                <a href="#" class="nav-item server-scoped" data-target="activity">
                     <img class="nav-icon-img" src="image/act-default.png" alt="" onerror="this.style.display='none'"><span class="nav-text">سجل الأحداث</span>
                 </a>
 
                 <div class="nav-group-label owner-only">النظام والإدارة</div>
-                <a href="#admins" class="nav-item owner-only" data-target="admins" id="nav-admins">
+                <a href="#/admins" class="nav-item owner-only" data-target="admins" id="nav-admins">
                     <img class="nav-icon-img" src="image/admins.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إدارة الأدمن</span>
                 </a>
-                <a href="#site" class="nav-item owner-only" data-target="site" id="nav-site">
+                <a href="#/site" class="nav-item owner-only" data-target="site" id="nav-site">
                     <img class="nav-icon-img" src="image/ic-system.png" alt="" onerror="this.style.display='none'"><span class="nav-text">إعدادات الموقع</span>
                 </a>
-                <a href="#firebase" class="nav-item owner-only" data-target="firebase" id="nav-firebase">
+                <a href="#/firebase" class="nav-item owner-only" data-target="firebase" id="nav-firebase">
                     <img class="nav-icon-img" src="image/ic-firebase.webp" alt="" onerror="this.style.display='none'"><span class="nav-text">Firebase</span>
                 </a>
             </nav>
@@ -189,8 +189,10 @@
                     <p class="breadcrumb" id="page-sub">لوحة تحكم السيرفر</p>
                 </div>
                 <div class="topbar-status">
-                    <!-- Server switcher -->
-                    <div class="cselect server-switch" id="server-switch">
+                    <!-- Back to the global server list (only while a server is active) -->
+                    <button id="back-to-servers" class="btn-ghost server-scoped back-srv-btn" title="الرجوع للسيرفرات">← السيرفرات</button>
+                    <!-- Server switcher (only meaningful while a server is active) -->
+                    <div class="cselect server-switch server-scoped" id="server-switch">
                         <button type="button" class="cselect-btn">
                             <span class="cselect-val"><span class="srv-dot"></span><span id="active-server-name">اختر سيرفر</span></span>
                             <span class="cselect-arrow">▾</span>
@@ -309,9 +311,8 @@
                 </div>
             </section>
 
-            <!-- Overview -->
-            <section id="section-overview" class="section active">
-                <!-- Fleet metric cards (live from the realtime stream) -->
+            <!-- ===== GLOBAL: Server list (the authenticated landing page) ===== -->
+            <section id="section-servers" class="section active">
                 <div class="fleet-grid">
                     <div class="fleet-card">
                         <div class="fleet-top">
@@ -329,58 +330,63 @@
                     </div>
                     <div class="fleet-card">
                         <div class="fleet-top">
-                            <span class="fleet-label">التنبيهات النشطة</span>
-                            <span class="fleet-ic"><img src="image/ic-broadcast.png" alt=""></span>
+                            <span class="fleet-label">إجمالي السيرفرات</span>
+                            <span class="fleet-ic"><img src="image/overview.png" alt=""></span>
                         </div>
-                        <div class="fleet-value"><span id="fleet-alerts">0</span></div>
-                        <a class="fleet-link" href="#activity" data-goto="activity">فتح سجل التنبيهات</a>
+                        <div class="fleet-value"><span id="fleet-servers-count">0</span></div>
                     </div>
                     <div class="fleet-card">
                         <div class="fleet-top">
-                            <span class="fleet-label">التقارير المفتوحة</span>
-                            <span class="fleet-ic"><img src="image/moderation.png" alt=""></span>
-                        </div>
-                        <div class="fleet-value"><span id="fleet-reports">0</span></div>
-                        <a class="fleet-link" href="#moderation" data-goto="moderation">فتح قائمة التقارير</a>
-                    </div>
-                    <div class="fleet-card">
-                        <div class="fleet-top">
-                            <span class="fleet-label">الحظر النشط</span>
-                            <span class="fleet-ic"><img src="image/stat-bans.png" alt=""></span>
-                        </div>
-                        <div class="fleet-value"><span id="fleet-bans">0</span></div>
-                        <a class="fleet-link" href="#moderation" data-goto="moderation">مركز الإشراف</a>
-                    </div>
-                    <div class="fleet-card">
-                        <div class="fleet-top">
-                            <span class="fleet-label">الكتم النشط</span>
+                            <span class="fleet-label">غير المتصلة</span>
                             <span class="fleet-ic"><img src="image/ic-toggle-off.png" alt=""></span>
                         </div>
-                        <div class="fleet-value"><span id="fleet-mutes">0</span></div>
-                    </div>
-                    <div class="fleet-card">
-                        <div class="fleet-top">
-                            <span class="fleet-label">المهام المجدولة</span>
-                            <span class="fleet-ic"><img src="image/ic-time.png" alt=""></span>
-                        </div>
-                        <div class="fleet-value"><span id="fleet-tasks">0</span></div>
-                        <a class="fleet-link" href="#control" data-goto="control">فتح المجدول</a>
+                        <div class="fleet-value"><span id="fleet-servers-offline">0</span></div>
                     </div>
                 </div>
 
-                <!-- My servers cards (existing card design, rendered in a grid) -->
                 <div class="panel">
                     <div class="panel-head">
                         <div class="ph-titles">
                             <h3>السيرفرات</h3>
-                            <p class="ph-sub">بطاقة لكل سيرفر مسجّل، تُحدَّث من بيانات الإحصائيات الحية.</p>
+                            <p class="ph-sub">اختر سيرفراً لفتح لوحة التحكم الخاصة به. لا يتم تحميل أي بيانات سيرفر قبل اختيارك.</p>
                         </div>
                         <div class="ph-actions">
-                            <a class="fleet-link" href="#site" id="manage-servers-link">إدارة السيرفرات</a>
+                            <input type="text" id="servers-search" class="perf-select" placeholder="بحث بالاسم...">
                             <button id="add-server-btn2" class="btn-ghost">+ إضافة سيرفر</button>
                         </div>
                     </div>
-                    <div id="servers-cards" class="servers-cards"><p class="empty-msg">لا توجد سيرفرات — اضغط إضافة سيرفر</p></div>
+                    <div id="servers-cards" class="servers-cards"><p class="empty-msg">جاري التحميل...</p></div>
+                </div>
+            </section>
+
+            <!-- ===== Access guard (server not found / access denied) ===== -->
+            <section id="section-denied" class="section">
+                <div class="panel">
+                    <div class="guard-state">
+                        <span class="perf-empty-ic"><img src="image/moderation.png" alt=""></span>
+                        <div class="perf-empty-title" id="denied-title">السيرفر غير موجود</div>
+                        <div class="perf-empty-sub" id="denied-sub">لا تملك صلاحية الوصول لهذا السيرفر، أو أنه غير مسجّل.</div>
+                        <button id="denied-back" class="btn-primary mt-8">الرجوع للسيرفرات</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== Loading state while a selected server initializes ===== -->
+            <section id="section-loading" class="section">
+                <div class="panel">
+                    <div class="guard-state">
+                        <div class="wiz-spinner"></div>
+                        <div class="perf-empty-title" id="loading-title">جاري تحميل السيرفر...</div>
+                        <div class="perf-empty-sub" id="loading-sub">التحقق من الصلاحيات</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SERVER-SCOPED: Overview of the selected server ===== -->
+            <section id="section-overview" class="section">
+                <div id="server-offline-banner" class="offline-banner hidden">
+                    <span class="ob-dot"></span>
+                    <div><b>السيرفر غير متصل</b> — الإجراءات التي تحتاج اتصال البلجن معطّلة. البيانات المعروضة هي آخر ما تم تسجيله.</div>
                 </div>
 
                 <!-- Performance history -->
@@ -388,10 +394,9 @@
                     <div class="panel-head">
                         <div class="ph-titles">
                             <h3>سجل الأداء</h3>
-                            <p class="ph-sub">عيّنات تاريخية من مجرى البيانات الحي للسيرفر المحدّد.</p>
+                            <p class="ph-sub">عيّنات تاريخية من مجرى البيانات الحي لهذا السيرفر.</p>
                         </div>
                         <div class="ph-actions">
-                            <select id="perf-server" class="perf-select" dir="ltr"></select>
                             <div class="perf-ranges" id="perf-ranges">
                                 <button class="perf-range" data-min="15">15m</button>
                                 <button class="perf-range active" data-min="60">1h</button>

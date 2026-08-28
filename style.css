@@ -1109,6 +1109,28 @@ canvas { max-width: 100%; }
 #download-jar-btn3 { display: inline-flex; align-items: center; gap: 7px; }
 @media (max-width: 900px) { .dl-jar-btn span { display: none; } .dl-jar-btn { padding: 9px 11px; } }
 
+/* ===== Strict server-selection flow ===== */
+/* Server-scoped nav/topbar controls are hidden until a server is explicitly opened. */
+.server-scoped { display: none !important; }
+body.server-active .server-scoped { display: flex !important; }
+body.server-active a.nav-item.server-scoped { display: flex !important; }
+body.server-active .nav-group-label.server-scoped { display: block !important; }
+.back-srv-btn { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
+.back-srv-btn:hover { border-color: var(--brand); color: var(--brand); filter: none; }
+
+/* Guard + loading states */
+.guard-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 46px 18px; }
+.guard-state .perf-empty-ic { width: 56px; height: 56px; }
+.guard-state .wiz-spinner { width: 46px; height: 46px; }
+
+/* Offline banner inside an opened (but offline) server */
+.offline-banner { display: flex; align-items: center; gap: 12px; background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.35); border-radius: var(--r); padding: 14px 18px; margin-bottom: 18px; color: var(--text-2); font-size: 13.5px; line-height: 1.55; }
+.offline-banner b { color: var(--text); }
+.offline-banner .ob-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
+/* Agent-dependent controls are visibly disabled while the plugin is offline. */
+body.agent-offline .srv-open-btn { opacity: 1; }
+#servers-search { min-width: 190px; }
+
 /* Toast */
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); padding: 14px 24px; border-radius: var(--r); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 300; animation: toastIn 0.3s ease; }
 .toast.success { border-color: var(--ok); }
