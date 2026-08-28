@@ -1690,32 +1690,32 @@ document.getElementById("wiz-next1").addEventListener("click", () => {
     createdAt: Date.now(),
     group: group || null,
     description: description || null,
-    accent: wizAccent
-  };
-  const nodePolicy = {
-    blockedCommands: blockedCommands.length ? blockedCommands : null,
-    allowedPaths: allowedPaths.length ? allowedPaths : null
+    accent: wizAccent,
+    // Node policy is stored inside serverMeta (owner-writable) so registration
+    // depends on a single, simple rule instead of a separate servers/ node.
+    nodePolicy: {
+      blockedCommands: blockedCommands.length ? blockedCommands : null,
+      allowedPaths: allowedPaths.length ? allowedPaths : null
+    }
   };
 
-  // IMPORTANT: write the ownership entry FIRST. The security rules for
-  // serverMeta/{id} and servers/{id}/nodePolicy grant write access based on
-  // userServers/{uid}/{id} existing. Running these in parallel caused a race
-  // where nodePolicy was evaluated before ownership committed -> PERMISSION_DENIED.
+  // IMPORTANT: write the ownership entry FIRST. The serverMeta create rule only
+  // needs ownerUid==auth.uid on a fresh node, but writing userServers first also
+  // lets the dashboard list the server immediately and keeps ownership atomic
+  // from the user's perspective. Running writes in parallel previously caused a
+  // race against rules that read userServers -> PERMISSION_DENIED.
   usersServersRef.child(uid).child(publicId)
     .set({ label: name, group: group || null, accent: wizAccent, addedAt: Date.now() })
-    .then(() => Promise.all([
-      db.ref("serverMeta/" + publicId).set(meta),
-      db.ref("servers/" + publicId + "/nodePolicy").set(nodePolicy)
-    ]))
+    .then(() => db.ref("serverMeta/" + publicId).set(meta))
     .then(() => { openTokenModal(name); })
     .catch((err) => {
       const code = (err && (err.code || err.message)) || "unknown";
       if (String(code).toUpperCase().includes("PERMISSION")) {
         // Roll back the ownership entry so a half-created server isn't left behind.
         usersServersRef.child(uid).child(publicId).remove().catch(() => {});
-        hint.textContent = "رُفض الإنشاء (PERMISSION_DENIED) — تأكد من نشر قواعد Firebase المحدّثة في الـ Console.";
+        hint.textContent = "رُفض الإنشاء (PERMISSION_DENIED) — لم تُنشَر قواعد Firebase المحدّثة بعد. افتح Realtime Database ← Rules في الـ Console وانشر محتوى firebase-rules.json.";
         hint.className = "admin-add-hint error";
-        showToast("رُفض الوصول — انشر قواعد Firebase المحدّثة", "error");
+        showToast("انشر قواعد Realtime Database المحدّثة في الـ Console", "error");
       } else {
         hint.textContent = "فشل: " + code;
         hint.className = "admin-add-hint error";
