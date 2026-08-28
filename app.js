@@ -1697,14 +1697,30 @@ document.getElementById("wiz-next1").addEventListener("click", () => {
     allowedPaths: allowedPaths.length ? allowedPaths : null
   };
 
-  const tasks = [
-    usersServersRef.child(uid).child(publicId).set({ label: name, group: group || null, accent: wizAccent, addedAt: Date.now() }),
-    db.ref("serverMeta/" + publicId).set(meta),
-    db.ref("servers/" + publicId + "/nodePolicy").set(nodePolicy)
-  ];
-  Promise.all(tasks)
+  // IMPORTANT: write the ownership entry FIRST. The security rules for
+  // serverMeta/{id} and servers/{id}/nodePolicy grant write access based on
+  // userServers/{uid}/{id} existing. Running these in parallel caused a race
+  // where nodePolicy was evaluated before ownership committed -> PERMISSION_DENIED.
+  usersServersRef.child(uid).child(publicId)
+    .set({ label: name, group: group || null, accent: wizAccent, addedAt: Date.now() })
+    .then(() => Promise.all([
+      db.ref("serverMeta/" + publicId).set(meta),
+      db.ref("servers/" + publicId + "/nodePolicy").set(nodePolicy)
+    ]))
     .then(() => { openTokenModal(name); })
-    .catch((err) => { hint.textContent = "فشل: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
+    .catch((err) => {
+      const code = (err && (err.code || err.message)) || "unknown";
+      if (String(code).toUpperCase().includes("PERMISSION")) {
+        // Roll back the ownership entry so a half-created server isn't left behind.
+        usersServersRef.child(uid).child(publicId).remove().catch(() => {});
+        hint.textContent = "رُفض الإنشاء (PERMISSION_DENIED) — تأكد من نشر قواعد Firebase المحدّثة في الـ Console.";
+        hint.className = "admin-add-hint error";
+        showToast("رُفض الوصول — انشر قواعد Firebase المحدّثة", "error");
+      } else {
+        hint.textContent = "فشل: " + code;
+        hint.className = "admin-add-hint error";
+      }
+    });
 });
 
 function buildConfigYaml(publicId, token, name) {
