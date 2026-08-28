@@ -198,6 +198,7 @@
                         <div class="cselect-menu" id="server-menu"></div>
                     </div>
                     <button id="add-server-btn" class="btn-primary add-srv-btn"><img class="cb-icon" src="image/ic-system.png" alt=""> إضافة سيرفر</button>
+                    <button id="download-jar-btn" class="btn-ghost dl-jar-btn" title="تحميل بلجن VoxelPanel (JAR)"><img class="cb-icon" src="image/ic-download.png" alt=""> <span>تحميل البلجن</span></button>
                     <div class="theme-group" id="theme-group">
                         <button class="theme-opt" data-theme-mode="light" title="فاتح">☀️</button>
                         <button class="theme-opt" data-theme-mode="dark" title="داكن">🌙</button>
@@ -286,6 +287,11 @@
                         <div class="edit-field">
                             <label>نص اللوجو (لو مفيش صورة)</label>
                             <input type="text" id="site-logotext-input" placeholder="VR" maxlength="3">
+                        </div>
+                        <div class="edit-field">
+                            <label>رابط تحميل البلجن (JAR)</label>
+                            <input type="text" id="site-jar-input" placeholder="https://github.com/.../releases/latest/download/VoxelPanel.jar" dir="ltr">
+                            <span class="field-help">الرابط الذي يفتحه زر «تحميل البلجن» في كل الصفحات. اتركه فارغاً لاستخدام رابط أحدث إصدار على GitHub.</span>
                         </div>
                     </div>
                     <button id="site-save" class="btn-primary mt-8">حفظ إعدادات الموقع</button>
@@ -537,10 +543,11 @@
                 <div class="panel">
                     <div class="panel-head">
                         <h3>البلجنات المثبّتة</h3>
-                        <div class="head-tools">
-                            <span id="plugins-count" class="pill">0</span>
-                            <button id="refresh-plugins-btn" class="btn-ghost">تحديث</button>
-                        </div>
+                            <div class="head-tools">
+                                <span id="plugins-count" class="pill">0</span>
+                                <button id="download-jar-btn2" class="btn-ghost"><img class="cb-icon" src="image/ic-download.png" alt=""> تحميل بلجن VoxelPanel</button>
+                                <button id="refresh-plugins-btn" class="btn-ghost">تحديث</button>
+                            </div>
                     </div>
                     <div id="plugins-list" class="plugins-grid"><p class="empty-msg">جاري التحميل...</p></div>
                 </div>
@@ -1024,6 +1031,7 @@
             </div>
 
             <div class="reg-foot">
+                <button id="download-jar-btn3" class="btn-text"><img class="cb-icon" src="image/ic-download.png" alt=""> تحميل البلجن (JAR)</button>
                 <button id="tok-download" class="btn-text">تنزيل config.yml</button>
                 <button id="tok-done" class="btn-primary">نسخت التوكن</button>
             </div>

@@ -1102,6 +1102,13 @@ canvas { max-width: 100%; }
   .fleet-value { font-size: 22px; }
 }
 
+/* Plugin JAR download button (topbar + panels) */
+.dl-jar-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; font-size: 13px; white-space: nowrap; }
+.dl-jar-btn:hover { border-color: var(--brand); color: var(--brand); filter: none; }
+.dl-jar-btn .cb-icon, .head-tools .cb-icon, .reg-foot .cb-icon { width: 14px; height: 14px; object-fit: contain; filter: var(--icon-tint); }
+#download-jar-btn3 { display: inline-flex; align-items: center; gap: 7px; }
+@media (max-width: 900px) { .dl-jar-btn span { display: none; } .dl-jar-btn { padding: 9px 11px; } }
+
 /* Toast */
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); padding: 14px 24px; border-radius: var(--r); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 300; animation: toastIn 0.3s ease; }
 .toast.success { border-color: var(--ok); }

@@ -2308,6 +2308,41 @@ function sendCommand(type, value) {
     .catch(() => showToast("فشل إرسال الأمر", "error"));
 }
 
+// ---- Plugin JAR download ----
+// The download URL is owner-configurable in Site Settings and shared globally via
+// siteConfig, so every page's "download plugin" button stays in sync. Falls back to
+// the GitHub "latest release" asset URL when unset.
+const DEFAULT_JAR_URL = "https://github.com/usif400eg-lang/-ViodRealms/releases/latest/download/VoxelPanel.jar";
+let jarDownloadUrl = DEFAULT_JAR_URL;
+
+function downloadPluginJar() {
+  const url = (jarDownloadUrl || "").trim() || DEFAULT_JAR_URL;
+  // Only allow http(s) so a bad siteConfig value can't become a javascript: sink.
+  let safe;
+  try {
+    safe = new URL(url, window.location.href);
+    if (safe.protocol !== "https:" && safe.protocol !== "http:") throw new Error("bad protocol");
+  } catch (e) {
+    showToast("رابط تحميل البلجن غير صالح", "error");
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = safe.href;
+  a.rel = "noopener noreferrer";
+  a.target = "_blank";
+  a.download = "VoxelPanel.jar"; // honoured for same-origin; ignored cross-origin
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  showToast("جاري تحميل بلجن VoxelPanel...", "success");
+}
+
+// Bind every download button on the page (topbar, plugins page, token modal).
+["download-jar-btn", "download-jar-btn2", "download-jar-btn3"].forEach((id) => {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener("click", downloadPluginJar);
+});
+
 // ---- Admin management ----
 // Applies global site config (name/logo) live for everyone.
 siteRef.on("value", (snap) => {
@@ -2316,6 +2351,7 @@ siteRef.on("value", (snap) => {
   const sub = cfg.sub || "Control Panel";
   const logoText = cfg.logoText || "VR";
   const logoImg = cfg.logo || "";
+  jarDownloadUrl = cfg.jarUrl || DEFAULT_JAR_URL;
   document.title = title + " — Control Panel";
   const setLogo = (el) => {
     if (!el) return;
@@ -2339,12 +2375,13 @@ function attachSiteSettings() {
     if (g("site-sub-input")) g("site-sub-input").value = cfg.sub || "";
     if (g("site-logo-input")) g("site-logo-input").value = cfg.logo || "";
     if (g("site-logotext-input")) g("site-logotext-input").value = cfg.logoText || "";
+    if (g("site-jar-input")) g("site-jar-input").value = cfg.jarUrl || "";
   });
   const saveBtn = document.getElementById("site-save");
   if (saveBtn && !saveBtn.dataset.bound) {
     saveBtn.dataset.bound = "1";
     // Live preview as the owner types.
-    ["site-name-input","site-sub-input","site-logo-input","site-logotext-input"].forEach((id) => {
+    ["site-name-input","site-sub-input","site-logo-input","site-logotext-input","site-jar-input"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", updateSitePreview);
     });
@@ -2354,7 +2391,8 @@ function attachSiteSettings() {
         name: document.getElementById("site-name-input").value.trim() || "VoxelPanel",
         sub: document.getElementById("site-sub-input").value.trim() || "Control Panel",
         logo: document.getElementById("site-logo-input").value.trim() || null,
-        logoText: document.getElementById("site-logotext-input").value.trim() || "VR"
+        logoText: document.getElementById("site-logotext-input").value.trim() || "VR",
+        jarUrl: document.getElementById("site-jar-input").value.trim() || null
       };
       siteRef.set(data)
         .then(() => { hint.textContent = "تم حفظ إعدادات الموقع."; hint.className = "admin-add-hint success"; showToast("تم حفظ إعدادات الموقع", "success"); })
@@ -2577,6 +2615,10 @@ const AR_EN = {
   "تنزيل config.yml": "Download config.yml",
   "نسخت التوكن": "I have copied the token",
   "خطوات التركيب (6 خطوات)": "Setup steps (6 steps)",
+  "تحميل البلجن": "Download plugin", "تحميل بلجن VoxelPanel": "Download VoxelPanel plugin",
+  "تحميل البلجن (JAR)": "Download plugin (JAR)",
+  "رابط تحميل البلجن (JAR)": "Plugin download URL (JAR)",
+  "الرابط الذي يفتحه زر «تحميل البلجن» في كل الصفحات. اتركه فارغاً لاستخدام رابط أحدث إصدار على GitHub.": "The URL opened by the Download plugin button everywhere. Leave empty to use the latest GitHub release.",
   // Overview fleet metrics + performance history
   "السيرفرات المتصلة": "Servers online", "اللاعبون المتصلون": "Players online",
   "التنبيهات النشطة": "Active alerts", "التقارير المفتوحة": "Open reports",
