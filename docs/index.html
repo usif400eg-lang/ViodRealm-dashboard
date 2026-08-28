@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ViodRealms Control Panel — Real-Time Minecraft Server Dashboard</title>
-  <meta name="description" content="ViodRealms is a real-time web dashboard for managing Paper Minecraft servers: live stats, console, files, plugins, moderation, power controls, and multi-server management, backed by Firebase.">
+  <title>VoxelPanel Control Panel — Real-Time Minecraft Server Dashboard</title>
+  <meta name="description" content="VoxelPanel is a real-time web dashboard for managing Paper Minecraft servers: live stats, console, files, plugins, moderation, power controls, and multi-server management, backed by Firebase.">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="container nav-inner">
       <a class="brand" href="#top">
         <span class="brand-logo">VR</span>
-        <span class="brand-name">ViodRealms <span>Panel</span></span>
+        <span class="brand-name">VoxelPanel <span>Panel</span></span>
       </a>
       <nav class="nav-links">
         <a href="#features">Features</a>
@@ -33,7 +33,7 @@
         <span class="badge">Real-time &middot; Firebase-backed &middot; Multi-server</span>
         <h1>Control your Minecraft server from anywhere.</h1>
         <p class="lead">
-          ViodRealms is a real-time web dashboard for Paper servers. Monitor live
+          VoxelPanel is a real-time web dashboard for Paper servers. Monitor live
           stats, run the console, manage players and files, install plugins, and
           control power — all from your browser, with automatic connection and
           instant credential revocation.
@@ -126,15 +126,15 @@
     <section id="connect" class="section section-alt">
       <div class="container">
         <h2 class="section-title">Connect a server in six steps</h2>
-        <p class="section-sub">Dashboard-first setup means the plugin connects automatically — no manual pairing.</p>
+        <p class="section-sub">The plugin registers itself automatically — no manual pairing.</p>
 
         <ol class="steps">
-          <li><span class="step-n">1</span><div><h4>Add Server</h4><p>Sign in and open the Add Server wizard.</p></div></li>
-          <li><span class="step-n">2</span><div><h4>Generate Config</h4><p>Get a complete <code>config.yml</code> with a unique id and secret token.</p></div></li>
-          <li><span class="step-n">3</span><div><h4>Download</h4><p>Copy or download the generated file.</p></div></li>
-          <li><span class="step-n">4</span><div><h4>Install</h4><p>Place it at <code>plugins/ViodRealmsTPU/config.yml</code>.</p></div></li>
-          <li><span class="step-n">5</span><div><h4>Restart</h4><p>Restart the server to load the credentials.</p></div></li>
-          <li><span class="step-n">6</span><div><h4>Connected</h4><p>The wizard shows a live "Connected" status within seconds.</p></div></li>
+          <li><span class="step-n">1</span><div><h4>Create Server</h4><p>Create the server in VoxelPanel and copy the node token it shows once.</p></div></li>
+          <li><span class="step-n">2</span><div><h4>Stop Server</h4><p>Stop the Minecraft server.</p></div></li>
+          <li><span class="step-n">3</span><div><h4>Add Plugin</h4><p>Drop the VoxelPanel jar into the server's <code>plugins/</code> directory.</p></div></li>
+          <li><span class="step-n">4</span><div><h4>Generate Config</h4><p>Start once so <code>plugins/VoxelPanel/config.yml</code> is generated, then stop again.</p></div></li>
+          <li><span class="step-n">5</span><div><h4>Configure Plugin</h4><p>Set <code>web.url</code> and <code>web.token</code> in <code>plugins/VoxelPanel/config.yml</code>.</p></div></li>
+          <li><span class="step-n">6</span><div><h4>Start &amp; Register</h4><p>Start the server. It registers itself and appears online in the panel.</p></div></li>
         </ol>
 
         <div class="arch">
@@ -225,7 +225,7 @@ python -m http.server 8000
     <div class="container footer-inner">
       <div class="brand">
         <span class="brand-logo">VR</span>
-        <span class="brand-name">ViodRealms <span>Panel</span></span>
+        <span class="brand-name">VoxelPanel <span>Panel</span></span>
       </div>
       <div class="footer-links">
         <a href="https://github.com/usif400eg-lang/ViodRealm-dashboard" target="_blank" rel="noopener">GitHub</a>
@@ -233,7 +233,7 @@ python -m http.server 8000
         <a href="#features">Features</a>
         <a href="#setup">Setup</a>
       </div>
-      <p class="footer-copy">ViodRealms &copy; 2026 &middot; Real-time server control panel</p>
+      <p class="footer-copy">VoxelPanel &copy; 2026 &middot; Real-time server control panel</p>
     </div>
   </footer>
 </body>

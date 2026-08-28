@@ -1,4 +1,4 @@
-// Firebase configuration for the ViodRealms TPU dashboard.
+// Firebase configuration for the VoxelPanel dashboard.
 // These values are safe to expose publicly (they identify your project, not authenticate it).
 // Real security is enforced by Firebase Authentication + Realtime Database Security Rules.
 

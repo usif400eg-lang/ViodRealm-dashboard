@@ -1,7 +1,7 @@
-# ViodRealms — Server Control Panel (Dashboard)
+# VoxelPanel — Server Control Panel (Dashboard)
 
 A real-time web dashboard for managing Paper Minecraft servers from anywhere,
-backed by Firebase Realtime Database. It pairs with the **ViodRealms TPU** plugin
+backed by Firebase Realtime Database. It pairs with the **VoxelPanel** plugin
 and gives owners and admins full remote control — live, with no page refreshes.
 
 > لوحة تحكم ويب لإدارة سيرفرات Minecraft في الوقت الفعلي عبر Firebase.
@@ -87,17 +87,16 @@ Dashboard (static site)  <->  Firebase Realtime Database  <->  Plugin (Minecraft
 
 ---
 
-## Connecting a server (Add Server)
+## Connecting a server (6 steps)
 
-Recommended, dashboard-first flow — the plugin connects automatically with no
-manual pairing:
+The plugin registers itself automatically — no manual pairing:
 
-1. Sign in, click **Add Server**, and enter a server name (hosting-panel details
-   are optional).
-2. The wizard generates a complete, ready-to-use `config.yml` containing a unique
-   `server-id` and secret `auth-token`.
-3. Copy or download it and place it at `plugins/ViodRealmsTPU/config.yml`.
-4. Restart the server — the wizard shows **Connected** within seconds.
+1. **Create Server** — create the server in VoxelPanel and copy the node token it shows once.
+2. **Stop Server** — stop the Minecraft server.
+3. **Add Plugin** — drop the VoxelPanel jar into the server's `plugins/` directory.
+4. **Generate Config** — start the server once so `plugins/VoxelPanel/config.yml` is generated, then stop it again.
+5. **Configure Plugin** — set `web.url` and `web.token` in `plugins/VoxelPanel/config.yml`.
+6. **Start & Register** — start the server. It registers itself automatically and appears as online in the panel.
 
 To disconnect or rotate credentials, open the server's edit dialog and choose
 **Regenerate config**. The old token stops working immediately and a fresh

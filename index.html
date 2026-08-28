@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ViodRealms — Control Panel</title>
+    <title>VoxelPanel — Control Panel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
         <div class="auth-box">
             <div class="brand">
                 <div class="brand-logo">VR</div>
-                <h1>ViodRealms</h1>
+                <h1>VoxelPanel</h1>
                 <p class="subtitle">Server Control Panel</p>
             </div>
 
@@ -66,7 +66,7 @@
 
             <p id="login-error" class="error-msg"></p>
         </div>
-        <footer class="auth-footer">ViodRealms &copy; 2026</footer>
+        <footer class="auth-footer">VoxelPanel &copy; 2026</footer>
     </div>
 
     <!-- Pending screen -->
@@ -87,7 +87,7 @@
             </div>
             <button id="pending-logout-btn" class="btn-ghost full mt-8">تسجيل الخروج</button>
         </div>
-        <footer class="auth-footer">ViodRealms &copy; 2026</footer>
+        <footer class="auth-footer">VoxelPanel &copy; 2026</footer>
     </div>
 
     <!-- Dashboard -->
@@ -96,7 +96,7 @@
             <div class="sidebar-brand">
                 <div class="brand-logo small" id="site-logo">VR</div>
                 <div class="sidebar-brand-text">
-                    <span class="sb-title" id="site-title">ViodRealms</span>
+                    <span class="sb-title" id="site-title">VoxelPanel</span>
                     <span class="sb-sub" id="site-sub">Control Panel</span>
                 </div>
             </div>
@@ -273,7 +273,7 @@
                     <div class="edit-grid">
                         <div class="edit-field">
                             <label>اسم الموقع</label>
-                            <input type="text" id="site-name-input" placeholder="ViodRealms">
+                            <input type="text" id="site-name-input" placeholder="VoxelPanel">
                         </div>
                         <div class="edit-field">
                             <label>العنوان الفرعي</label>
@@ -296,7 +296,7 @@
                     <div class="site-preview">
                         <div class="brand-logo small" id="site-preview-logo">VR</div>
                         <div class="sidebar-brand-text">
-                            <span class="sb-title" id="site-preview-title">ViodRealms</span>
+                            <span class="sb-title" id="site-preview-title">VoxelPanel</span>
                             <span class="sb-sub" id="site-preview-sub">Control Panel</span>
                         </div>
                     </div>
@@ -861,8 +861,8 @@
 
                 <div class="info-box">
                     <div class="info-box-title">ماذا يحدث بعد ذلك</div>
-                    <p>تُعيد اللوحة توكن تفعيل يُعرض مرة واحدة بصيغة <code dir="ltr">vp_&lt;publicId&gt;_&lt;secret&gt;</code>. ضعه في
-                    <code dir="ltr">plugins/ViodRealmsTPU/config.yml</code> على سيرفر Paper وأعد تشغيله؛ عندها يسجّل البلجن نفسه،
+                    <p>تُعيد اللوحة توكن عقدة يُعرض مرة واحدة بصيغة <code dir="ltr">vp_&lt;publicId&gt;_&lt;secret&gt;</code>. ضعه في
+                    <code dir="ltr">web.token</code> داخل <code dir="ltr">plugins/VoxelPanel/config.yml</code> على سيرفر Paper وأعد تشغيله؛ عندها يسجّل البلجن نفسه،
                     ويبدأ في بثّ بياناته الحية للوحة تلقائياً.</p>
                 </div>
 
@@ -884,7 +884,7 @@
                     <span class="ask-icon warn"><img src="image/ic-system.png" alt=""></span>
                     <div>
                         <h3>تم إنشاء السيرفر — انسخ التوكن الآن</h3>
-                        <p class="reg-sub">الصق هذا التوكن في إعداد بلجن ViodRealms على سيرفر Paper. يُعرض مرة واحدة فقط.</p>
+                        <p class="reg-sub">الصق هذا التوكن في إعداد بلجن VoxelPanel على سيرفر Paper. يُعرض مرة واحدة فقط.</p>
                     </div>
                 </div>
                 <button id="tok-x" class="reg-x" aria-label="إغلاق">&times;</button>
@@ -907,8 +907,18 @@
                 <div class="config-box">
                     <pre id="tok-config" class="config-pre"></pre>
                 </div>
-                <p class="cfg-help"><code dir="ltr">database-url</code> هو عنوان الواجهة الخلفية الذي يتصل به السيرفر. يجب أن يتمكّن سيرفر Paper من الوصول إليه.</p>
+                <p class="cfg-help"><code dir="ltr">web.url</code> هو عنوان الواجهة الخلفية الذي يتصل به السيرفر. يجب أن يتمكّن سيرفر Paper من الوصول إليه.</p>
                 <p class="cfg-help">ترفض اللوحة عمداً قراءة أو كتابة هذا الملف عبر مدير الملفات، فلا يمكن تسريبه من خلال الـ sandbox.</p>
+
+                <div class="reg-section-label">خطوات التركيب (6 خطوات)</div>
+                <ol class="onboard-steps">
+                    <li><span class="ob-n">1</span><div><b>إنشاء السيرفر:</b> أنشئ السيرفر في VoxelPanel وانسخ توكن العقدة الذي يظهر مرة واحدة (بالأعلى).</div></li>
+                    <li><span class="ob-n">2</span><div><b>إيقاف السيرفر:</b> أوقف سيرفر Minecraft.</div></li>
+                    <li><span class="ob-n">3</span><div><b>إضافة البلجن:</b> ضع ملف <code dir="ltr">VoxelPanel.jar</code> في مجلد <code dir="ltr">plugins/</code> بالسيرفر.</div></li>
+                    <li><span class="ob-n">4</span><div><b>توليد الإعداد:</b> شغّل السيرفر مرة واحدة حتى يتولّد <code dir="ltr">plugins/VoxelPanel/config.yml</code>، ثم أوقفه مجدداً.</div></li>
+                    <li><span class="ob-n">5</span><div><b>ضبط البلجن:</b> عيّن <code dir="ltr">web.url</code> و <code dir="ltr">web.token</code> في <code dir="ltr">plugins/VoxelPanel/config.yml</code>.</div></li>
+                    <li><span class="ob-n">6</span><div><b>التشغيل والتسجيل:</b> شغّل السيرفر. سيسجّل نفسه تلقائياً ويظهر كمتصل في اللوحة.</div></li>
+                </ol>
 
                 <div class="tok-status">
                     <span id="tok-conn-dot" class="status-dot"></span>
