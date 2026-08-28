@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ViodRealms Control Panel — Real-Time Minecraft Server Dashboard</title>
+  <meta name="description" content="ViodRealms is a real-time web dashboard for managing Paper Minecraft servers: live stats, console, files, plugins, moderation, power controls, and multi-server management, backed by Firebase.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#top">
+        <span class="brand-logo">VR</span>
+        <span class="brand-name">ViodRealms <span>Panel</span></span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#connect">Connect</a>
+        <a href="#setup">Setup</a>
+        <a href="#security">Security</a>
+        <a class="nav-cta" href="https://github.com/usif400eg-lang/ViodRealm-dashboard" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <span class="badge">Real-time &middot; Firebase-backed &middot; Multi-server</span>
+        <h1>Control your Minecraft server from anywhere.</h1>
+        <p class="lead">
+          ViodRealms is a real-time web dashboard for Paper servers. Monitor live
+          stats, run the console, manage players and files, install plugins, and
+          control power — all from your browser, with automatic connection and
+          instant credential revocation.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#connect">Connect a Server</a>
+          <a class="btn btn-ghost" href="#features">Explore Features</a>
+        </div>
+        <div class="hero-stats">
+          <div><strong>Real-time</strong><span>data &amp; console</span></div>
+          <div><strong>Multi-server</strong><span>from one panel</span></div>
+          <div><strong>3</strong><span>sign-in methods</span></div>
+          <div><strong>AR / EN</strong><span>bilingual UI</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="section">
+      <div class="container">
+        <h2 class="section-title">A full control panel in your browser</h2>
+        <p class="section-sub">Live data flows through Firebase in real time — no refreshes, no polling.</p>
+
+        <div class="cards">
+          <article class="card">
+            <div class="card-ic">📈</div>
+            <h3>Live Overview</h3>
+            <p>Real-time TPS, uptime, online/known players, capacity, entities, loaded chunks, worlds, and system status.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">👥</div>
+            <h3>Player Management</h3>
+            <p>Inspect a player's live inventory and armor, message, teleport to players or coordinates, change gamemode, and set ranks.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🚫</div>
+            <h3>Moderation</h3>
+            <p>Ban by name or UUID with reasons, manage the whitelist, and review live ban and whitelist lists.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🖥️</div>
+            <h3>Live Console</h3>
+            <p>Stream server output in real time and run any console command straight from the panel.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">📁</div>
+            <h3>File Manager</h3>
+            <p>Browse the whole server directory and edit text configs in place, with safe size and extension limits.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🧩</div>
+            <h3>Plugin Manager</h3>
+            <p>See installed plugins and search &amp; install thousands more from Modrinth, with version and loader pickers.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">⚙️</div>
+            <h3>Power &amp; World</h3>
+            <p>Start, stop, restart, or force-kill via a Pterodactyl-style API, plus time and weather controls and save-all.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">💬</div>
+            <h3>Live Chat Bridge</h3>
+            <p>Read in-game chat and send messages into the server from the dashboard in real time.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">📊</div>
+            <h3>Analytics &amp; Activity</h3>
+            <p>Players-online-over-time, waypoint growth, category distribution, and an audit log of every panel action.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🌐</div>
+            <h3>Multi-Server</h3>
+            <p>Manage many servers from one account with a switcher and a live connection badge per server.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🔐</div>
+            <h3>Auth &amp; Roles</h3>
+            <p>Email/password, Google, and GitHub sign-in with owner/admin roles and a pending-approval flow.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🎨</div>
+            <h3>Themed &amp; Bilingual</h3>
+            <p>Light, dark, and system themes with Arabic (RTL) and English (LTR) layouts and a customizable brand.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Connect -->
+    <section id="connect" class="section section-alt">
+      <div class="container">
+        <h2 class="section-title">Connect a server in six steps</h2>
+        <p class="section-sub">Dashboard-first setup means the plugin connects automatically — no manual pairing.</p>
+
+        <ol class="steps">
+          <li><span class="step-n">1</span><div><h4>Add Server</h4><p>Sign in and open the Add Server wizard.</p></div></li>
+          <li><span class="step-n">2</span><div><h4>Generate Config</h4><p>Get a complete <code>config.yml</code> with a unique id and secret token.</p></div></li>
+          <li><span class="step-n">3</span><div><h4>Download</h4><p>Copy or download the generated file.</p></div></li>
+          <li><span class="step-n">4</span><div><h4>Install</h4><p>Place it at <code>plugins/ViodRealmsTPU/config.yml</code>.</p></div></li>
+          <li><span class="step-n">5</span><div><h4>Restart</h4><p>Restart the server to load the credentials.</p></div></li>
+          <li><span class="step-n">6</span><div><h4>Connected</h4><p>The wizard shows a live "Connected" status within seconds.</p></div></li>
+        </ol>
+
+        <div class="arch">
+          <div class="arch-node">Dashboard</div>
+          <div class="arch-link">&harr;</div>
+          <div class="arch-node">Firebase RTDB</div>
+          <div class="arch-link">&harr;</div>
+          <div class="arch-node">Plugin</div>
+        </div>
+
+        <p class="note">Need to rotate credentials? Open a server's edit dialog and choose
+          <strong>Regenerate config</strong> — the old token stops working instantly and a fresh
+          <code>config.yml</code> is generated.</p>
+      </div>
+    </section>
+
+    <!-- Setup -->
+    <section id="setup" class="section">
+      <div class="container">
+        <h2 class="section-title">Set up the dashboard</h2>
+        <p class="section-sub">Fully static — no build step, no backend.</p>
+
+        <div class="install-grid">
+          <div class="install-col">
+            <h3>1. Firebase web app</h3>
+            <p>Create a Web app in the Firebase Console and copy its config into <code>firebase-config.js</code>.</p>
+            <p>Enable Email/Password, Google, or GitHub under Authentication, and create your first admin user.</p>
+          </div>
+          <div class="install-col">
+            <h3>2. Publish rules</h3>
+            <p>In Realtime Database → Rules, paste <code>firebase-rules.json</code> and Publish.</p>
+            <pre class="code"><code># Editing the file locally does not
+# deploy rules — publish in the Console.</code></pre>
+          </div>
+          <div class="install-col">
+            <h3>3. Run or deploy</h3>
+            <pre class="code"><code># Local preview (serve over HTTP)
+python -m http.server 8000
+# then open http://localhost:8000</code></pre>
+            <p>Deploy to any static host (Render, Netlify, GitHub Pages). Build command: empty; publish directory: <code>.</code></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security -->
+    <section id="security" class="section section-alt">
+      <div class="container">
+        <h2 class="section-title">Secure by design</h2>
+        <p class="section-sub">The dashboard never holds the Firebase service account. Access is enforced by Auth + Realtime Database Security Rules.</p>
+        <div class="cards cards-3">
+          <article class="card">
+            <div class="card-ic">🔑</div>
+            <h3>Token authorization</h3>
+            <p>Each server gets a unique id and secret token. The plugin proves it holds a matching token and never writes it back.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">⏱️</div>
+            <h3>Instant revocation</h3>
+            <p>The plugin live-watches its token. Revoke or rotate it from the panel and syncing stops within seconds — never crashing the server.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🧩</div>
+            <h3>Duplicate detection</h3>
+            <p>A per-boot instance id exposes fake or duplicated connections that reuse the same credentials.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🛡️</div>
+            <h3>Owner-scoped rules</h3>
+            <p>Server metadata is owner-writable only; the auth token is readable solely by its owner; presence fields are read-only to clients.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🙈</div>
+            <h3>Public config is safe</h3>
+            <p><code>firebase-config.js</code> holds public project identifiers, not secrets. Real security is in Auth + Rules.</p>
+          </article>
+          <article class="card">
+            <div class="card-ic">🔒</div>
+            <h3>Keys stay off the web</h3>
+            <p>The Admin service account key belongs on the server only and is git-ignored — never shipped to the browser.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="brand">
+        <span class="brand-logo">VR</span>
+        <span class="brand-name">ViodRealms <span>Panel</span></span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/usif400eg-lang/ViodRealm-dashboard" target="_blank" rel="noopener">GitHub</a>
+        <a href="#connect">Connect</a>
+        <a href="#features">Features</a>
+        <a href="#setup">Setup</a>
+      </div>
+      <p class="footer-copy">ViodRealms &copy; 2026 &middot; Real-time server control panel</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,78 +1,176 @@
-# ViodRealms TPU — Dashboard
+# ViodRealms — Server Control Panel (Dashboard)
 
-لوحة تحكم ويب للتحكم في سيرفر ViodRealms من أي مكان عبر Firebase، في الوقت الفعلي.
+A real-time web dashboard for managing Paper Minecraft servers from anywhere,
+backed by Firebase Realtime Database. It pairs with the **ViodRealms TPU** plugin
+and gives owners and admins full remote control — live, with no page refreshes.
 
-## المعمارية
+> لوحة تحكم ويب لإدارة سيرفرات Minecraft في الوقت الفعلي عبر Firebase.
+> (Documentation is provided in English below, with Arabic notes where useful.)
+
+---
+
+## Architecture
 
 ```
-Dashboard (static)  ⇄  Firebase Realtime Database  ⇄  Plugin (Minecraft Server)
+Dashboard (static site)  <->  Firebase Realtime Database  <->  Plugin (Minecraft server)
 ```
 
-- **البلجن** يرفع البيانات الحية (الإحصائيات، اللاعبون، النقاط، العوالم) لـ Firebase كل بضع ثوانٍ.
-- **الداشبورد** يقرأ البيانات مباشرة ويعرضها، ويكتب الأوامر التي ينفّذها البلجن.
-- الداشبورد **لا يحمل** مفتاح الـ service account إطلاقاً — الأمان عبر Firebase Auth + Security Rules.
+- The **plugin** pushes live data (stats, players, waypoints, worlds, console) to
+  Firebase every few seconds and listens for a command queue in real time.
+- The **dashboard** reads that data live and writes commands back.
+- The dashboard **never holds** the Firebase Admin service account. All access is
+  enforced by **Firebase Authentication + Realtime Database Security Rules**.
 
-## المزايا
+---
 
-- نظرة عامة حية: TPS، وقت التشغيل، المتصلون، الكيانات، العوالم
-- إدارة اللاعبين: فحص، رسائل، نقل، وضع اللعب، الرتب
-- الإشراف: الحظر والقائمة البيضاء
-- كونسول حي مع تنفيذ الأوامر وعرض المخرجات
-- مدير الملفات وتصفّح/تعديل ملفات السيرفر
-- مدير البلجنات والتثبيت من Modrinth
-- التحكم في الطاقة (تشغيل/إيقاف/إعادة تشغيل) عبر لوحة استضافة Pterodactyl
-- شات مباشر بين اللوحة واللعبة
-- تحليلات ورسوم بيانية وسجل أحداث
-- دعم عدة سيرفرات مع مبدّل سيرفر وحالة اتصال لكل سيرفر
+## Features
 
-## ربط سيرفر (Add Server)
+### Overview & analytics
+- Live server overview: TPS, uptime, online/known players, capacity, entities,
+  loaded chunks, worlds, and system status
+- "My servers" cards with per-server live stats and connection state
+- Charts: players online over time, waypoint growth, category distribution
+- Sparklines on key stat cards
+- Activity log auditing every action taken from the panel
 
-الطريقة الموصى بها: **إضافة سيرفر ← توليد الإعداد ← تنزيل ← تثبيت ← إعادة تشغيل ← متصل**.
+### Server control
+- Power controls (start / stop / restart / force-kill) via a Pterodactyl-style
+  panel API
+- Time control (day / noon / night / midnight) and weather (clear / rain / thunder)
+- `save-all`, broadcast messages, toggle the waypoint system, and run custom
+  console commands
 
-1. سجّل الدخول ثم اضغط **إضافة سيرفر** واكتب اسم السيرفر.
-2. المعالج يولّد `config.yml` كامل جاهز يحتوي `server-id` و `auth-token` فريدين.
-3. انسخ أو نزّل الملف وضعه في `plugins/ViodRealmsTPU/config.yml`.
-4. أعد تشغيل السيرفر — تظهر حالة **متصل** خلال ثوانٍ.
+### Console & files
+- Live console with streaming output and command execution
+- File manager over the whole server directory: browse, open, and edit text
+  configs in place (with size and extension limits), plus upload plugins by URL
 
-لفصل السيرفر أو تدوير المفتاح: افتح تعديل السيرفر ثم **إعادة توليد الإعداد**؛ يتوقف
-التوكن القديم فوراً وتحصل على `config.yml` جديد.
+### Players & moderation
+- Player table (online / all) with search
+- Inspect a player's live inventory, armor, off-hand, health, hunger, and level
+- Message, teleport to a player or coordinates, and change gamemode
+- Set ranks (member / dev / admin / op)
+- Ban by name or UUID with reasons, and manage the whitelist
 
-## الإعداد لأول مرة
+### Plugins
+- View installed plugins
+- Search and install thousands of plugins directly from **Modrinth** (owner only),
+  with game-version and loader pickers
 
-### 1. سجّل تطبيق ويب في Firebase
+### Waypoints
+- Browse and search all waypoints across the server
+- Create public waypoints (server warps) from the panel
+
+### Live chat
+- Two-way chat bridge: read in-game chat and send messages into the server
+
+### Multi-server
+- Manage many servers from one account with a server switcher
+- Per-server live connection badge (online / offline)
+- Add-server setup wizard and edit-server dialog (rename, image, panel API config)
+- **Regenerate config** to rotate/revoke a server's token and get a fresh `config.yml`
+
+### Accounts & administration
+- Sign in with Email/Password, Google, or GitHub
+- Owner and admin roles, with a pending-approval flow for new users
+- Grant access by Admin ID or by email; manage current admins
+- User profiles (name, avatar, banner) and owner-only site settings (name, logo)
+
+### Firebase console (owner)
+- Built-in Realtime Database browser
+- Authentication user list (mirrored from the server)
+
+### UX
+- Light, dark, and system themes with unified design tokens
+- Bilingual UI: Arabic (RTL) and English (LTR)
+- Bundled Minecraft item/block textures — no external CDN required
+
+---
+
+## Connecting a server (Add Server)
+
+Recommended, dashboard-first flow — the plugin connects automatically with no
+manual pairing:
+
+1. Sign in, click **Add Server**, and enter a server name (hosting-panel details
+   are optional).
+2. The wizard generates a complete, ready-to-use `config.yml` containing a unique
+   `server-id` and secret `auth-token`.
+3. Copy or download it and place it at `plugins/ViodRealmsTPU/config.yml`.
+4. Restart the server — the wizard shows **Connected** within seconds.
+
+To disconnect or rotate credentials, open the server's edit dialog and choose
+**Regenerate config**. The old token stops working immediately and a fresh
+`config.yml` is generated.
+
+---
+
+## First-time setup
+
+### 1. Register a Firebase web app
 - Firebase Console > Project Settings > General > Your apps > Add app > Web
-- انسخ القيم إلى `firebase-config.js`
+- Copy the values into `firebase-config.js`
 
-### 2. فعّل تسجيل الدخول
-- Authentication > Sign-in method > Email/Password (و/أو Google) > Enable
-- أنشئ حساب الأدمن الأول من Authentication > Users
+### 2. Enable sign-in
+- Authentication > Sign-in method > enable Email/Password (and/or Google, GitHub)
+- Create your first admin account under Authentication > Users
 
-### 3. طبّق قواعد الأمان
-- Realtime Database > Rules > الصق محتوى `firebase-rules.json` ثم Publish
-- **مهم:** تعديل الملف محلياً لا ينشر القواعد — لازم النشر من الـ Console
+### 3. Publish security rules
+- Realtime Database > Rules > paste the contents of `firebase-rules.json` > Publish
+- **Important:** editing the file locally does not deploy the rules — you must
+  publish them in the Console.
 
-### 4. جرّب محلياً
-```
-cd dashboard
+### 4. Run locally
+```bash
 python -m http.server 8000
 ```
-ثم افتح http://localhost:8000
+Then open http://localhost:8000 (serve over HTTP, not `file://`, due to CORS).
 
-## النشر (Static Hosting / Render)
+---
 
-1. ارفع مجلد `dashboard` لمستودع Git (تأكد أن `firebase-config.js` معبّأ).
-2. Render > New > Static Site > اربط المستودع.
-3. Root Directory: `dashboard` — Build Command: فارغ — Publish Directory: `.`
-4. Deploy. الموقع static بالكامل، بلا build أو backend.
+## Deployment
 
-## نموذج الأمان
+Any static host works (Render, Netlify, GitHub Pages, etc.). The app is fully
+static — no build step and no backend.
 
-- الأمان الحقيقي في **Firebase Auth + Security Rules**، لا في `firebase-config.js`
-  (قيمه عامة وآمنة للنشر — معرّفات مشروع وليست مفاتيح سرية).
-- كل سيرفر له `auth-token` سري يصدره الداشبورد. البلجن يراقب التوكن مباشرةً
-  ويتوقف فوراً عند الإبطال أو التدوير.
-- `serverMeta/{id}` قابل للكتابة من المالك فقط، و `authToken` يقرأه المالك فقط،
-  وحقول `online` / `lastSeen` / `instanceId` للقراءة فقط من العملاء.
-- **لا ترفع** ملف الـ service account (`*-firebase-adminsdk-*.json`) — للبلجن فقط
-  ومحمي في `.gitignore`.
-- يُفضّل عدم تفعيل التسجيل الذاتي؛ أنشئ حسابات الأدمن يدوياً.
+**Render example**
+1. Push this repository (ensure `firebase-config.js` is filled in).
+2. Render > New > Static Site > connect the repo.
+3. Build Command: empty — Publish Directory: `.`
+4. Deploy.
+
+**GitHub Pages**
+- Enable Pages with the repository root as the source to serve the live dashboard
+  app (`index.html`), or use the `/docs` folder to serve the marketing/landing
+  page included in this repo.
+
+---
+
+## Security model
+
+- Real security lives in **Firebase Auth + Security Rules**, not in
+  `firebase-config.js` (its values are public project identifiers, not secrets,
+  and are safe to publish).
+- Each server has a secret `auth-token` issued by the dashboard. The plugin
+  live-watches the token and stands down immediately if it is revoked or rotated.
+- `serverMeta/{id}` is owner-writable only; `authToken` is readable solely by its
+  owner; and `online` / `lastSeen` / `instanceId` are read-only to clients.
+- A per-boot `instanceId` exposes duplicate or fake connections that reuse the
+  same credentials.
+- **Never commit** the plugin's Admin service account key
+  (`*-firebase-adminsdk-*.json`) — it belongs on the server only and is
+  git-ignored.
+- Prefer disabling self sign-up; create admin accounts intentionally.
+
+---
+
+## Project structure
+
+| File | Purpose |
+|---|---|
+| `index.html` | The dashboard single-page app |
+| `app.js` | All dashboard logic (auth, live data, controls, wizard) |
+| `style.css` | Theme tokens and full UI styling |
+| `firebase-config.js` | Public Firebase web config + default server id |
+| `firebase-rules.json` | Realtime Database security rules to publish |
+| `docs/` | Static landing page for GitHub Pages |
