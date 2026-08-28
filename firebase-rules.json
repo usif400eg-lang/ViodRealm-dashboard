@@ -25,6 +25,9 @@
         "panelConfig": {
           ".write": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || root.child('admins').child(auth.uid).exists())"
         },
+        "nodePolicy": {
+          ".write": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || root.child('admins').child(auth.uid).exists())"
+        },
         "chatOut": {
           ".read": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || root.child('admins').child(auth.uid).exists())",
           ".write": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || root.child('admins').child(auth.uid).exists())"
@@ -46,6 +49,10 @@
         "pairingCode": { ".read": "auth != null" },
         "port":        { ".read": "auth != null" },
         "configVersion": { ".read": "auth != null" },
+        "group":       { ".read": "auth != null" },
+        "description": { ".read": "auth != null" },
+        "accent":      { ".read": "auth != null" },
+        "createdAt":   { ".read": "auth != null" },
         "ownerUid":    { ".read": "auth != null" },
         "authToken": {
           ".read": "auth != null && data.parent().child('ownerUid').val() == auth.uid"

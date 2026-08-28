@@ -807,65 +807,119 @@
         </div>
     </div>
 
-    <!-- Add server wizard (dashboard-first) -->
+    <!-- Register a new server — step 1 -->
     <div id="pair-modal" class="modal hidden">
-        <div class="modal-box wizard-box">
-            <div class="ask-head"><span class="ask-icon"><img src="image/ic-system.png" alt=""></span><h3>إضافة سيرفر جديد</h3></div>
-
-            <!-- Wizard steps indicator -->
-            <div class="wiz-steps">
-                <div class="wiz-step active" data-step="1"><span class="wiz-num">1</span><span>البيانات</span></div>
-                <div class="wiz-line"></div>
-                <div class="wiz-step" data-step="2"><span class="wiz-num">2</span><span>الإعداد</span></div>
-                <div class="wiz-line"></div>
-                <div class="wiz-step" data-step="3"><span class="wiz-num">3</span><span>الاتصال</span></div>
+        <div class="modal-box reg-box">
+            <div class="reg-head">
+                <div class="ask-head">
+                    <span class="ask-icon"><img src="image/ic-system.png" alt=""></span>
+                    <div>
+                        <h3>تسجيل سيرفر جديد</h3>
+                        <p class="reg-sub">اللوحة تُصدر توكن تفعيل بمجرد إنشاء سجل السيرفر. لا يتم الاتصال بأي شيء حتى يسجّل البلجن نفسه.</p>
+                    </div>
+                </div>
+                <button id="wiz-x" class="reg-x" aria-label="إغلاق">&times;</button>
             </div>
 
-            <!-- Step 1: basic info -->
-            <div class="wiz-pane active" data-pane="1">
-                <p class="panel-desc">اكتب اسم سيرفرك وبيانات لوحة الاستضافة (للتحكم في التشغيل والإيقاف والكونسول).</p>
-                <div class="edit-field"><label>اسم السيرفر</label><input type="text" id="wiz-name" placeholder="سيرفري الرئيسي"></div>
-                <div class="pair-divider"><span>لوحة الاستضافة (اختياري — للتحكم في الطاقة)</span></div>
-                <div class="edit-field"><label>رابط لوحة الاستضافة</label><input type="text" id="wiz-panel-url" placeholder="https://panel.example.com" dir="ltr"></div>
-                <div class="edit-field mt-8"><label>مفتاح الوصول (API)</label><input type="text" id="wiz-panel-key" placeholder="ptlc_..." dir="ltr"></div>
-                <div class="edit-field mt-8"><label>معرّف السيرفر في اللوحة</label><input type="text" id="wiz-panel-id" placeholder="abc123" dir="ltr"></div>
+            <div class="reg-body">
+                <div class="edit-grid reg-grid">
+                    <div class="edit-field">
+                        <label>الاسم <span class="req-star">*</span></label>
+                        <input type="text" id="wiz-name" placeholder="Survival">
+                    </div>
+                    <div class="edit-field">
+                        <label>المجموعة</label>
+                        <input type="text" id="wiz-group" placeholder="Production">
+                        <span class="field-help">تُستخدم لتجميع السيرفرات في المبدّل.</span>
+                    </div>
+                </div>
+
+                <div class="edit-field mt-14">
+                    <label>الوصف</label>
+                    <textarea id="wiz-desc" class="reg-textarea" rows="2" placeholder="عالم Survival الرئيسي، 1.21.x، صعب"></textarea>
+                </div>
+
+                <div class="reg-section-label">لون التمييز</div>
+                <div class="accent-row">
+                    <div id="wiz-accent" class="accent-swatches"></div>
+                    <code id="wiz-accent-hex" class="accent-hex" dir="ltr">#8A2BE2</code>
+                </div>
+
+                <div class="reg-section-label">سياسة العقدة (Node Policy)</div>
+                <div class="edit-grid reg-grid">
+                    <div class="edit-field">
+                        <label>الأوامر المحظورة</label>
+                        <textarea id="wiz-blocked" class="reg-textarea mono" rows="4" dir="ltr" placeholder="op&#10;deop&#10;whitelist"></textarea>
+                        <span class="field-help">أمر جذر واحد في كل سطر. ترفضه العقدة بغضّ النظر عن صلاحيات اللوحة.</span>
+                    </div>
+                    <div class="edit-field">
+                        <label>المسارات المسموح بها</label>
+                        <textarea id="wiz-paths" class="reg-textarea mono" rows="4" dir="ltr" placeholder="فارغ = كامل مجلد السيرفر&#10;أو: world&#10;plugins&#10;logs"></textarea>
+                        <span class="field-help">اتركه فارغاً لكشف كامل مجلد السيرفر (الافتراضي). أضف مسارات نسبية لتضييقه. تتحقق العقدة من كل مسار على حدة.</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-box-title">ماذا يحدث بعد ذلك</div>
+                    <p>تُعيد اللوحة توكن تفعيل يُعرض مرة واحدة بصيغة <code dir="ltr">vp_&lt;publicId&gt;_&lt;secret&gt;</code>. ضعه في
+                    <code dir="ltr">plugins/ViodRealmsTPU/config.yml</code> على سيرفر Paper وأعد تشغيله؛ عندها يسجّل البلجن نفسه،
+                    ويبدأ في بثّ بياناته الحية للوحة تلقائياً.</p>
+                </div>
+
                 <p id="wiz-hint1" class="admin-add-hint"></p>
-                <div class="ask-actions">
-                    <button id="wiz-next1" class="btn-primary full">التالي — توليد الإعداد</button>
-                    <button id="wiz-cancel1" class="btn-ghost full">إلغاء</button>
-                </div>
             </div>
 
-            <!-- Step 2: generated config.yml -->
-            <div class="wiz-pane" data-pane="2">
-                <p class="panel-desc">انسخ الإعداد التالي، وضعه في ملف <code>config.yml</code> داخل مجلد البلجن على سيرفرك، ثم أعد تشغيل السيرفر.</p>
+            <div class="reg-foot">
+                <button id="wiz-cancel1" class="btn-text">إلغاء</button>
+                <button id="wiz-next1" class="btn-primary">إنشاء السيرفر</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server created — token & config (step 2) -->
+    <div id="token-modal" class="modal hidden">
+        <div class="modal-box reg-box">
+            <div class="reg-head">
+                <div class="ask-head">
+                    <span class="ask-icon warn"><img src="image/ic-system.png" alt=""></span>
+                    <div>
+                        <h3>تم إنشاء السيرفر — انسخ التوكن الآن</h3>
+                        <p class="reg-sub">الصق هذا التوكن في إعداد بلجن ViodRealms على سيرفر Paper. يُعرض مرة واحدة فقط.</p>
+                    </div>
+                </div>
+                <button id="tok-x" class="reg-x" aria-label="إغلاق">&times;</button>
+            </div>
+
+            <div class="reg-body">
+                <div class="token-panel">
+                    <div class="token-panel-head">
+                        <span class="token-title">توكن التفعيل</span>
+                        <button id="tok-copy-secret" class="btn-copy"><img src="image/ic-hash.png" alt=""> نسخ التوكن</button>
+                    </div>
+                    <div class="token-value"><code id="tok-secret" dir="ltr"></code></div>
+                    <p class="token-note">لا تُخزَّن هذه القيمة بشكل مقروء في أي مكان. إذا فقدتها، عليك إعادة توليد التوكن وتحديث البلجن مجدداً.</p>
+                </div>
+
+                <div class="cfg-head">
+                    <span class="cfg-title"><img src="image/ic-edit.png" alt=""> إعداد البلجن الجاهز للّصق</span>
+                    <button id="tok-copy-config" class="btn-copy"><img src="image/ic-edit.png" alt=""> نسخ config.yml</button>
+                </div>
                 <div class="config-box">
-                    <button id="wiz-copy" class="config-copy">نسخ</button>
-                    <pre id="wiz-config" class="config-pre"></pre>
+                    <pre id="tok-config" class="config-pre"></pre>
                 </div>
-                <div class="wiz-install-steps">
-                    <div class="wiz-inst"><span class="wi-n">1</span> نزّل ملف البلجن (JAR) وضعه في مجلد <b>plugins</b></div>
-                    <div class="wiz-inst"><span class="wi-n">2</span> ضع <b>config.yml</b> في <b>plugins/ViodRealmsTPU/</b></div>
-                    <div class="wiz-inst"><span class="wi-n">3</span> أعد تشغيل السيرفر</div>
+                <p class="cfg-help"><code dir="ltr">database-url</code> هو عنوان الواجهة الخلفية الذي يتصل به السيرفر. يجب أن يتمكّن سيرفر Paper من الوصول إليه.</p>
+                <p class="cfg-help">ترفض اللوحة عمداً قراءة أو كتابة هذا الملف عبر مدير الملفات، فلا يمكن تسريبه من خلال الـ sandbox.</p>
+
+                <div class="tok-status">
+                    <span id="tok-conn-dot" class="status-dot"></span>
+                    <span id="tok-conn-text">في انتظار أول اتصال من السيرفر...</span>
                 </div>
-                <div class="ask-actions">
-                    <button id="wiz-download" class="btn-ghost full">تنزيل config.yml</button>
-                    <button id="wiz-next2" class="btn-primary full">التالي — انتظار الاتصال</button>
-                    <button id="wiz-back2" class="btn-ghost full">رجوع</button>
-                </div>
+                <p id="tok-hint" class="admin-add-hint"></p>
             </div>
 
-            <!-- Step 3: waiting for connection -->
-            <div class="wiz-pane" data-pane="3">
-                <div class="wiz-connect">
-                    <div id="wiz-spinner" class="wiz-spinner"></div>
-                    <div id="wiz-connect-title" class="wiz-connect-title">في انتظار اتصال السيرفر...</div>
-                    <div id="wiz-connect-sub" class="wiz-connect-sub">شغّل السيرفر وسيتصل تلقائياً خلال ثوانٍ.</div>
-                </div>
-                <div class="ask-actions">
-                    <button id="wiz-finish" class="btn-primary full" disabled>تم الاتصال — فتح اللوحة</button>
-                    <button id="wiz-close" class="btn-ghost full">إغلاق</button>
-                </div>
+            <div class="reg-foot">
+                <button id="tok-download" class="btn-text">تنزيل config.yml</button>
+                <button id="tok-done" class="btn-primary">نسخت التوكن</button>
             </div>
         </div>
     </div>

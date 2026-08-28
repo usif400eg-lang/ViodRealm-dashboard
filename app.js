@@ -1588,80 +1588,132 @@ function switchServer(sid) {
   attachPowerResult();
 }
 
-// ===== Add-server wizard (dashboard-first) =====
+// ===== Register-a-server flow (step 1 modal + step 2 token/config modal) =====
 const pairModal = document.getElementById("pair-modal");
+const tokenModal = document.getElementById("token-modal");
 let wizServerId = null, wizToken = null, wizHbListener = null;
 
+// Accent palette shown as swatches (matches the reference; last one is the default).
+const ACCENT_COLORS = ["#7C3AED", "#EC4899", "#22C55E", "#F59E0B", "#F87171", "#38BDF8", "#C084FC", "#2DD4BF", "#8A2BE2"];
+let wizAccent = "#8A2BE2";
+
 function genId() {
-  // RFC4122-ish random id.
-  return "srv-" + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+  // Short hex public id (used inside the provisioning token and as server id).
+  const a = new Uint8Array(8); crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
 }
-function genToken() {
+function genSecret() {
   const a = new Uint8Array(32); crypto.getRandomValues(a);
   return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
 }
+// Provisioning token: vp_<publicId>_<secret>
+function buildProvisioningToken(publicId, secret) {
+  return "vp_" + publicId + "_" + secret;
+}
 // Config schema version the dashboard emits. Bump when the config.yml format changes.
 const CONFIG_VERSION = 2;
-function wizGoto(step) {
-  document.querySelectorAll(".wiz-step").forEach((s) => s.classList.toggle("active", +s.dataset.step <= step));
-  document.querySelectorAll(".wiz-pane").forEach((p) => p.classList.toggle("active", +p.dataset.pane === step));
+
+// Render the accent swatches once.
+function renderAccentSwatches() {
+  const box = document.getElementById("wiz-accent");
+  if (!box || box.childElementCount) return;
+  ACCENT_COLORS.forEach((c) => {
+    const dot = document.createElement("span");
+    dot.className = "accent-dot" + (c === wizAccent ? " sel" : "");
+    dot.style.background = c;
+    dot.dataset.color = c;
+    dot.addEventListener("click", () => {
+      wizAccent = c;
+      document.getElementById("wiz-accent-hex").textContent = c;
+      box.querySelectorAll(".accent-dot").forEach((d) => d.classList.toggle("sel", d.dataset.color === c));
+    });
+    box.appendChild(dot);
+  });
 }
+
 function openPairModal() {
-  wizServerId = null; wizToken = null;
-  document.getElementById("wiz-name").value = "";
-  document.getElementById("wiz-panel-url").value = "";
-  document.getElementById("wiz-panel-key").value = "";
-  document.getElementById("wiz-panel-id").value = "";
+  wizServerId = null; wizToken = null; wizAccent = "#8A2BE2";
+  ["wiz-name", "wiz-group", "wiz-desc", "wiz-blocked", "wiz-paths"].forEach((id) => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
   document.getElementById("wiz-hint1").textContent = "";
-  wizGoto(1);
+  document.getElementById("wiz-accent-hex").textContent = wizAccent;
+  renderAccentSwatches();
+  document.getElementById("wiz-accent").querySelectorAll(".accent-dot")
+    .forEach((d) => d.classList.toggle("sel", d.dataset.color === wizAccent));
   pairModal.classList.remove("hidden");
 }
 document.getElementById("add-server-btn").addEventListener("click", openPairModal);
 const addBtn2 = document.getElementById("add-server-btn2");
 if (addBtn2) addBtn2.addEventListener("click", openPairModal);
-function closeWizard() { pairModal.classList.add("hidden"); if (wizHbListener) { wizHbListener.off(); wizHbListener = null; } }
-document.getElementById("wiz-cancel1").addEventListener("click", closeWizard);
-document.getElementById("wiz-close").addEventListener("click", closeWizard);
-document.getElementById("wiz-back2").addEventListener("click", () => wizGoto(1));
-pairModal.addEventListener("click", (e) => { if (e.target === pairModal) closeWizard(); });
 
-// Step 1 -> generate identity + config, register server under the user.
+function closeRegModal() { pairModal.classList.add("hidden"); }
+function closeTokenModal() {
+  tokenModal.classList.add("hidden");
+  if (wizHbListener) { wizHbListener.off(); wizHbListener = null; }
+}
+document.getElementById("wiz-cancel1").addEventListener("click", closeRegModal);
+document.getElementById("wiz-x").addEventListener("click", closeRegModal);
+document.getElementById("tok-x").addEventListener("click", closeTokenModal);
+pairModal.addEventListener("click", (e) => { if (e.target === pairModal) closeRegModal(); });
+tokenModal.addEventListener("click", (e) => { if (e.target === tokenModal) closeTokenModal(); });
+
+// Split a textarea into a clean list (one entry per line).
+function linesToList(id) {
+  return document.getElementById(id).value
+    .split("\n").map((s) => s.trim()).filter(Boolean);
+}
+
+// Step 1 -> create the server record, then show the one-time token + config.
 document.getElementById("wiz-next1").addEventListener("click", () => {
-  const name = document.getElementById("wiz-name").value.trim() || "My Server";
-  const pUrl = document.getElementById("wiz-panel-url").value.trim();
-  const pKey = document.getElementById("wiz-panel-key").value.trim();
-  const pId = document.getElementById("wiz-panel-id").value.trim();
+  const name = document.getElementById("wiz-name").value.trim();
   const hint = document.getElementById("wiz-hint1");
-  hint.textContent = "جاري التوليد..."; hint.className = "admin-add-hint";
+  if (!name) { hint.textContent = "الاسم مطلوب."; hint.className = "admin-add-hint error"; return; }
 
-  wizServerId = genId();
-  wizToken = genToken();
+  const group = document.getElementById("wiz-group").value.trim();
+  const description = document.getElementById("wiz-desc").value.trim();
+  const blockedCommands = linesToList("wiz-blocked");
+  const allowedPaths = linesToList("wiz-paths");
+  hint.textContent = "جاري الإنشاء..."; hint.className = "admin-add-hint";
+
+  const publicId = genId();
+  const secret = genSecret();
+  wizServerId = publicId;
+  wizToken = buildProvisioningToken(publicId, secret);
   const uid = auth.currentUser.uid;
 
-  // Register: link to user + write auth token + optional panel config.
+  const meta = {
+    name: name,
+    authToken: wizToken,
+    configVersion: CONFIG_VERSION,
+    ownerUid: uid,
+    createdAt: Date.now(),
+    group: group || null,
+    description: description || null,
+    accent: wizAccent
+  };
+  const nodePolicy = {
+    blockedCommands: blockedCommands.length ? blockedCommands : null,
+    allowedPaths: allowedPaths.length ? allowedPaths : null
+  };
+
   const tasks = [
-    usersServersRef.child(uid).child(wizServerId).set({ label: name, addedAt: Date.now() }),
-    db.ref("serverMeta/" + wizServerId).set({ name: name, authToken: wizToken, configVersion: CONFIG_VERSION, ownerUid: uid, createdAt: Date.now() })
+    usersServersRef.child(uid).child(publicId).set({ label: name, group: group || null, accent: wizAccent, addedAt: Date.now() }),
+    db.ref("serverMeta/" + publicId).set(meta),
+    db.ref("servers/" + publicId + "/nodePolicy").set(nodePolicy)
   ];
-  if (pUrl && pKey && pId) {
-    tasks.push(db.ref("servers/" + wizServerId + "/panelConfig").set({ url: pUrl, key: pKey, id: pId, setBy: uid }));
-  }
   Promise.all(tasks)
-    .then(() => { renderConfigYaml(name); wizGoto(2); })
+    .then(() => { openTokenModal(name); })
     .catch((err) => { hint.textContent = "فشل: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
 });
 
-function buildConfigYaml(serverId, token, name) {
+function buildConfigYaml(publicId, token, name) {
   const dbUrl = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.databaseURL) || "";
-  // Complete, ready-to-use config.yml. The plugin merges missing keys from its
-  // bundled defaults, but we emit the full file so the owner can drop it in as-is.
+  // Complete, ready-to-use config.yml with the connection block matching the token flow.
   return `# ============================================================
-#  ViodRealms TPU — generated by the dashboard
-#  Server: ${name}
-#  Generated: ${new Date().toISOString()}
-#  Just place this file in plugins/ViodRealmsTPU/config.yml
-#  and (re)start the server. It will connect automatically.
+#  ViodRealms TPU — generated by the dashboard for "${name}".
+#  NEVER share this file: firebase.auth-token grants full control of this server.
+#  Place it at plugins/ViodRealmsTPU/config.yml and (re)start the server.
 # ============================================================
 
 waypoints:
@@ -1715,18 +1767,23 @@ gui:
 firebase:
   enabled: true
   service-account-file: "firebase-service-account.json"
+  # Base URL of the dashboard backend. The Paper server must be able to reach it.
   database-url: "${dbUrl}"
+  # Provisioning token. The panel stores only an encrypted copy and will not show it again.
+  auth-token: "${token}"
+  # Public server id: ${publicId}
+  server-id: "${publicId}"
   # How often (seconds) the plugin pushes live data to the dashboard.
   sync-interval-seconds: 3
-  # Unique server id issued by the dashboard.
-  server-id: "${serverId}"
-  # Secret token that authorizes this server. If revoked/rotated in the
-  # dashboard, the plugin safely stops syncing without crashing the server.
-  auth-token: "${token}"
   # Config format version (used to detect outdated configs).
   config-version: ${CONFIG_VERSION}
   # Heartbeat interval (seconds) — how often the plugin proves it's alive.
   heartbeat-seconds: 5
+  # Realtime channel. Set to false only if a proxy blocks upgrades; the plugin
+  # then falls back to slower REST batching.
+  websocket: true
+  # Validate the backend TLS certificate. Keep true unless you know why not.
+  verify-tls: true
 
 files:
   enabled: true
@@ -1748,46 +1805,47 @@ panel:
   server-identifier: ""`;
 }
 
-function renderConfigYaml(name) {
-  document.getElementById("wiz-config").textContent = buildConfigYaml(wizServerId, wizToken, name);
-}
+// Open step 2: show the one-time token, ready-to-paste config, and live status.
+function openTokenModal(name) {
+  closeRegModal();
+  document.getElementById("tok-secret").textContent = wizToken;
+  document.getElementById("tok-config").textContent = buildConfigYaml(wizServerId, wizToken, name);
+  document.getElementById("tok-hint").textContent = "";
+  const status = document.querySelector(".tok-status");
+  const statusText = document.getElementById("tok-conn-text");
+  status.classList.remove("online");
+  statusText.textContent = "في انتظار أول اتصال من السيرفر...";
+  tokenModal.classList.remove("hidden");
 
-document.getElementById("wiz-copy").addEventListener("click", () => {
-  navigator.clipboard.writeText(document.getElementById("wiz-config").textContent)
-    .then(() => showToast("تم نسخ الإعداد", "success")).catch(() => showToast("فشل النسخ", "error"));
-});
-document.getElementById("wiz-download").addEventListener("click", () => {
-  const blob = new Blob([document.getElementById("wiz-config").textContent], { type: "text/yaml" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "config.yml"; a.click();
-  URL.revokeObjectURL(a.href);
-});
-
-// Step 2 -> step 3: watch heartbeat for a live connection.
-document.getElementById("wiz-next2").addEventListener("click", () => {
-  wizGoto(3);
-  const title = document.getElementById("wiz-connect-title");
-  const sub = document.getElementById("wiz-connect-sub");
-  const spinner = document.getElementById("wiz-spinner");
-  const finish = document.getElementById("wiz-finish");
-  title.textContent = "في انتظار اتصال السيرفر...";
-  sub.textContent = "شغّل السيرفر بعد وضع config.yml.";
-  finish.disabled = true;
+  // Watch for the plugin's first heartbeat so the owner sees it connect live.
   if (wizHbListener) wizHbListener.off();
   wizHbListener = db.ref("serverMeta/" + wizServerId + "/online");
   wizHbListener.on("value", (snap) => {
     if (snap.val() === true) {
-      spinner.classList.add("done");
-      title.textContent = "تم الاتصال بنجاح!";
-      sub.textContent = "سيرفرك متصل الآن باللوحة.";
-      finish.disabled = false;
+      status.classList.add("online");
+      statusText.textContent = "تم الاتصال — السيرفر متصل الآن باللوحة.";
       showToast("تم اتصال السيرفر", "success");
     }
   });
+}
+
+document.getElementById("tok-copy-secret").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("tok-secret").textContent)
+    .then(() => showToast("تم نسخ التوكن", "success")).catch(() => showToast("فشل النسخ", "error"));
 });
-document.getElementById("wiz-finish").addEventListener("click", () => {
+document.getElementById("tok-copy-config").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("tok-config").textContent)
+    .then(() => showToast("تم نسخ الإعداد", "success")).catch(() => showToast("فشل النسخ", "error"));
+});
+document.getElementById("tok-download").addEventListener("click", () => {
+  const blob = new Blob([document.getElementById("tok-config").textContent], { type: "text/yaml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "config.yml"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("tok-done").addEventListener("click", () => {
   const sid = wizServerId;
-  closeWizard();
+  closeTokenModal();
   if (sid) switchServer(sid);
 });
 
@@ -1836,7 +1894,7 @@ document.getElementById("editsrv-rotate").addEventListener("click", () => {
     .then((ok) => {
       if (!ok) return;
       const sid = editSrvId;
-      const newToken = genToken();
+      const newToken = buildProvisioningToken(sid, genSecret());
       const name = (myServers[sid] && (myServers[sid].label || myServers[sid].name)) || "My Server";
       hint.textContent = "جاري التوليد..."; hint.className = "admin-add-hint";
       db.ref("serverMeta/" + sid).update({ authToken: newToken, configVersion: CONFIG_VERSION, rotatedAt: Date.now() })
@@ -2276,6 +2334,31 @@ const AR_EN = {
   "نمو عدد النقاط": "Waypoints Growth", "اللاعبون المتصلون عبر الوقت": "Players Online Over Time",
   // Pairing modal + misc descriptions
   "ثبّت البلجن على سيرفرك، وهيظهر في الكونسول كود ربط. اكتبه هنا لربط السيرفر بحسابك.": "Install the plugin on your server; a pairing code will appear in the console. Enter it here to link the server to your account.",
+  // Register-a-server modal (step 1 + step 2)
+  "تسجيل سيرفر جديد": "Register a new server",
+  "اللوحة تُصدر توكن تفعيل بمجرد إنشاء سجل السيرفر. لا يتم الاتصال بأي شيء حتى يسجّل البلجن نفسه.": "The panel issues a provisioning token once the server record exists. Nothing is contacted until the plugin registers.",
+  "المجموعة": "Group",
+  "تُستخدم لتجميع السيرفرات في المبدّل.": "Used to group servers in the switcher.",
+  "الوصف": "Description",
+  "لون التمييز": "Accent colour",
+  "سياسة العقدة (Node Policy)": "Node policy",
+  "الأوامر المحظورة": "Blocked commands",
+  "أمر جذر واحد في كل سطر. ترفضه العقدة بغضّ النظر عن صلاحيات اللوحة.": "One root command per line. Refused by the node regardless of panel permissions.",
+  "المسارات المسموح بها": "Allowed file paths",
+  "اتركه فارغاً لكشف كامل مجلد السيرفر (الافتراضي). أضف مسارات نسبية لتضييقه. تتحقق العقدة من كل مسار على حدة.": "Leave empty to expose the whole server directory (the default). Add root-relative entries to narrow it. The node re-checks every path independently.",
+  "ماذا يحدث بعد ذلك": "What happens next",
+  "إنشاء السيرفر": "Create server",
+  "تم إنشاء السيرفر — انسخ التوكن الآن": "Server created — copy the token now",
+  "الصق هذا التوكن في إعداد بلجن ViodRealms على سيرفر Paper. يُعرض مرة واحدة فقط.": "Paste this token into the ViodRealms plugin configuration on the Paper server. It is shown exactly once.",
+  "توكن التفعيل": "Provisioning token",
+  "نسخ التوكن": "Copy secret",
+  "لا تُخزَّن هذه القيمة بشكل مقروء في أي مكان. إذا فقدتها، عليك إعادة توليد التوكن وتحديث البلجن مجدداً.": "This value is not stored in readable form anywhere. If you lose it you must rotate the token and update the plugin again.",
+  "إعداد البلجن الجاهز للّصق": "Ready-to-paste plugin configuration",
+  "نسخ config.yml": "Copy config.yml",
+  "في انتظار أول اتصال من السيرفر...": "Waiting for the first connection from the server...",
+  "تم الاتصال — السيرفر متصل الآن باللوحة.": "Connected — the server is now linked to the panel.",
+  "تنزيل config.yml": "Download config.yml",
+  "نسخت التوكن": "I have copied the token",
   "بيانات لوحة الاستضافة (مطلوبة للتحكم في التشغيل والإيقاف والكونسول)": "Hosting panel details (required to control power & console)",
   "احظر لاعباً بالاسم أو المعرّف الفريد.": "Ban a player by name or unique ID.",
   "اسم اللاعب أو المعرّف": "Player name or ID",
