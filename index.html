@@ -305,11 +305,107 @@
 
             <!-- Overview -->
             <section id="section-overview" class="section active">
-                <!-- My servers cards -->
+                <!-- Fleet metric cards (live from the realtime stream) -->
+                <div class="fleet-grid">
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">السيرفرات المتصلة <span id="fleet-srv-dot" class="fleet-dot"></span></span>
+                            <span class="fleet-ic"><img src="image/ic-system.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-servers-online">0</span><span class="fleet-of" id="fleet-servers-total">/0</span></div>
+                    </div>
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">اللاعبون المتصلون <span id="fleet-ply-dot" class="fleet-dot"></span></span>
+                            <span class="fleet-ic"><img src="image/stat-players.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-players-online">0</span><span class="fleet-of" id="fleet-players-max">/0</span></div>
+                    </div>
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">التنبيهات النشطة</span>
+                            <span class="fleet-ic"><img src="image/ic-broadcast.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-alerts">0</span></div>
+                        <a class="fleet-link" href="#activity" data-goto="activity">فتح سجل التنبيهات</a>
+                    </div>
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">التقارير المفتوحة</span>
+                            <span class="fleet-ic"><img src="image/moderation.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-reports">0</span></div>
+                        <a class="fleet-link" href="#moderation" data-goto="moderation">فتح قائمة التقارير</a>
+                    </div>
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">الحظر النشط</span>
+                            <span class="fleet-ic"><img src="image/stat-bans.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-bans">0</span></div>
+                        <a class="fleet-link" href="#moderation" data-goto="moderation">مركز الإشراف</a>
+                    </div>
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">الكتم النشط</span>
+                            <span class="fleet-ic"><img src="image/ic-toggle-off.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-mutes">0</span></div>
+                    </div>
+                    <div class="fleet-card">
+                        <div class="fleet-top">
+                            <span class="fleet-label">المهام المجدولة</span>
+                            <span class="fleet-ic"><img src="image/ic-time.png" alt=""></span>
+                        </div>
+                        <div class="fleet-value"><span id="fleet-tasks">0</span></div>
+                        <a class="fleet-link" href="#control" data-goto="control">فتح المجدول</a>
+                    </div>
+                </div>
+
+                <!-- My servers cards (existing card design, rendered in a grid) -->
                 <div class="panel">
-                    <div class="panel-head"><h3>سيرفراتي</h3><button id="add-server-btn2" class="btn-ghost">+ إضافة سيرفر</button></div>
+                    <div class="panel-head">
+                        <div class="ph-titles">
+                            <h3>السيرفرات</h3>
+                            <p class="ph-sub">بطاقة لكل سيرفر مسجّل، تُحدَّث من بيانات الإحصائيات الحية.</p>
+                        </div>
+                        <div class="ph-actions">
+                            <a class="fleet-link" href="#site" id="manage-servers-link">إدارة السيرفرات</a>
+                            <button id="add-server-btn2" class="btn-ghost">+ إضافة سيرفر</button>
+                        </div>
+                    </div>
                     <div id="servers-cards" class="servers-cards"><p class="empty-msg">لا توجد سيرفرات — اضغط إضافة سيرفر</p></div>
                 </div>
+
+                <!-- Performance history -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="ph-titles">
+                            <h3>سجل الأداء</h3>
+                            <p class="ph-sub">عيّنات تاريخية من مجرى البيانات الحي للسيرفر المحدّد.</p>
+                        </div>
+                        <div class="ph-actions">
+                            <select id="perf-server" class="perf-select" dir="ltr"></select>
+                            <div class="perf-ranges" id="perf-ranges">
+                                <button class="perf-range" data-min="15">15m</button>
+                                <button class="perf-range active" data-min="60">1h</button>
+                                <button class="perf-range" data-min="360">6h</button>
+                                <button class="perf-range" data-min="1440">24h</button>
+                                <button class="perf-range" data-min="10080">7d</button>
+                                <button class="perf-range" data-min="43200">30d</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="perf-body">
+                        <div id="perf-empty" class="perf-empty">
+                            <span class="perf-empty-ic"><img src="image/overview.png" alt=""></span>
+                            <div class="perf-empty-title">لا توجد عيّنات في هذا النطاق</div>
+                            <div class="perf-empty-sub">لم يُبلّغ السيرفر عن أي بيانات أداء في الفترة المحددة بعد.</div>
+                        </div>
+                        <div id="perf-chart-wrap" class="perf-chart-wrap hidden"><canvas id="perf-chart"></canvas></div>
+                    </div>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon"><img src="image/stat-waypoints.png" alt=""></div>

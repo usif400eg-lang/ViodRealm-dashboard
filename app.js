@@ -1500,6 +1500,7 @@ function renderServerSwitcher() {
   const ids = Object.keys(myServers);
   menu.innerHTML = "";
   renderServerCards();
+  watchFleetCounters();
   if (!ids.length) {
     menu.innerHTML = '<div class="cselect-opt" style="cursor:default;color:var(--text-3)">لا توجد سيرفرات — اضغط إضافة سيرفر</div>';
     document.getElementById("active-server-name").textContent = "لا يوجد سيرفر";
@@ -1525,6 +1526,7 @@ function renderServerSwitcher() {
 }
 
 // Renders the server cards on the overview page.
+// The card design is unchanged; live metrics are filled in by watchFleet().
 function renderServerCards() {
   const c = document.getElementById("servers-cards");
   if (!c) return;
@@ -1544,31 +1546,228 @@ function renderServerCards() {
         <div class="srv-banner-title">${escapeHtml(label)}</div>
         <button class="srv-gear" data-sid="${escapeHtml(sid)}" title="تعديل"><img src="image/ic-edit.png" alt=""></button>
       </div>
-      <div class="srv-sub"><img class="srv-game-ic" src="image/ic-modrinth.png" alt=""> Minecraft</div>
+      <div class="srv-sub"><img class="srv-game-ic" src="image/ic-modrinth.png" alt=""> <span data-srv-version="${escapeHtml(sid)}">Minecraft</span></div>
       <div class="srv-stats">
         <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-system.png" alt=""></span><div><div class="srv-stat-k">اللاعبون</div><div class="srv-stat-v" data-srv-players="${escapeHtml(sid)}">-</div></div></div>
         <div class="srv-stat"><span class="srv-stat-ic"><img src="image/stat-online.png" alt=""></span><div><div class="srv-stat-k">TPS</div><div class="srv-stat-v" data-srv-tps="${escapeHtml(sid)}">-</div></div></div>
-        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/stat-waypoints.png" alt=""></span><div><div class="srv-stat-k">النقاط</div><div class="srv-stat-v" data-srv-wp="${escapeHtml(sid)}">-</div></div></div>
-        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-world.png" alt=""></span><div><div class="srv-stat-k">العوالم</div><div class="srv-stat-v" data-srv-worlds="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-time.png" alt=""></span><div><div class="srv-stat-k">MSPT</div><div class="srv-stat-v" data-srv-mspt="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/stat-system.png" alt=""></span><div><div class="srv-stat-k">CPU</div><div class="srv-stat-v" data-srv-cpu="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-chunk.png" alt=""></span><div><div class="srv-stat-k">Heap</div><div class="srv-stat-v" data-srv-heap="${escapeHtml(sid)}">-</div></div></div>
+        <div class="srv-stat"><span class="srv-stat-ic"><img src="image/ic-day.png" alt=""></span><div><div class="srv-stat-k">Uptime</div><div class="srv-stat-v" data-srv-uptime="${escapeHtml(sid)}">-</div></div></div>
       </div>
       <button class="srv-open-btn ${sid === ACTIVE_SERVER ? "active" : ""}" data-open="${escapeHtml(sid)}">${sid === ACTIVE_SERVER ? "السيرفر النشط" : "فتح لوحة التحكم"}</button>`;
     c.appendChild(card);
-    // Pull live stats for this card.
-    db.ref("servers/" + sid + "/stats").get().then((snap) => {
-      const s = snap.val() || {};
-      const set = (attr, val) => { const el = c.querySelector(`[${attr}="${CSS.escape(sid)}"]`); if (el) el.textContent = val; };
-      set("data-srv-players", (s.onlinePlayers != null ? s.onlinePlayers : 0) + "/" + (s.maxPlayers != null ? s.maxPlayers : "?"));
-      set("data-srv-tps", s.tps != null ? s.tps : "-");
-      set("data-srv-wp", s.totalWaypoints != null ? s.totalWaypoints : "-");
-    }).catch(() => {});
-    db.ref("servers/" + sid + "/worlds").get().then((snap) => {
-      const el = c.querySelector(`[data-srv-worlds="${CSS.escape(sid)}"]`);
-      if (el) el.textContent = toArray(snap.val()).length || "-";
-    }).catch(() => {});
   });
   c.querySelectorAll(".srv-gear").forEach((btn) => btn.addEventListener("click", (e) => { e.stopPropagation(); openEditServer(btn.dataset.sid); }));
   c.querySelectorAll(".srv-open-btn").forEach((btn) => btn.addEventListener("click", () => switchServer(btn.dataset.open)));
+  // (Re)bind the live fleet stream so the new cards fill immediately.
+  watchFleet();
+  renderPerfServerOptions();
 }
+
+// ===== Fleet-wide live metrics (top cards + per-card server metrics) =====
+// One listener per server on servers/{id}/stats, plus serverMeta/{id}/online for
+// presence. Everything is pushed by the realtime stream — no polling, no refresh.
+const fleetStats = {};      // sid -> stats snapshot
+let fleetListeners = [];    // refs to detach when the server list changes
+
+function detachFleet() {
+  fleetListeners.forEach((ref) => { try { ref.off(); } catch (e) {} });
+  fleetListeners = [];
+}
+
+function watchFleet() {
+  detachFleet();
+  const ids = Object.keys(myServers);
+  ids.forEach((sid) => {
+    const statsRef = db.ref("servers/" + sid + "/stats");
+    statsRef.on("value", (snap) => {
+      fleetStats[sid] = snap.val() || {};
+      paintServerCard(sid);
+      paintFleetCards();
+    }, () => {});
+    fleetListeners.push(statsRef);
+  });
+  paintFleetCards();
+}
+
+// Fills the live metric values into one server card (design untouched).
+function paintServerCard(sid) {
+  const c = document.getElementById("servers-cards");
+  if (!c) return;
+  const s = fleetStats[sid] || {};
+  const online = (myServers[sid] || {}).online === true;
+  const set = (attr, val) => {
+    const el = c.querySelector(`[${attr}="${CSS.escape(sid)}"]`);
+    if (el) el.textContent = val;
+  };
+  // While offline the node reports nothing meaningful, so show placeholders.
+  const dash = "—";
+  set("data-srv-players", (s.onlinePlayers != null ? s.onlinePlayers : 0) + "/" + (s.maxPlayers != null ? s.maxPlayers : dash));
+  set("data-srv-tps", online && s.tps != null ? s.tps : dash);
+  set("data-srv-mspt", online && s.mspt != null ? s.mspt + "ms" : dash);
+  set("data-srv-cpu", online && s.cpuPercent != null ? s.cpuPercent + "%" : dash);
+  set("data-srv-heap", online && s.heapUsedMb != null
+    ? s.heapUsedMb + (s.heapMaxMb != null ? "/" + s.heapMaxMb : "") + "MB"
+    : "no sample");
+  set("data-srv-uptime", online && s.uptimeMs != null ? formatUptime(s.uptimeMs) : dash);
+  set("data-srv-version", s.bukkitVersion || s.serverVersion || "version unknown");
+}
+
+// Aggregates the fleet counters shown in the top metric grid.
+function paintFleetCards() {
+  const ids = Object.keys(myServers);
+  let srvOnline = 0, playersOnline = 0, playersMax = 0;
+  ids.forEach((sid) => {
+    const s = fleetStats[sid] || {};
+    const isOn = (myServers[sid] || {}).online === true;
+    if (isOn) {
+      srvOnline++;
+      playersOnline += Number(s.onlinePlayers) || 0;
+      playersMax += Number(s.maxPlayers) || 0;
+    }
+  });
+  const setText2 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setText2("fleet-servers-online", srvOnline);
+  setText2("fleet-servers-total", "/" + ids.length);
+  setText2("fleet-players-online", playersOnline);
+  setText2("fleet-players-max", "/" + playersMax);
+  const sdot = document.getElementById("fleet-srv-dot");
+  if (sdot) sdot.className = "fleet-dot " + (srvOnline > 0 ? "on" : "");
+  const pdot = document.getElementById("fleet-ply-dot");
+  if (pdot) pdot.className = "fleet-dot " + (playersOnline > 0 ? "on" : "");
+  // Repaint every card so offline placeholders stay accurate.
+  ids.forEach(paintServerCard);
+}
+
+// Fleet-wide moderation/alert counters, aggregated across all servers.
+let fleetCountListeners = [];
+function watchFleetCounters() {
+  fleetCountListeners.forEach((ref) => { try { ref.off(); } catch (e) {} });
+  fleetCountListeners = [];
+  const ids = Object.keys(myServers);
+  const bans = {}, mutes = {}, reports = {}, tasks = {}, alerts = {};
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+  const setText2 = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const bind = (sid, path, bucket, elId) => {
+    const ref = db.ref("servers/" + sid + "/" + path);
+    ref.on("value", (snap) => {
+      bucket[sid] = Object.keys(snap.val() || {}).length;
+      setText2(elId, sum(bucket));
+    }, () => { bucket[sid] = 0; setText2(elId, sum(bucket)); });
+    fleetCountListeners.push(ref);
+  };
+  if (!ids.length) {
+    ["fleet-alerts", "fleet-reports", "fleet-bans", "fleet-mutes", "fleet-tasks"].forEach((id) => setText2(id, 0));
+    return;
+  }
+  ids.forEach((sid) => {
+    bind(sid, "bans", bans, "fleet-bans");
+    bind(sid, "mutes", mutes, "fleet-mutes");
+    bind(sid, "reports", reports, "fleet-reports");
+    bind(sid, "scheduledTasks", tasks, "fleet-tasks");
+    bind(sid, "alerts", alerts, "fleet-alerts");
+  });
+}
+
+// ===== Performance history (server selector + range toggles) =====
+let perfRangeMin = 60;   // default 1h, matches the active toggle in the markup
+let perfServerId = null;
+let perfListener = null;
+
+function renderPerfServerOptions() {
+  const sel = document.getElementById("perf-server");
+  if (!sel) return;
+  const ids = Object.keys(myServers);
+  const prev = perfServerId;
+  sel.innerHTML = "";
+  ids.forEach((sid) => {
+    const opt = document.createElement("option");
+    opt.value = sid;
+    opt.textContent = (myServers[sid] || {}).label || (myServers[sid] || {}).name || sid;
+    sel.appendChild(opt);
+  });
+  if (!ids.length) { perfServerId = null; renderPerfChart([]); return; }
+  perfServerId = (prev && myServers[prev]) ? prev : (ACTIVE_SERVER && myServers[ACTIVE_SERVER] ? ACTIVE_SERVER : ids[0]);
+  sel.value = perfServerId;
+  watchPerfHistory();
+}
+
+function watchPerfHistory() {
+  if (perfListener) { try { perfListener.off(); } catch (e) {} perfListener = null; }
+  if (!perfServerId) { renderPerfChart([]); return; }
+  // Pull a generous window and filter client-side by the selected range.
+  perfListener = db.ref("servers/" + perfServerId + "/history").limitToLast(720);
+  perfListener.on("value", (snap) => {
+    const all = toArray(snap.val());
+    const cutoff = Date.now() - perfRangeMin * 60 * 1000;
+    renderPerfChart(all.filter((h) => (h && h.t ? h.t >= cutoff : false)));
+  }, () => renderPerfChart([]));
+}
+
+function renderPerfChart(points) {
+  const empty = document.getElementById("perf-empty");
+  const wrap = document.getElementById("perf-chart-wrap");
+  if (!empty || !wrap) return;
+  if (!points.length || typeof Chart === "undefined") {
+    empty.classList.remove("hidden");
+    wrap.classList.add("hidden");
+    if (charts.perf) { charts.perf.destroy(); delete charts.perf; }
+    return;
+  }
+  empty.classList.add("hidden");
+  wrap.classList.remove("hidden");
+  const fmt = perfRangeMin > 1440
+    ? (t) => new Date(t).toLocaleDateString("ar-EG", { day: "2-digit", month: "2-digit" })
+    : (t) => new Date(t).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+  const labels = points.map((h) => fmt(h.t));
+  const el = document.getElementById("perf-chart");
+  const datasets = [
+    { label: "TPS", data: points.map((h) => h.tps ?? null), borderColor: "#34d399", backgroundColor: "#34d39922", tension: 0.35, pointRadius: 0, borderWidth: 2, spanGaps: true, yAxisID: "y" },
+    { label: "MSPT", data: points.map((h) => h.mspt ?? null), borderColor: "#fbbf24", backgroundColor: "#fbbf2422", tension: 0.35, pointRadius: 0, borderWidth: 2, spanGaps: true, yAxisID: "y" },
+    { label: "المتصلون", data: points.map((h) => h.online ?? null), borderColor: "#a855f7", backgroundColor: "#a855f722", tension: 0.35, pointRadius: 0, borderWidth: 2, spanGaps: true, yAxisID: "y1" }
+  ];
+  if (charts.perf) {
+    charts.perf.data.labels = labels;
+    charts.perf.data.datasets.forEach((d, i) => { d.data = datasets[i].data; });
+    charts.perf.update("none");
+    return;
+  }
+  charts.perf = new Chart(el, {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { labels: { color: "#a4afc6", boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: "#5f6b85", maxTicksLimit: 8 }, grid: { color: "#232b3d" } },
+        y: { position: "left", beginAtZero: true, ticks: { color: "#5f6b85" }, grid: { color: "#232b3d" } },
+        y1: { position: "right", beginAtZero: true, ticks: { color: "#5f6b85" }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const sel = document.getElementById("perf-server");
+  if (sel) sel.addEventListener("change", () => { perfServerId = sel.value; watchPerfHistory(); });
+  document.querySelectorAll(".perf-range").forEach((btn) => btn.addEventListener("click", () => {
+    document.querySelectorAll(".perf-range").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    perfRangeMin = Number(btn.dataset.min) || 60;
+    watchPerfHistory();
+  }));
+  // Quick links on the fleet metric cards jump to the matching section.
+  document.querySelectorAll("[data-goto]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault();
+    navigateTo(a.dataset.goto);
+  }));
+  const manage = document.getElementById("manage-servers-link");
+  if (manage) manage.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (ACTIVE_SERVER) openEditServer(ACTIVE_SERVER); else openPairModal();
+  });
+});
 
 function updateActiveServerName() {
   const info = myServers[ACTIVE_SERVER] || {};
@@ -2378,6 +2577,18 @@ const AR_EN = {
   "تنزيل config.yml": "Download config.yml",
   "نسخت التوكن": "I have copied the token",
   "خطوات التركيب (6 خطوات)": "Setup steps (6 steps)",
+  // Overview fleet metrics + performance history
+  "السيرفرات المتصلة": "Servers online", "اللاعبون المتصلون": "Players online",
+  "التنبيهات النشطة": "Active alerts", "التقارير المفتوحة": "Open reports",
+  "الحظر النشط": "Active bans", "الكتم النشط": "Active mutes", "المهام المجدولة": "Scheduled tasks",
+  "فتح سجل التنبيهات": "Open alert feed", "فتح قائمة التقارير": "Open report queue",
+  "مركز الإشراف": "Moderation centre", "فتح المجدول": "Open scheduler",
+  "السيرفرات": "Servers", "إدارة السيرفرات": "Manage servers",
+  "بطاقة لكل سيرفر مسجّل، تُحدَّث من بيانات الإحصائيات الحية.": "One card per registered node, updated from the metrics and server topics.",
+  "سجل الأداء": "Performance history",
+  "عيّنات تاريخية من مجرى البيانات الحي للسيرفر المحدّد.": "Historical samples from the metrics endpoint, extended live by the metrics topic.",
+  "لا توجد عيّنات في هذا النطاق": "No samples in this range",
+  "لم يُبلّغ السيرفر عن أي بيانات أداء في الفترة المحددة بعد.": "The node has not reported any metrics for the selected window yet.",
   "web.url هو عنوان الواجهة الخلفية الذي يتصل به السيرفر. يجب أن يتمكّن سيرفر Paper من الوصول إليه.": "web.url is the backend address the server connects to. The Paper server must be able to reach it.",
   "بيانات لوحة الاستضافة (مطلوبة للتحكم في التشغيل والإيقاف والكونسول)": "Hosting panel details (required to control power & console)",
   "احظر لاعباً بالاسم أو المعرّف الفريد.": "Ban a player by name or unique ID.",
