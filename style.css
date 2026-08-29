@@ -92,6 +92,20 @@ body {
 .hidden { display: none !important; }
 .mt-8 { margin-top: 8px; }
 
+/* Boot splash — covers the screen until Firebase resolves auth, preventing the
+   login screen from flashing on refresh for an already-signed-in user. */
+.boot-splash {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--bg);
+}
+.boot-splash .brand-logo {
+    width: 72px; height: 72px; border-radius: 22px; background: var(--brand-grad);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 29px; font-weight: 900; color: #fff; letter-spacing: 1px;
+    box-shadow: var(--shadow-glow);
+}
+
 /* ---------- Ambient background ---------- */
 .bg-grid {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;

@@ -17,8 +17,15 @@
         <span class="orb orb-3"></span>
     </div>
 
+    <!-- Boot splash: shown until Firebase resolves the auth state, so the login
+         screen never flashes on refresh for an already-signed-in user. -->
+    <div id="boot-splash" class="boot-splash">
+        <div class="brand-logo">VR</div>
+        <div class="wiz-spinner" style="margin-top:20px"></div>
+    </div>
+
     <!-- Login screen -->
-    <div id="login-screen" class="auth-screen">
+    <div id="login-screen" class="auth-screen hidden">
         <div class="auth-box">
             <div class="brand">
                 <div class="brand-logo">VR</div>

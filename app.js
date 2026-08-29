@@ -218,6 +218,9 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 function showScreen(which) {
+  // Auth state is resolved — hide the boot splash for good.
+  const splash = document.getElementById("boot-splash");
+  if (splash) splash.classList.add("hidden");
   loginScreen.classList.toggle("hidden", which !== "login");
   pendingScreen.classList.toggle("hidden", which !== "pending");
   dashboard.classList.toggle("hidden", which !== "dashboard");
