@@ -425,8 +425,8 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 /* Stats */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card {
-    display: flex; align-items: center; gap: 16px; background: var(--surface);
-    border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px;
+    display: flex; align-items: center; gap: 18px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px 22px;
     transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;
 }
 .stat-card::after {
@@ -434,12 +434,15 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
     background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 60%); pointer-events: none;
 }
 .stat-card:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+.stat-card:hover .stat-icon { transform: scale(1.05); }
 .stat-body { flex: 1; }
 .spark { position: absolute; bottom: 0; left: 0; width: 100% !important; height: 34px !important; opacity: 0.5; pointer-events: none; }
-.stat-icon { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 25px; flex-shrink: 0; overflow: hidden; }
-/* Tint the (black) stat PNG icons to the brand purple. */
+/* Leading-aligned, larger icon tile with a solid branded gradient (no faint tint). */
+.stat-icon { width: 62px; height: 62px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+    background: var(--brand-grad); box-shadow: 0 8px 20px -8px rgba(139,92,246,0.6); transition: transform 0.2s; }
+/* Icons render white on the gradient tile for strong, consistent contrast. */
 .stat-icon img { width: 30px; height: 30px; object-fit: contain;
-    filter: var(--icon-tint); }
+    filter: brightness(0) invert(1); }
 
 /* Purple tint used across all UI icons (converts black/white PNGs to brand purple). */
 .ctrl-icon img, .cb-icon, .mini-ic, .mr-search-icon img {
