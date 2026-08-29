@@ -93,18 +93,24 @@ body {
 .mt-8 { margin-top: 8px; }
 
 /* Boot splash — covers the screen until Firebase resolves auth, preventing the
-   login screen from flashing on refresh for an already-signed-in user. */
+   login screen from flashing on refresh for an already-signed-in user.
+   The VoxelPanel logo sits large and faint as a background watermark. */
 .boot-splash {
     position: fixed; inset: 0; z-index: 200;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: var(--bg);
+    background: var(--bg); overflow: hidden;
 }
-.boot-splash .brand-logo {
-    width: 72px; height: 72px; border-radius: 22px; background: var(--brand-grad);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 29px; font-weight: 900; color: #fff; letter-spacing: 1px;
-    box-shadow: var(--shadow-glow);
+.boot-splash::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: url("image/logo.png") center / min(60vmin, 460px) no-repeat;
+    opacity: 0.08;
+    filter: blur(1px);
 }
+.boot-logo { position: relative; z-index: 1; width: 132px; height: 132px; object-fit: contain; border-radius: 26px; box-shadow: var(--shadow-glow); animation: bootPulse 2s ease-in-out infinite; }
+.boot-logo-fallback { position: relative; z-index: 1; display: none; width: 72px; height: 72px; border-radius: 22px; background: var(--brand-grad);
+    align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #fff; letter-spacing: 1px; box-shadow: var(--shadow-glow); }
+.boot-splash .wiz-spinner { position: relative; z-index: 1; }
+@keyframes bootPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.04); opacity: 0.85; } }
 
 /* ---------- Ambient background ---------- */
 .bg-grid {
