@@ -1620,7 +1620,7 @@ function buildTree(key, value, open) {
     const entries = Object.keys(value);
     const head = document.createElement("div");
     head.className = "fb-key branch";
-    head.innerHTML = `<span class="fb-caret">${open ? "▾" : "▸"}</span><span class="fb-name">${escapeHtml(shortKey(key))}</span><span class="fb-badge">${entries.length}</span>`;
+    head.innerHTML = `<span class="fb-caret${open ? " open" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></span><span class="fb-name">${escapeHtml(shortKey(key))}</span><span class="fb-badge">${entries.length}</span>`;
     const children = document.createElement("div");
     children.className = "fb-children";
     children.style.display = open ? "block" : "none";
@@ -1629,7 +1629,7 @@ function buildTree(key, value, open) {
       e.stopPropagation();
       const vis = children.style.display === "none";
       children.style.display = vis ? "block" : "none";
-      head.querySelector(".fb-caret").textContent = vis ? "▾" : "▸";
+      head.querySelector(".fb-caret").classList.toggle("open", vis);
     });
     node.appendChild(head);
     node.appendChild(children);
