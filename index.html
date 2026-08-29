@@ -389,34 +389,6 @@
                     <div><b>السيرفر غير متصل</b> — الإجراءات التي تحتاج اتصال البلجن معطّلة. البيانات المعروضة هي آخر ما تم تسجيله.</div>
                 </div>
 
-                <!-- Performance history -->
-                <div class="panel">
-                    <div class="panel-head">
-                        <div class="ph-titles">
-                            <h3>سجل الأداء</h3>
-                            <p class="ph-sub">عيّنات تاريخية من مجرى البيانات الحي لهذا السيرفر.</p>
-                        </div>
-                        <div class="ph-actions">
-                            <div class="perf-ranges" id="perf-ranges">
-                                <button class="perf-range" data-min="15">15m</button>
-                                <button class="perf-range active" data-min="60">1h</button>
-                                <button class="perf-range" data-min="360">6h</button>
-                                <button class="perf-range" data-min="1440">24h</button>
-                                <button class="perf-range" data-min="10080">7d</button>
-                                <button class="perf-range" data-min="43200">30d</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="perf-body">
-                        <div id="perf-empty" class="perf-empty">
-                            <span class="perf-empty-ic"><img src="image/overview.png" alt=""></span>
-                            <div class="perf-empty-title">لا توجد عيّنات في هذا النطاق</div>
-                            <div class="perf-empty-sub">لم يُبلّغ السيرفر عن أي بيانات أداء في الفترة المحددة بعد.</div>
-                        </div>
-                        <div id="perf-chart-wrap" class="perf-chart-wrap hidden"><canvas id="perf-chart"></canvas></div>
-                    </div>
-                </div>
-
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon"><img src="image/stat-waypoints.png" alt=""></div>
@@ -470,6 +442,34 @@
                 <div class="panel">
                     <div class="panel-head"><h3>آخر الأحداث</h3></div>
                     <div id="overview-activity" class="activity-list compact"><p class="empty-msg">لا توجد أحداث</p></div>
+                </div>
+
+                <!-- Performance history — last section on the page -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="ph-titles">
+                            <h3>سجل الأداء</h3>
+                            <p class="ph-sub">عيّنات تاريخية من مجرى البيانات الحي لهذا السيرفر.</p>
+                        </div>
+                        <div class="ph-actions">
+                            <div class="perf-ranges" id="perf-ranges">
+                                <button class="perf-range" data-min="15">15m</button>
+                                <button class="perf-range active" data-min="60">1h</button>
+                                <button class="perf-range" data-min="360">6h</button>
+                                <button class="perf-range" data-min="1440">24h</button>
+                                <button class="perf-range" data-min="10080">7d</button>
+                                <button class="perf-range" data-min="43200">30d</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="perf-body">
+                        <div id="perf-empty" class="perf-empty">
+                            <span class="perf-empty-ic"><img src="image/overview.png" alt=""></span>
+                            <div class="perf-empty-title">لا توجد عيّنات في هذا النطاق</div>
+                            <div class="perf-empty-sub">لم يُبلّغ السيرفر عن أي بيانات أداء في الفترة المحددة بعد.</div>
+                        </div>
+                        <div id="perf-chart-wrap" class="perf-chart-wrap hidden"><canvas id="perf-chart"></canvas></div>
+                    </div>
                 </div>
             </section>
 
@@ -909,7 +909,7 @@
             <p id="editsrv-hint" class="admin-add-hint"></p>
             <div class="ask-actions">
                 <button id="editsrv-save" class="btn-primary full">حفظ</button>
-                <button id="editsrv-remove" class="btn-ghost full">إزالة السيرفر من حسابي</button>
+                <button id="editsrv-remove" class="btn-ghost full">حذف السيرفر</button>
                 <button id="editsrv-cancel" class="btn-ghost full">إلغاء</button>
             </div>
         </div>

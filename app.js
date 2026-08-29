@@ -2413,16 +2413,90 @@ document.getElementById("editsrv-save").addEventListener("click", () => {
     })
     .catch((err) => { hint.textContent = "فشل الحفظ: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
 });
-document.getElementById("editsrv-remove").addEventListener("click", () => {
+// Deletes a server for real. The old implementation only removed
+// userServers/{uid}/{sid} (the personal link), which is why the server kept
+// reappearing: the owner's list is built from serverMeta, so an unlinked server
+// was still rendered. A true delete must remove all three locations:
+//   servers/{sid}      — live data subtree (stats, players, console, history...)
+//   serverMeta/{sid}   — registration record + auth token
+//   userServers/{uid}/{sid} — the per-user link
+// Users who are members but not the server owner can only unlink themselves.
+document.getElementById("editsrv-remove").addEventListener("click", async () => {
   const hint = document.getElementById("editsrv-hint");
-  usersServersRef.child(auth.currentUser.uid).child(editSrvId).remove()
-    .then(() => {
-      showToast("تمت إزالة السيرفر", "success");
-      editSrvModal.classList.add("hidden");
-      // If the removed server was open, tear it down and return to the list.
-      if (ServerContext.serverId === editSrvId) backToServers();
-    })
-    .catch((err) => { hint.textContent = "فشل الإزالة: " + (err.code || err.message); hint.className = "admin-add-hint error"; });
+  const sid = editSrvId;
+  if (!sid) return;
+  if (!auth.currentUser) { showToast("انتهت الجلسة — أعد تسجيل الدخول", "error"); return; }
+  const uid = auth.currentUser.uid;
+  const label = (myServers[sid] && (myServers[sid].label || myServers[sid].name)) || sid;
+
+  // Determine whether this user may delete the record itself, or only unlink.
+  let canFullyDelete = currentUserIsOwner;
+  try {
+    const ownerSnap = await db.ref("serverMeta/" + sid + "/ownerUid").get();
+    if (ownerSnap.exists() && ownerSnap.val() === uid) canFullyDelete = true;
+  } catch (e) { /* fall back to unlink-only */ }
+
+  const confirmed = await ask({
+    title: canFullyDelete ? "حذف السيرفر نهائياً" : "إزالة السيرفر من حسابي",
+    msg: canFullyDelete
+      ? `سيتم حذف «${label}» وكل بياناته (الإحصائيات، اللاعبون، الكونسول، السجل) نهائياً من قاعدة البيانات. لا يمكن التراجع.`
+      : `سيتم إزالة «${label}» من حسابك فقط. السيرفر نفسه لن يُحذف لأنك لست مالكه.`,
+    iconImg: "ic-trash.png",
+    danger: true,
+    okText: canFullyDelete ? "حذف نهائي" : "إزالة"
+  });
+  if (!confirmed) return;
+
+  hint.textContent = "جاري الحذف..."; hint.className = "admin-add-hint";
+  const removeBtn = document.getElementById("editsrv-remove");
+  removeBtn.disabled = true;
+
+  try {
+    if (canFullyDelete) {
+      // Order matters: the delete rules for servers/{sid} and serverMeta/{sid}
+      // are evaluated against ownerUid / the userServers link, so those two
+      // records must still exist while their own deletes are authorized.
+      await db.ref("servers/" + sid).remove();
+      await db.ref("serverMeta/" + sid).remove();
+    }
+    await usersServersRef.child(uid).child(sid).remove();
+
+    // Verify the deletion actually landed instead of assuming success.
+    if (canFullyDelete) {
+      const check = await db.ref("serverMeta/" + sid).get();
+      if (check.exists()) throw new Error("الحذف لم يكتمل — تحقّق من قواعد Firebase");
+    }
+
+    // Immediate local refresh so the card disappears without a page reload.
+    // (The realtime listeners also fire, but this makes it instant.)
+    delete myServers[sid];
+    delete fleetStats[sid];
+    if (editSrvConnListener) { try { editSrvConnListener.off(); } catch (e) {} editSrvConnListener = null; }
+    editSrvId = null;
+    editSrvModal.classList.add("hidden");
+    showToast(canFullyDelete ? `تم حذف «${label}» نهائياً` : `تمت إزالة «${label}» من حسابك`, "success");
+
+    // If the deleted server was open, tear its context down and go to the list.
+    if (ServerContext.serverId === sid) {
+      backToServers();
+    } else {
+      renderServerCards();
+      renderServerSwitcherMenu();
+      watchFleetCounters();
+    }
+  } catch (err) {
+    const code = (err && (err.code || err.message)) || "unknown";
+    if (String(code).toUpperCase().includes("PERMISSION")) {
+      hint.textContent = "رُفض الحذف (PERMISSION_DENIED) — انشر قواعد Firebase المحدّثة من الـ Console.";
+      showToast("رُفض الحذف — انشر قواعد Firebase المحدّثة", "error");
+    } else {
+      hint.textContent = "فشل الحذف: " + code;
+      showToast("فشل حذف السيرفر", "error");
+    }
+    hint.className = "admin-add-hint error";
+  } finally {
+    removeBtn.disabled = false;
+  }
 });
 
 // ---- Server power (panel API) ----
@@ -2928,6 +3002,16 @@ const AR_EN = {
   "إجمالي السيرفرات": "Total servers", "غير المتصلة": "Offline",
   "بحث بالاسم...": "Search by name...", "لا نتائج": "No results",
   "السيرفر المحدّد": "Selected server", "عام": "Global",
+  // Server deletion
+  "حذف السيرفر": "Delete server",
+  "حذف السيرفر نهائياً": "Delete server permanently",
+  "إزالة السيرفر من حسابي": "Remove server from my account",
+  "حذف نهائي": "Delete permanently",
+  "جاري الحذف...": "Deleting...",
+  "رُفض الحذف (PERMISSION_DENIED) — انشر قواعد Firebase المحدّثة من الـ Console.": "Delete denied (PERMISSION_DENIED) — publish the updated Firebase rules from the Console.",
+  "رُفض الحذف — انشر قواعد Firebase المحدّثة": "Delete denied — publish the updated Firebase rules",
+  "فشل حذف السيرفر": "Failed to delete the server",
+  "انتهت الجلسة — أعد تسجيل الدخول": "Session expired — please sign in again",
   "بطاقة لكل سيرفر مسجّل، تُحدَّث من بيانات الإحصائيات الحية.": "One card per registered node, updated from the metrics and server topics.",
   "سجل الأداء": "Performance history",
   "عيّنات تاريخية من مجرى البيانات الحي للسيرفر المحدّد.": "Historical samples from the metrics endpoint, extended live by the metrics topic.",

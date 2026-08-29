@@ -3,6 +3,7 @@
     "servers": {
       "$serverId": {
         ".read": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || root.child('admins').child(auth.token.email.toLowerCase().replace('.', ',').replace('#', ',').replace('$', ',').replace('[', ',').replace(']', ',')).exists() || root.child('admins').child(auth.uid).exists())",
+        ".write": "auth != null && !newData.exists() && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('serverMeta').child($serverId).child('ownerUid').val() == auth.uid)",
         "waypoints": { ".write": false },
         "stats": { ".write": false },
         "players": { ".write": false },
