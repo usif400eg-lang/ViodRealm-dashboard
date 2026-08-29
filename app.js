@@ -1718,39 +1718,24 @@ const usersServersRef = db.ref("userServers");
 const pairingCodesRef = db.ref("pairingCodes");
 const serverMetaRef = db.ref("serverMeta");
 
-// Loads the servers owned by this user; the owner sees all servers.
+// Loads ONLY the servers this account created/was granted. Every account —
+// including the owner — sees just its own servers, so servers never leak
+// between accounts. Presence (online) is read per-server from serverMeta.
 function loadMyServers(uid) {
-  if (currentUserIsOwner) {
-    // Owner sees every registered server, merged with their own label/image overrides.
-    let overrides = {};
-    usersServersRef.child(uid).on("value", (osnap) => {
-      overrides = osnap.val() || {};
-      applyOwnerServers();
-    }, () => {});
-    serverMetaRef.on("value", (snap) => {
-      window.__allMeta = snap.val() || {};
-      applyOwnerServers();
-    }, () => {});
-    function applyOwnerServers() {
-      const all = window.__allMeta || {};
-      myServers = {};
-      Object.keys(all).forEach((sid) => {
-        const ov = overrides[sid] || {};
-        myServers[sid] = {
-          label: ov.label || all[sid].name || sid,
-          name: all[sid].name,
-          image: ov.image || null,
-          online: all[sid].online
-        };
-      });
-      renderServerSwitcher();
-    }
-  } else {
-    usersServersRef.child(uid).on("value", (snap) => {
-      myServers = snap.val() || {};
-      renderServerSwitcher();
-    }, () => {});
-  }
+  usersServersRef.child(uid).on("value", (snap) => {
+    const links = snap.val() || {};
+    myServers = {};
+    Object.keys(links).forEach((sid) => {
+      const l = links[sid] || {};
+      myServers[sid] = {
+        label: l.label || l.name || sid,
+        name: l.label || l.name || sid,
+        image: l.image || null,
+        online: (myServers[sid] && myServers[sid].online) || false
+      };
+    });
+    renderServerSwitcher();
+  }, () => {});
 }
 
 // Rebuilds the server list UI. CRITICAL: this never selects or opens a server.
