@@ -426,23 +426,46 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card {
     display: flex; align-items: center; gap: 18px; background: var(--surface);
-    border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px 22px;
+    border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px 24px;
     transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;
 }
+/* Large, very faint watermark of the card's icon, bleeding from the leading
+   edge and clipped by the card — the professional "hero icon" look. */
+.stat-card::before {
+    content: ""; position: absolute; z-index: 0; pointer-events: none;
+    top: 50%; inset-inline-start: -34px; transform: translateY(-50%) rotate(-8deg);
+    width: 150px; height: 150px;
+    background: var(--wm-color, var(--brand));
+    -webkit-mask: var(--wm) center / contain no-repeat; mask: var(--wm) center / contain no-repeat;
+    opacity: 0.07; transition: opacity 0.25s, transform 0.3s;
+}
 .stat-card::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 0;
     background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 60%); pointer-events: none;
 }
 .stat-card:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }
-.stat-card:hover .stat-icon { transform: scale(1.05); }
-.stat-body { flex: 1; }
-.spark { position: absolute; bottom: 0; left: 0; width: 100% !important; height: 34px !important; opacity: 0.5; pointer-events: none; }
-/* Leading-aligned, larger icon tile with a solid branded gradient (no faint tint). */
-.stat-icon { width: 62px; height: 62px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
-    background: var(--brand-grad); box-shadow: 0 8px 20px -8px rgba(139,92,246,0.6); transition: transform 0.2s; }
-/* Icons render white on the gradient tile for strong, consistent contrast. */
-.stat-icon img { width: 30px; height: 30px; object-fit: contain;
-    filter: brightness(0) invert(1); }
+.stat-card:hover::before { opacity: 0.13; transform: translateY(-50%) rotate(-4deg) scale(1.05); }
+.stat-card:hover .stat-icon { transform: scale(1.06); }
+.stat-body { flex: 1; position: relative; z-index: 2; }
+.spark { position: absolute; bottom: 0; left: 0; width: 100% !important; height: 34px !important; opacity: 0.5; pointer-events: none; z-index: 1; }
+
+/* Solid gradient icon tile (leading), white icon for strong contrast. */
+.stat-icon { position: relative; z-index: 2; width: 60px; height: 60px; border-radius: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: var(--brand-grad); box-shadow: 0 10px 24px -10px rgba(139,92,246,0.65); transition: transform 0.2s; }
+.stat-icon img { width: 30px; height: 30px; object-fit: contain; filter: brightness(0) invert(1); }
+/* Per-card accent: gradient tile + matching watermark colour/image. */
+.stat-icon.i-violet { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.stat-icon.i-blue   { background: linear-gradient(135deg, #60a5fa, #4f46e5); }
+.stat-icon.i-teal   { background: linear-gradient(135deg, #2dd4bf, #0ea5e9); }
+.stat-icon.i-green  { background: linear-gradient(135deg, #34d399, #059669); }
+.stat-icon.i-red    { background: linear-gradient(135deg, #fb7185, #e11d48); }
+.stat-icon.i-orange { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+.stat-card:has(.i-violet) { --wm: url("image/stat-waypoints.png"); --wm-color: #8b5cf6; }
+.stat-card:has(.i-blue)   { --wm: url("image/stat-public.png");    --wm-color: #4f46e5; }
+.stat-card:has(.i-teal)   { --wm: url("image/stat-players.png");   --wm-color: #14b8a6; }
+.stat-card:has(.i-green)  { --wm: url("image/stat-online.png");    --wm-color: #10b981; }
+.stat-card:has(.i-red)    { --wm: url("image/stat-bans.png");      --wm-color: #f43f5e; }
+.stat-card:has(.i-orange) { --wm: url("image/stat-system.png");    --wm-color: #f59e0b; }
 
 /* Purple tint used across all UI icons (converts black/white PNGs to brand purple). */
 .ctrl-icon img, .cb-icon, .mini-ic, .mr-search-icon img {
