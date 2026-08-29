@@ -297,6 +297,8 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .menu-toggle { display: none; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-xs); padding: 8px 11px; cursor: pointer; align-items: center; justify-content: center; }
 .menu-toggle svg, .icon-btn svg, .theme-opt svg, .cselect-arrow svg, .back-srv-btn svg { width: 18px; height: 18px; display: block; }
+/* Icon-only buttons must not inherit the base button's text padding. */
+.menu-toggle, .icon-btn, .theme-opt { padding: 0; }
 .topbar-title { flex: 1; min-width: 140px; }
 .topbar-title h2 { font-size: 25px; font-weight: 800; letter-spacing: -0.5px; }
 .breadcrumb { color: var(--text-3); font-size: 14px; margin-top: 2px; }
@@ -318,10 +320,11 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 
 /* Segmented theme switcher (light / dark / system side by side) */
 .theme-group { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
-.theme-opt { background: transparent; border: none; width: 32px; height: 30px; border-radius: 7px; cursor: pointer; color: var(--text-3); display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+.theme-opt { background: transparent; border: none; width: 36px; height: 32px; border-radius: 7px; cursor: pointer; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+.theme-opt svg { width: 17px; height: 17px; display: block; }
 .theme-opt:hover { background: var(--surface-3); color: var(--text); }
 .theme-opt.active { background: var(--brand-grad); color: #fff; }
-.theme-opt.active svg { color: #fff; }
+.theme-opt.active svg { color: #fff; stroke: #fff; }
 .icon-btn { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line); border-radius: var(--r-sm); width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
 .icon-btn:hover { color: var(--brand); border-color: var(--brand); }
 
