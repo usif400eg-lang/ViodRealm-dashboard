@@ -347,6 +347,11 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 .theme-opt.active svg { color: #fff; stroke: #fff; }
 .icon-btn { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line); border-radius: var(--r-sm); width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
 .icon-btn:hover { color: var(--brand); border-color: var(--brand); }
+/* Language pill: globe icon + current language code, professional and clear. */
+.lang-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line); border-radius: var(--r-sm); height: 38px; padding: 0 13px; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.lang-btn svg { width: 17px; height: 17px; }
+.lang-btn:hover { color: var(--brand); border-color: var(--brand); }
+.lang-btn #lang-label { min-width: 14px; text-align: center; }
 
 /* Pairing modal divider */
 .pair-divider { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 12px; margin: 20px 0 16px; }
