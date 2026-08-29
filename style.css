@@ -338,30 +338,32 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 
 /* Server cards on overview */
 /* Server cards on overview — game-panel style (banner + stats + activate) */
-.servers-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
-.srv-card { position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; transition: border-color 0.15s, transform 0.2s, box-shadow 0.2s; }
-.srv-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+/* ===== Servers page polish (VoidPanel-inspired: clean, spacious, calm) ===== */
+.servers-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+.srv-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; cursor: pointer; transition: border-color 0.16s, transform 0.18s, box-shadow 0.2s; }
+.srv-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+.srv-card:hover .srv-open-btn { filter: brightness(1.08); }
 .srv-card.active { border-color: var(--brand); box-shadow: var(--shadow-glow); }
-.srv-banner { position: relative; height: 130px; background-size: cover; background-position: center;
+.srv-banner { position: relative; height: 120px; background-size: cover; background-position: center;
     background-color: var(--surface-3);
-    background-image: linear-gradient(160deg, rgba(124,58,237,0.2), rgba(52,211,153,0.13)); }
+    background-image: linear-gradient(160deg, rgba(124,58,237,0.22), rgba(52,211,153,0.12)); }
 .srv-banner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,6,15,0.92), rgba(8,6,15,0.15) 60%, transparent); }
-.srv-badge { position: absolute; top: 12px; right: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; background: rgba(8,6,15,0.7); backdrop-filter: blur(6px); padding: 5px 11px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+.srv-badge { position: absolute; top: 12px; inset-inline-end: 12px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; background: rgba(8,6,15,0.68); backdrop-filter: blur(6px); padding: 5px 11px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
 .srv-badge.on { color: var(--ok); } .srv-badge.off { color: var(--text-2); }
-.srv-banner-title { position: absolute; bottom: 12px; right: 16px; left: 16px; z-index: 2; font-size: 22px; font-weight: 900; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.srv-gear { position: absolute; bottom: 12px; left: 12px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; background: rgba(8,6,15,0.7); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(6px); }
+.srv-banner-title { position: absolute; bottom: 12px; inset-inline: 16px; z-index: 2; font-size: 21px; font-weight: 900; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srv-gear { position: absolute; bottom: 12px; inset-inline-start: 12px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; background: rgba(8,6,15,0.7); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(6px); transition: border-color 0.15s; }
 .srv-gear img { width: 15px; height: 15px; filter: brightness(0) invert(1); opacity: 0.85; }
 .srv-gear:hover { border-color: var(--brand); }
-.srv-sub { display: flex; align-items: center; gap: 8px; padding: 12px 16px 4px; color: var(--text-2); font-size: 13px; font-weight: 700; }
+.srv-sub { display: flex; align-items: center; gap: 8px; padding: 13px 18px 4px; color: var(--text-2); font-size: 13px; font-weight: 700; }
 .srv-game-ic { width: 16px; height: 16px; filter: var(--icon-tint); }
-.srv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 16px; }
+.srv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 18px; }
 .srv-stat { display: flex; align-items: center; gap: 10px; }
-.srv-stat-ic { width: 38px; height: 38px; border-radius: 11px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.srv-stat-ic img { width: 18px; height: 18px; filter: var(--icon-tint); }
+.srv-stat-ic { width: 36px; height: 36px; border-radius: 10px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.srv-stat-ic img { width: 17px; height: 17px; filter: var(--icon-tint); }
 .srv-stat-k { color: var(--text-3); font-size: 11px; }
 .srv-stat-v { font-size: 15px; font-weight: 800; }
-.srv-open-btn { width: calc(100% - 32px); margin: 8px 16px 16px; padding: 12px; border-radius: var(--r-sm); border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 800; background: var(--brand-grad); color: #fff; transition: filter 0.15s; }
-.srv-open-btn:hover { filter: brightness(1.1); }
+.srv-open-btn { width: calc(100% - 36px); margin: 8px 18px 18px; padding: 12px; border-radius: var(--r-sm); border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 800; background: var(--brand-grad); color: #fff; transition: filter 0.15s; }
+.srv-open-btn:hover { filter: brightness(1.12); }
 .srv-open-btn.active { background: var(--surface-3); color: var(--brand); border: 1px solid var(--brand); }
 
 /* Console */
@@ -1065,9 +1067,9 @@ canvas { max-width: 100%; }
 /* Add-server wizard (legacy connect step, kept for edit-server rotate box) */
 
 /* ===== Overview: fleet metric cards + performance history ===== */
-.fleet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
-.fleet-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.16s, box-shadow 0.16s; }
-.fleet-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+.fleet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 22px; }
+.fleet-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s; }
+.fleet-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
 .fleet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .fleet-label { color: var(--text-3); font-size: 11px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; line-height: 1.5; display: inline-flex; align-items: center; gap: 6px; }
 .fleet-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }

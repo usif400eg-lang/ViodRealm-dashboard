@@ -3065,8 +3065,9 @@ const I18N = {
   online: { ar: "متصل", en: "Online" }
 };
 (function initLang() {
-  let lang = "ar";
-  try { lang = localStorage.getItem("vr_lang") || "ar"; } catch (e) {}
+  // Default to English (LTR); users can switch to Arabic (RTL) with the toggle.
+  let lang = "en";
+  try { lang = localStorage.getItem("vr_lang") || "en"; } catch (e) {}
   function apply() {
     document.documentElement.setAttribute("lang", lang);
     document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");

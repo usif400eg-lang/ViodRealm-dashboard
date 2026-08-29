@@ -43,22 +43,24 @@
     "serverMeta": {
       ".read": "auth != null && auth.token.email.toLowerCase() == 'usif400.eg@gmail.com'",
       "$serverId": {
+        ".read": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || data.child('ownerUid').val() == auth.uid)",
         ".write": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || !data.exists() || data.child('ownerUid').val() == auth.uid)",
-        "name":        { ".read": "auth != null" },
+        "name":        { ".read": "auth != null", ".validate": "newData.isString() && newData.val().length <= 64" },
         "online":      { ".read": "auth != null", ".write": false },
         "lastSeen":    { ".read": "auth != null", ".write": false },
         "instanceId":  { ".read": "auth != null", ".write": false },
-        "pairingCode": { ".read": "auth != null" },
-        "port":        { ".read": "auth != null" },
-        "configVersion": { ".read": "auth != null" },
-        "group":       { ".read": "auth != null" },
-        "description": { ".read": "auth != null" },
-        "accent":      { ".read": "auth != null" },
-        "createdAt":   { ".read": "auth != null" },
-        "ownerUid":    { ".read": "auth != null" },
+        "pairingCode": { ".read": "auth != null", ".validate": "newData.isString() && newData.val().length <= 32" },
+        "port":        { ".read": "auth != null", ".validate": "newData.isNumber()" },
+        "configVersion": { ".read": "auth != null", ".validate": "newData.isNumber()" },
+        "group":       { ".read": "auth != null", ".validate": "newData.isString() && newData.val().length <= 64" },
+        "description": { ".read": "auth != null", ".validate": "newData.isString() && newData.val().length <= 500" },
+        "accent":      { ".read": "auth != null", ".validate": "newData.isString() && newData.val().length <= 16" },
+        "createdAt":   { ".read": "auth != null", ".validate": "newData.isNumber()" },
+        "ownerUid":    { ".read": "auth != null", ".validate": "newData.isString()" },
         "nodePolicy":  { ".read": "auth != null" },
         "authToken": {
-          ".read": "auth != null && data.parent().child('ownerUid').val() == auth.uid"
+          ".read": "auth != null && data.parent().child('ownerUid').val() == auth.uid",
+          ".validate": "newData.isString() && newData.val().length <= 256"
         }
       }
     },
