@@ -248,7 +248,10 @@ body {
 .auth-footer { color: var(--text-3); font-size: 13px; z-index: 1; letter-spacing: 0.5px; }
 
 .pending-logo { background: linear-gradient(135deg, var(--warn), var(--amber)); box-shadow: 0 12px 34px rgba(251, 191, 36, 0.4); }
-.pending-msg { color: var(--text-2); font-size: 15px; line-height: 1.9; margin: 8px 0 24px; }
+.verify-logo { background: var(--brand-grad); box-shadow: var(--shadow-glow); display: flex; align-items: center; justify-content: center; }
+.verify-logo img { width: 34px; height: 34px; filter: brightness(0) invert(1); }
+.pending-msg { color: var(--text-2); font-size: 15px; line-height: 1.9; margin: 8px 0 16px; }
+.pending-msg.small { font-size: 13px; color: var(--text-3); }
 .pending-msg strong { color: var(--brand-2); }
 
 /* ---------- App shell ---------- */

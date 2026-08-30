@@ -156,12 +156,56 @@ document.getElementById("email-form").addEventListener("submit", (e) => {
   if (authMode === "signup") {
     const name = document.getElementById("auth-name").value.trim();
     auth.createUserWithEmailAndPassword(email, pass)
-      .then((cred) => { if (name) return cred.user.updateProfile({ displayName: name }); })
+      .then(async (cred) => {
+        if (name) await cred.user.updateProfile({ displayName: name });
+        // Send the Verify Account email immediately after signup.
+        try {
+          await cred.user.sendEmailVerification({ url: window.location.origin + window.location.pathname });
+          showToast(t("verify_sent"), "success");
+        } catch (er) { /* non-fatal; user can resend from the verify screen */ }
+      })
       .catch((err) => { loginError.textContent = translateAuthError(err.code); });
   } else {
     auth.signInWithEmailAndPassword(email, pass)
       .catch((err) => { loginError.textContent = translateAuthError(err.code); });
   }
+});
+
+// ---- Email verification screen actions ----
+// Re-check verification: reload the user; if verified, onAuthStateChanged path
+// will let them in. Firebase updates emailVerified after the user clicks the link.
+const verifyCheckBtn = document.getElementById("verify-check-btn");
+if (verifyCheckBtn) verifyCheckBtn.addEventListener("click", async () => {
+  const hint = document.getElementById("verify-hint");
+  hint.textContent = t("verify_checking"); hint.className = "admin-add-hint";
+  try {
+    await auth.currentUser.reload();
+    const u = auth.currentUser;
+    if (isEmailVerified(u)) {
+      showDashboard(u);
+      if (!listenersAttached) { attachGlobalListeners(); listenersAttached = true; }
+      loadMyServers(u.uid);
+      handleRoute();
+    } else {
+      hint.textContent = t("verify_not_yet"); hint.className = "admin-add-hint error";
+    }
+  } catch (er) {
+    hint.textContent = translateAuthError(er.code); hint.className = "admin-add-hint error";
+  }
+});
+// Resend verification, with basic rate-limit feedback.
+const verifyResendBtn = document.getElementById("verify-resend-btn");
+if (verifyResendBtn) verifyResendBtn.addEventListener("click", async () => {
+  const hint = document.getElementById("verify-hint");
+  if (!auth.currentUser) return;
+  verifyResendBtn.disabled = true;
+  try {
+    await auth.currentUser.sendEmailVerification({ url: window.location.origin + window.location.pathname });
+    hint.textContent = t("verify_sent"); hint.className = "admin-add-hint success";
+  } catch (er) {
+    hint.textContent = translateAuthError(er.code); hint.className = "admin-add-hint error";
+  }
+  setTimeout(() => { verifyResendBtn.disabled = false; }, 30000);
 });
 
 // Forgot password.
@@ -177,22 +221,38 @@ document.getElementById("logout-btn").addEventListener("click", () => auth.signO
 const profileLogout = document.getElementById("profile-logout");
 if (profileLogout) profileLogout.addEventListener("click", () => auth.signOut());
 document.getElementById("pending-logout-btn").addEventListener("click", () => auth.signOut());
-const pendingCopyBtn = document.getElementById("pending-copy-btn");
-if (pendingCopyBtn) pendingCopyBtn.addEventListener("click", () => {
-  const id = document.getElementById("pending-id").textContent;
-  navigator.clipboard.writeText(id).then(() => showToast("تم نسخ المعرّف", "success")).catch(() => showToast("فشل النسخ", "error"));
-});
 
 let currentUser = null;
+
+// Returns true if the account's email is verified, OR the account uses a
+// provider that inherently verifies email (Google always; GitHub when it
+// returns a verified primary email). Password accounts must verify explicitly.
+function isEmailVerified(user) {
+  if (!user) return false;
+  if (user.emailVerified) return true;
+  // Google's OpenID email is already verified; treat it as verified even if the
+  // Firebase flag lags. GitHub sets emailVerified when the primary email is verified.
+  const providers = (user.providerData || []).map((p) => p.providerId);
+  if (providers.includes("google.com")) return true;
+  return false;
+}
 
 auth.onAuthStateChanged(async (user) => {
   if (!user) { showScreen("login"); return; }
   currentUser = user;
   const email = (user.email || "").toLowerCase();
   currentUserIsOwner = email === OWNER_EMAIL.toLowerCase();
-  // Open signup: any signed-in account can use the dashboard. Each account only
-  // ever sees and controls its own servers (enforced by loadMyServers + rules),
-  // so there is no approval gate.
+
+  // Email verification gate (NOT an approval gate). Any verified account — admin
+  // or normal user — gets full normal access. Owner is exempt so lockout is
+  // impossible. Unverified password accounts see the verification screen.
+  if (!currentUserIsOwner && !isEmailVerified(user)) {
+    document.getElementById("verify-email").textContent = user.email || "";
+    showScreen("pending");
+    // If this is a brand-new/unverified session and no mail was just sent, offer resend only.
+    return;
+  }
+
   showDashboard(user);
   // Only the global (server-agnostic) connection listener attaches here.
   // NO server-scoped listener is created until the user picks a server.
@@ -319,8 +379,23 @@ function translateAuthError(code) {
     case "auth/weak-password": return "كلمة المرور ضعيفة (6 أحرف على الأقل).";
     case "auth/account-exists-with-different-credential": return "هذا البريد مسجّل بمزوّد آخر. جرّب طريقة دخول مختلفة.";
     case "auth/operation-not-allowed": return "طريقة الدخول دي غير مفعّلة في Firebase.";
+    case "auth/too-many-requests": return "محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً.";
+    case "auth/expired-action-code": return "انتهت صلاحية رابط التحقق. اطلب رابطاً جديداً.";
+    case "auth/invalid-action-code": return "رابط التحقق غير صالح أو مستخدم من قبل. اطلب رابطاً جديداً.";
+    case "auth/requires-recent-login": return "أعد تسجيل الدخول ثم حاول مجدداً.";
     default: return "فشل تسجيل الدخول. حاول مجدداً.";
   }
+}
+
+// Tiny translation helper for JS-generated auth strings (respects the current lang).
+function t(key) {
+  const cur = (function () { try { return localStorage.getItem("vr_lang") || "en"; } catch (e) { return "en"; } })();
+  const S = {
+    verify_sent: { ar: "تم إرسال رسالة التحقق إلى بريدك.", en: "Verification email sent to your inbox." },
+    verify_checking: { ar: "جاري التحقق...", en: "Checking..." },
+    verify_not_yet: { ar: "لم يتم التوثيق بعد. افتح الرسالة واضغط Verify Account ثم حاول.", en: "Not verified yet. Open the email, click Verify Account, then try again." }
+  };
+  return (S[key] && S[key][cur]) || (S[key] && S[key].en) || key;
 }
 
 // ---- Navigation ----
@@ -3077,7 +3152,15 @@ const AR_EN = {
   "لا يوجد سيرفر": "No server",
   "امنح صلاحية الدخول لأي حساب Google بإدخال بريده.": "Grant panel access to any Google account by email.",
   "الصق معرّف (ID) أي شخص سجّل دخوله ليتمكّن من التحكم في الموقع معك.": "Paste the ID of anyone who signed in to let them control the panel with you.",
-  "هذا هو معرّفك الفريد. شاركه مع مالك السيرفر ليمنحك صلاحية الدخول.": "This is your unique ID. Share it with the server owner to get access."
+  "هذا هو معرّفك الفريد. شاركه مع مالك السيرفر ليمنحك صلاحية الدخول.": "This is your unique ID. Share it with the server owner to get access.",
+  // Email verification screen
+  "وثّق بريدك الإلكتروني": "Verify your email",
+  "خطوة أخيرة لتأمين حسابك": "One last step to secure your account",
+  "أرسلنا رسالة تحقق إلى بريدك. افتحها واضغط زر Verify Account.": "We sent a verification email. Open it and click Verify Account.",
+  "بعد التوثيق، اضغط «لقد وثّقت» للمتابعة. لم تصلك الرسالة؟ راجع البريد المزعج أو أعد الإرسال.": "After verifying, click \"I've verified\" to continue. Didn't get it? Check spam or resend.",
+  "لقد وثّقت — متابعة": "I've verified — continue",
+  "إعادة إرسال الرسالة": "Resend email",
+  "تسجيل الخروج": "Sign out"
 };
 
 // Build reverse map (EN -> AR) for restoring.

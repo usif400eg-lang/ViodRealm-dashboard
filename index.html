@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=21">
+    <link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
     <div class="bg-grid"></div>
@@ -79,23 +79,29 @@
         <footer class="auth-footer">VoxelPanel &copy; 2026</footer>
     </div>
 
-    <!-- Pending screen -->
+    <!-- Email verification screen (shown for unverified email/password accounts) -->
     <div id="pending-screen" class="auth-screen hidden">
         <div class="auth-box">
             <div class="brand">
-                <div class="brand-logo pending-logo">⏳</div>
-                <h1>بانتظار الموافقة</h1>
-                <p class="subtitle">تم تسجيل دخولك بنجاح</p>
+                <div class="brand-logo verify-logo"><img src="image/ic-at.png" alt=""></div>
+                <h1 data-i18n="verify_title">وثّق بريدك الإلكتروني</h1>
+                <p class="subtitle" data-i18n="verify_sub">خطوة أخيرة لتأمين حسابك</p>
             </div>
-            <p class="pending-msg">
-                حسابك <strong id="pending-email"></strong> غير مصرّح له بعد.<br>
-                شارك المعرّف التالي مع مالك السيرفر ليمنحك الصلاحية:
+            <p class="pending-msg" data-i18n="verify_msg1">
+                أرسلنا رسالة تحقق إلى بريدك. افتحها واضغط زر <strong>Verify Account</strong>.
             </p>
-            <div class="myid-row">
-                <code id="pending-id" class="myid-code">-</code>
-                <button id="pending-copy-btn" class="btn-primary">نسخ</button>
+            <p class="pending-msg">
+                <strong id="verify-email"></strong>
+            </p>
+            <p class="pending-msg small" data-i18n="verify_msg2">
+                بعد التوثيق، اضغط «لقد وثّقت» للمتابعة. لم تصلك الرسالة؟ راجع البريد المزعج أو أعد الإرسال.
+            </p>
+            <div class="ask-actions">
+                <button id="verify-check-btn" class="btn-primary full" data-i18n="verify_check">لقد وثّقت — متابعة</button>
+                <button id="verify-resend-btn" class="btn-ghost full" data-i18n="verify_resend">إعادة إرسال الرسالة</button>
+                <button id="pending-logout-btn" class="btn-ghost full" data-i18n="logout">تسجيل الخروج</button>
             </div>
-            <button id="pending-logout-btn" class="btn-ghost full mt-8">تسجيل الخروج</button>
+            <p id="verify-hint" class="admin-add-hint"></p>
         </div>
         <footer class="auth-footer">VoxelPanel &copy; 2026</footer>
     </div>
@@ -1183,6 +1189,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=22"></script>
 </body>
 </html>
