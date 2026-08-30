@@ -314,7 +314,7 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 
 .main { flex: 1; padding: 26px 30px; max-width: 100%; min-width: 0; overflow-x: hidden; }
 
-.topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, transparent, var(--line) 30%, var(--line) 70%, transparent) 1; }
 .menu-toggle { display: none; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-xs); padding: 8px 11px; cursor: pointer; align-items: center; justify-content: center; }
 .menu-toggle svg, .icon-btn svg, .theme-opt svg, .cselect-arrow svg, .back-srv-btn svg { width: 18px; height: 18px; display: block; }
 /* Icon-only buttons must not inherit the base button's text padding. */
@@ -335,6 +335,13 @@ html[dir="ltr"] .nav-group-label::before { right: auto; left: 14px; background: 
 .topbar-status > .btn-ghost,
 .topbar-status > .btn-primary { display: inline-flex; align-items: center; }
 .topbar-status .status-badge { padding-top: 0; padding-bottom: 0; }
+/* Unify corner radius across all topbar controls (was a mix of pill/rounded). */
+.topbar-status > .btn-ghost,
+.topbar-status > .btn-primary,
+.topbar-status .cselect-btn,
+.topbar-status .theme-group,
+.topbar-status .lang-btn,
+.topbar-status .status-badge { border-radius: var(--r-sm); }
 
 .status-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 30px; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; position: relative; }
