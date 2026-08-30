@@ -953,26 +953,25 @@ function renderInspect(d) {
   // Game-accurate layout.
   renderArmorColumn(d);
   renderStorageAndHotbar(toArray(d.main));
-  // Player skin (full body) between armor and offhand, like the game.
-  // Prefer the UUID (works on offline/premium alike); fall back to name, then steve.
+  // Player body render of the ACTUAL player. Uses the full 3D body render from
+  // the UUID (falls back to name, then steve). data.uuid is the real player.
   const skin = document.getElementById("inv-player-skin");
   if (skin) {
     const uuid = (d.uuid || "").replace(/-/g, "");
     const nm = (d.name || pmTarget || "steve");
+    // starcrafte/visage 3D full-body render; mc-heads as fallback.
     const primary = uuid
-      ? "https://mc-heads.net/body/" + uuid + "/100"
-      : "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/100";
-    const byName = "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/100";
+      ? "https://vzge.me/full/240/" + uuid + ".png"
+      : "https://vzge.me/full/240/" + encodeURIComponent(nm) + ".png";
+    const alt2 = uuid
+      ? "https://mc-heads.net/body/" + uuid + "/120"
+      : "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/120";
     skin.dataset.stage = "primary";
     skin.src = primary;
     skin.onerror = function () {
-      if (this.dataset.stage === "primary" && primary !== byName) {
-        this.dataset.stage = "name";
-        this.src = byName;
-      } else {
-        this.onerror = null;
-        this.src = "https://mc-heads.net/body/steve/100";
-      }
+      if (this.dataset.stage === "primary") { this.dataset.stage = "alt"; this.src = alt2; }
+      else if (this.dataset.stage === "alt") { this.dataset.stage = "name"; this.src = "https://mc-heads.net/body/" + encodeURIComponent(nm) + "/120"; }
+      else { this.onerror = null; this.src = "https://mc-heads.net/body/steve/120"; }
     };
   }
 }
@@ -1028,7 +1027,6 @@ function buildSlot(item) {
   slot.className = "inv-slot";
   if (item && item.type && item.type !== "AIR") {
     const id = item.type.toLowerCase();
-    // Prefer the custom display name; otherwise a prettified material id (e.g. IRON_SWORD -> Iron Sword).
     const nameAttr = item.name ? item.name.replace(/§./g, "") : prettyItemName(item.type);
     if (item.enchanted) slot.classList.add("enchanted");
     const img = document.createElement("img");
@@ -1039,17 +1037,18 @@ function buildSlot(item) {
     img.src = mcTextureUrl("item", id);
     img.onerror = function () {
       if (this.dataset.stage === "item") {
-        // Not a flat item — it's a block. Render a 3D isometric cube from the block texture.
+        // Not a flat item texture — try the block texture as a flat image first.
+        this.dataset.stage = "block";
+        this.src = mcTextureUrl("block", id);
+      } else if (this.dataset.stage === "block") {
+        // Block texture also missing — render a static 3D isometric cube if the
+        // block face texture exists; otherwise show a clean generic item chip
+        // (never the confusing "barrier/hidden block" placeholder).
         const blockUrl = mcTextureUrl("block", id);
         const probe = new Image();
         probe.onload = () => { this.remove(); slot.insertBefore(build3DCube(blockUrl), slot.firstChild); };
-        probe.onerror = () => { this.onerror = null; this.style.opacity = 0.4; this.src = fallbackTexture(); };
+        probe.onerror = () => { this.remove(); slot.insertBefore(genericItemChip(item.type), slot.firstChild); };
         probe.src = blockUrl;
-        this.dataset.stage = "block";
-      } else {
-        this.onerror = null;
-        this.style.opacity = 0.4;
-        this.src = fallbackTexture();
       }
     };
     slot.appendChild(img);
@@ -1058,19 +1057,65 @@ function buildSlot(item) {
       glint.className = "inv-glint";
       slot.appendChild(glint);
     }
+    // Durability bar (like the game) when the item is damaged.
+    if (item.durability != null && item.maxDurability) {
+      const pct = Math.max(0, Math.min(1, item.durability / item.maxDurability));
+      const bar = document.createElement("span");
+      bar.className = "inv-durability";
+      const hue = Math.round(pct * 120); // red -> green
+      bar.innerHTML = `<span style="width:${pct * 100}%;background:hsl(${hue},80%,45%)"></span>`;
+      slot.appendChild(bar);
+    }
     if (item.amount > 1) {
       const count = document.createElement("span");
       count.className = "inv-count";
       count.textContent = item.amount;
       slot.appendChild(count);
     }
-    // Custom tooltip on hover showing the item name.
-    const tip = document.createElement("span");
-    tip.className = "inv-tip";
-    tip.textContent = nameAttr;
-    slot.appendChild(tip);
+    // Rich tooltip: name + enchantments + lore + durability (like an in-game tooltip).
+    slot.appendChild(buildItemTooltip(item, nameAttr));
   }
   return slot;
+}
+
+// Builds a game-style tooltip card for an item.
+function buildItemTooltip(item, nameAttr) {
+  const tip = document.createElement("span");
+  tip.className = "inv-tip";
+  let html = `<span class="tip-name${item.enchanted ? " ench" : ""}">${escapeHtml(nameAttr)}</span>`;
+  if (item.enchants && Object.keys(item.enchants).length) {
+    html += '<span class="tip-ench">';
+    Object.keys(item.enchants).forEach((en) => {
+      html += `${escapeHtml(en)} ${romanLevel(item.enchants[en])}<br>`;
+    });
+    html += "</span>";
+  }
+  if (item.durability != null && item.maxDurability) {
+    html += `<span class="tip-dura">المتانة: ${item.durability} / ${item.maxDurability}</span>`;
+  }
+  if (Array.isArray(item.lore) && item.lore.length) {
+    html += '<span class="tip-lore">' + item.lore.map((l) => escapeHtml(String(l).replace(/§./g, ""))).join("<br>") + "</span>";
+  }
+  html += `<span class="tip-id">${escapeHtml(prettyItemName(item.type))}</span>`;
+  tip.innerHTML = html;
+  return tip;
+}
+
+// A clean generic chip for items whose texture we don't have locally — avoids
+// the confusing "barrier"/hidden-block placeholder the user disliked.
+function genericItemChip(type) {
+  const chip = document.createElement("span");
+  chip.className = "inv-generic";
+  chip.textContent = prettyItemName(type).split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return chip;
+}
+
+// Roman numerals for enchant levels (1..10), like the game (Sharpness V).
+function romanLevel(n) {
+  const map = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
+  let r = "", x = Number(n) || 1;
+  for (const [v, s] of map) { while (x >= v) { r += s; x -= v; } }
+  return r || "I";
 }
 // Converts a material id (IRON_SWORD) into a readable name (Iron Sword).
 function prettyItemName(type) {
