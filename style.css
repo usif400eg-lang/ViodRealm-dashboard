@@ -550,6 +550,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .control-grid, .mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .control-grid .span-2 { grid-column: 1 / -1; }
+/* Server page: power spans the full row, the four control cards fill the width
+   evenly (4 columns) so the layout is edge-to-edge like the Overview page. */
+#section-server .control-grid { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { #section-server .control-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { #section-server .control-grid { grid-template-columns: 1fr; } }
 .control-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .control-row input { flex: 1; min-width: 160px; }
 
