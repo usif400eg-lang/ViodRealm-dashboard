@@ -189,32 +189,17 @@ auth.onAuthStateChanged(async (user) => {
   if (!user) { showScreen("login"); return; }
   currentUser = user;
   const email = (user.email || "").toLowerCase();
-  const uid = user.uid;
   currentUserIsOwner = email === OWNER_EMAIL.toLowerCase();
-  let authorized = currentUserIsOwner;
-  if (!authorized) {
-    try {
-      // Authorized if the email OR the uid is registered under /admins.
-      const byEmail = await adminsRef.child(emailKey(email)).get();
-      const byId = await adminsRef.child(uid).get();
-      authorized = (byEmail.exists() && byEmail.val() === true) || (byId.exists() && byId.val() === true) ||
-                   (byId.exists() && byId.val() && byId.val().authorized === true);
-    } catch (e) { authorized = false; }
-  }
-  if (authorized) {
-    showDashboard(user);
-    // Only the global (server-agnostic) connection listener attaches here.
-    // NO server-scoped listener is created until the user picks a server.
-    if (!listenersAttached) { attachGlobalListeners(); listenersAttached = true; }
-    loadMyServers(user.uid);
-    // Always land on the server list, then honour an explicit deep link only.
-    handleRoute();
-  } else {
-    document.getElementById("pending-email").textContent = user.email;
-    const pid = document.getElementById("pending-id");
-    if (pid) pid.textContent = uid;
-    showScreen("pending");
-  }
+  // Open signup: any signed-in account can use the dashboard. Each account only
+  // ever sees and controls its own servers (enforced by loadMyServers + rules),
+  // so there is no approval gate.
+  showDashboard(user);
+  // Only the global (server-agnostic) connection listener attaches here.
+  // NO server-scoped listener is created until the user picks a server.
+  if (!listenersAttached) { attachGlobalListeners(); listenersAttached = true; }
+  loadMyServers(user.uid);
+  // Always land on the server list, then honour an explicit deep link only.
+  handleRoute();
 });
 
 function showScreen(which) {
@@ -519,34 +504,41 @@ async function activateServer(serverId, section) {
   return true;
 }
 
-// Validates existence + access without attaching any long-lived listener.
+// Validates access without attaching any long-lived listener.
+// A user may open a server if it is linked under their own userServers node
+// (i.e. they created it) or they are the panel owner. This relies only on data
+// the user can always read (their own userServers), so it never false-denies.
 async function validateServerAccess(serverId) {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(serverId)) return { ok: false, reason: "notfound" };
+  // Primary check: the server is in the account's own list.
+  let allowed = currentUserIsOwner || !!myServers[serverId];
+  if (!allowed && auth.currentUser) {
+    try {
+      const memberSnap = await usersServersRef.child(auth.currentUser.uid).child(serverId).get();
+      allowed = memberSnap.exists();
+    } catch (e) { allowed = false; }
+  }
+  if (!allowed) return { ok: false, reason: "denied" };
+
+  // Best-effort read of public metadata for name/presence. A read error here
+  // must NOT deny access to a server the user owns.
+  let meta = {};
   try {
     const metaSnap = await db.ref("serverMeta/" + serverId).get();
-    if (!metaSnap.exists()) return { ok: false, reason: "notfound" };
-    const meta = metaSnap.val() || {};
-    let allowed = currentUserIsOwner;
-    if (!allowed && auth.currentUser) {
-      const memberSnap = await usersServersRef.child(auth.currentUser.uid).child(serverId).get();
-      allowed = memberSnap.exists() || meta.ownerUid === auth.currentUser.uid;
+    meta = metaSnap.val() || {};
+  } catch (e) { meta = {}; }
+
+  const local = myServers[serverId] || {};
+  return {
+    ok: true,
+    permissions: { manage: true },
+    data: {
+      label: local.label || meta.name || serverId,
+      name: meta.name || local.label || serverId,
+      image: local.image || null,
+      online: meta.online === true
     }
-    if (!allowed) return { ok: false, reason: "denied" };
-    const local = myServers[serverId] || {};
-    return {
-      ok: true,
-      permissions: { manage: true },
-      data: {
-        label: local.label || meta.name || serverId,
-        name: meta.name || serverId,
-        image: local.image || null,
-        online: meta.online === true
-      }
-    };
-  } catch (e) {
-    // A read rejection is an authorization signal, not a crash.
-    return { ok: false, reason: "denied" };
-  }
+  };
 }
 
 // Full teardown: every server-scoped listener is detached and state cleared, so
