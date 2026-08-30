@@ -708,6 +708,8 @@ function attachServerListeners() {
     setText("stat-system", s.systemEnabled === undefined ? "-" : (s.systemEnabled ? "مفعّل" : "معطّل"));
     if (s.lastSync) document.getElementById("last-sync").textContent = "آخر تحديث: " + new Date(s.lastSync).toLocaleTimeString("ar-EG");
     setText("ov-tps", s.tps != null ? s.tps : "-");
+    // Anchor the uptime to local time so it can tick live (h:m:s.cs) between syncs.
+    if (s.uptimeMs != null) { uptimeBaseMs = s.uptimeMs; uptimeAnchor = Date.now(); }
     setText("ov-uptime", s.uptimeMs != null ? formatUptime(s.uptimeMs) : "-");
     setText("ov-capacity", (s.onlinePlayers != null && s.maxPlayers != null) ? (s.onlinePlayers + " / " + s.maxPlayers) : "-");
     setText("ov-entities", s.totalEntities != null ? s.totalEntities : "-");
@@ -736,12 +738,26 @@ function attachServerListeners() {
 }
 
 function formatUptime(ms) {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return h + "س " + m + "د";
-  return m + "د";
+  const total = Math.max(0, Math.floor(ms));
+  const h = Math.floor(total / 3600000);
+  const m = Math.floor((total % 3600000) / 60000);
+  const s = Math.floor((total % 60000) / 1000);
+  const frac = Math.floor((total % 1000) / 10); // centiseconds (2 digits)
+  const p2 = (n) => String(n).padStart(2, "0");
+  // Hours : minutes : seconds . fraction — always full precision.
+  return `${p2(h)}:${p2(m)}:${p2(s)}.${p2(frac)}`;
 }
+
+// Live uptime ticker: the plugin reports uptimeMs every few seconds; between
+// reports we extrapolate from a local anchor so the display counts h:m:s.cs
+// smoothly. Only the overview's own server is ticked (ov-uptime).
+let uptimeBaseMs = null, uptimeAnchor = 0;
+setInterval(() => {
+  if (uptimeBaseMs == null) return;
+  const el = document.getElementById("ov-uptime");
+  if (!el || !document.getElementById("section-overview").classList.contains("active")) return;
+  el.textContent = formatUptime(uptimeBaseMs + (Date.now() - uptimeAnchor));
+}, 60);
 
 function renderWorlds(worlds) {
   const c = document.getElementById("overview-worlds");
