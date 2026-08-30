@@ -1320,23 +1320,24 @@ button, a, .nav-item, .srv-card, .stat-card, .fleet-card, .panel {
    Additive only; respects reduced-transparency + reduced-motion.
    ============================================================ */
 :root {
-    --glass-bg: rgba(22, 28, 42, 0.62);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-highlight: rgba(255, 255, 255, 0.05);
-    --glass-blur: 16px;
+    --glass-bg: rgba(20, 26, 40, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.12);
+    --glass-blur: 26px;
 }
 html[data-theme="light"] {
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(20, 24, 38, 0.08);
-    --glass-highlight: rgba(255, 255, 255, 0.5);
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(20, 24, 38, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.7);
 }
 
 /* Frosted surfaces for the main content containers. */
 .panel, .stat-card, .fleet-card, .srv-card, .modal-box {
     background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-    border-color: var(--glass-border);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-md);
 }
 /* Top light reflection that reads as glass depth. */
 .panel { position: relative; }
@@ -1346,10 +1347,13 @@ html[data-theme="light"] {
     pointer-events: none;
 }
 .sidebar, .topbar {
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
 }
-.sidebar { background: var(--glass-bg); }
+.sidebar { background: var(--glass-bg); border-color: var(--glass-border); }
+
+/* Brighter ambient orbs behind the glass so the blur is clearly visible. */
+.orb { opacity: 0.4; }
 
 /* Data figures use tabular numerals so live counters don't jitter (skill: number-tabular). */
 .stat-value, .fleet-value, .ms-value, .srv-stat-v, .pill, .console-out, .myid-code {
