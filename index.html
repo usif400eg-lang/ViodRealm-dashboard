@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=23">
+    <link rel="stylesheet" href="style.css?v=24">
 </head>
 <body>
     <div class="bg-grid"></div>
@@ -930,6 +930,11 @@
                         </div>
                     </div>
                     <div class="files-path" id="files-path">/</div>
+                    <div class="files-selbar hidden" id="files-selbar">
+                        <label class="files-selall"><input type="checkbox" id="files-selall"> <span data-i18n="select_all">تحديد الكل</span></label>
+                        <span class="files-selcount" id="files-selcount">0 محدد</span>
+                        <button id="files-delsel" class="mini-btn ban" data-i18n="delete_selected">حذف المحدد</button>
+                    </div>
                     <div id="files-list" class="files-list"><p class="empty-msg">جاري التحميل...</p></div>
                     <div class="files-upload-row">
                         <input type="text" id="files-upload-url" placeholder="رابط بلجن .jar لرفعه على السيرفر">
@@ -1388,6 +1393,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=24"></script>
 </body>
 </html>

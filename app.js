@@ -2715,13 +2715,50 @@ function ensureFiles() {
       document.getElementById("files-upload-url").value = "";
       showToast("جاري رفع البلجن...", "success");
     });
+    // Select-all toggles every visible checkbox.
+    const selAll = document.getElementById("files-selall");
+    if (selAll) selAll.addEventListener("change", () => {
+      document.querySelectorAll(".file-check").forEach((cb) => {
+        if (cb.checked !== selAll.checked) { cb.checked = selAll.checked; cb.dispatchEvent(new Event("change")); }
+      });
+    });
+    // Delete every selected file/folder after one confirmation.
+    const delSel = document.getElementById("files-delsel");
+    if (delSel) delSel.addEventListener("click", () => {
+      const paths = Array.from(selectedFiles);
+      if (!paths.length) return;
+      ask({ title: "حذف المحدد", msg: `حذف ${paths.length} عنصر؟ لا يمكن التراجع.`, iconImg: "ic-trash.png", danger: true, okText: "حذف الكل" })
+        .then((r) => {
+          if (!r) return;
+          paths.forEach((p) => sendCommand("files_delete", p));
+          showToast(`تم إرسال حذف ${paths.length} عنصر`, "success");
+          selectedFiles.clear(); updateSelBar();
+        });
+    });
   }
   filesLoad(filesCwd);
 }
-function filesLoad(path) { filesCwd = path || ""; sendCommand("files_list", filesCwd); }
+function filesLoad(path) { filesCwd = path || ""; selectedFiles.clear(); updateSelBar(); sendCommand("files_list", filesCwd); }
+
+// Multi-select state for files/folders (checkboxes).
+const selectedFiles = new Set();
+function updateSelBar() {
+  const bar = document.getElementById("files-selbar");
+  const count = document.getElementById("files-selcount");
+  if (!bar) return;
+  bar.classList.toggle("hidden", selectedFiles.size === 0);
+  if (count) count.textContent = selectedFiles.size + " " + (currentLangIsAr() ? "محدد" : "selected");
+  // Reflect the "select all" checkbox state.
+  const all = document.getElementById("files-selall");
+  const boxes = document.querySelectorAll(".file-check");
+  if (all) all.checked = boxes.length > 0 && selectedFiles.size === boxes.length;
+}
+function currentLangIsAr() { try { return (localStorage.getItem("vr_lang") || "en") === "ar"; } catch (e) { return false; } }
+
 function renderFiles(data) {
   const list = document.getElementById("files-list");
   document.getElementById("files-path").textContent = "/" + (data && data.path ? data.path : "");
+  selectedFiles.clear(); updateSelBar();
   if (!data || !data.entries || !data.entries.length) { list.innerHTML = emptyState("overview.png", "المجلد فارغ", ""); return; }
   filesCwd = data.path || "";
   list.innerHTML = "";
@@ -2730,10 +2767,19 @@ function renderFiles(data) {
     row.className = "file-row";
     const icon = e.dir ? "📁" : (e.editable ? "📝" : "📄");
     row.innerHTML = `
+      <input type="checkbox" class="file-check" title="تحديد">
       <span class="file-ic">${icon}</span>
       <span class="file-name">${escapeHtml(e.name)}</span>
       <span class="file-size">${e.dir ? "" : formatBytes(e.size)}</span>
       <span class="file-actions"></span>`;
+    // Checkbox selection (works for both files and folders).
+    const cb = row.querySelector(".file-check");
+    cb.addEventListener("click", (ev) => ev.stopPropagation());
+    cb.addEventListener("change", () => {
+      if (cb.checked) selectedFiles.add(e.path); else selectedFiles.delete(e.path);
+      row.classList.toggle("selected", cb.checked);
+      updateSelBar();
+    });
     const actions = row.querySelector(".file-actions");
     if (e.dir) {
       row.querySelector(".file-name").style.cursor = "pointer";
@@ -3245,7 +3291,9 @@ const AR_EN = {
   "اقرأ دليل البدء": "Read the getting-started guide",
   "تحكم من المتصفح ونسخ احتياطية مُتحقَّقة لسيرفرات Paper.": "Browser-based control and verified backups for Paper Minecraft servers.",
   "نظرة عامة": "Overview", "البدء": "Getting started", "دليل المستخدم": "User guide", "استكشاف الأخطاء": "Troubleshooting",
-  "الحساب": "Account", "الشروط": "Terms", "الخصوصية": "Privacy"
+  "الحساب": "Account", "الشروط": "Terms", "الخصوصية": "Privacy",
+  // File manager multi-select
+  "تحديد الكل": "Select all", "حذف المحدد": "Delete selected"
 };
 
 // Build reverse map (EN -> AR) for restoring.
