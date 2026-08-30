@@ -1253,3 +1253,63 @@ body.agent-offline .srv-open-btn { opacity: 1; }
     .modal-box { padding: 20px; }
     .modal-box.reg-box { padding: 0; }
 }
+
+/* ============================================================
+   Design-system polish layer (v11) — accessibility, motion,
+   scrollbars, consistent focus + press feedback. Purely additive;
+   no IDs, markup, or behaviour changed.
+   ============================================================ */
+
+/* Consistent keyboard focus ring across every interactive element. */
+a:focus-visible, button:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--r-xs);
+}
+button:focus:not(:focus-visible) { outline: none; }
+
+/* Refined custom scrollbars (dark-aware via tokens). */
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+
+/* Selection colour. */
+::selection { background: var(--brand-soft); color: var(--text); }
+
+/* Snappier, consistent press feedback on all clickable controls. */
+.ctrl-btn:active, .seg:active, .theme-opt:active, .lang-btn:active,
+.cselect-btn:active, .srv-open-btn:active, .pm-tab:active, .rank-opt:active {
+    transform: translateY(1px) scale(0.985);
+}
+
+/* Buttons/links share one easing curve for a cohesive feel. */
+button, a, .nav-item, .srv-card, .stat-card, .fleet-card, .panel {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Larger touch targets on coarse pointers (mobile/tablet). */
+@media (pointer: coarse) {
+    .nav-item { padding: 13px 14px; }
+    .ctrl-btn { padding: 13px 18px; }
+    .cselect-opt { padding: 12px 14px; }
+}
+
+/* Honour users who prefer reduced motion: keep the UI usable, drop animation. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+    .status-dot::after, .orb { animation: none !important; }
+}
+
+/* Tablet: the responsive middle-ground the layout was missing. */
+@media (min-width: 901px) and (max-width: 1200px) {
+    .main { padding: 24px 22px; }
+    .overview-cols { grid-template-columns: 1fr; }
+}
