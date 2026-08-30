@@ -751,6 +751,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* Control panels with header icons */
+.ctrl-panel { position: relative; overflow: hidden; }
+/* Large faint watermark of the panel's icon, bleeding from the leading edge and
+   clipped by the panel — same treatment as the Overview stat cards. */
+.ctrl-panel::before {
+    content: ""; position: absolute; z-index: 0; pointer-events: none;
+    top: 50%; inset-inline-start: -34px; transform: translateY(-50%) rotate(-8deg);
+    width: 150px; height: 150px;
+    background: var(--brand);
+    -webkit-mask: var(--wm) center / contain no-repeat; mask: var(--wm) center / contain no-repeat;
+    opacity: 0.06; transition: opacity 0.25s, transform 0.3s;
+}
+.ctrl-panel:hover::before { opacity: 0.11; transform: translateY(-50%) rotate(-4deg) scale(1.05); }
+.ctrl-panel > * { position: relative; z-index: 1; }
 .ctrl-panel .ctrl-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
 .ctrl-head h3 { font-size: 17px; font-weight: 700; }
 /* Match the Overview stat-card icon: gradient tile + white icon. */

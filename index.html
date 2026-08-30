@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
     <div class="bg-grid"></div>
@@ -655,7 +655,7 @@
             <!-- Server control -->
             <section id="section-server" class="section">
                 <div class="control-grid">
-                    <div class="panel ctrl-panel span-2">
+                    <div class="panel ctrl-panel span-2" style="--wm:url('image/ic-system.png')">
                         <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-system.png" alt=""></span><h3>طاقة السيرفر (Power)</h3></div>
                         <p class="panel-desc">تشغيل/إيقاف/إعادة تشغيل السيرفر عبر لوحة الاستضافة (Pterodactyl). يتطلب ضبط بيانات اللوحة في config.yml.</p>
                         <div class="btn-row">
@@ -666,7 +666,7 @@
                         </div>
                         <p id="power-hint" class="admin-add-hint"></p>
                     </div>
-                    <div class="panel ctrl-panel">
+                    <div class="panel ctrl-panel" style="--wm:url('image/ic-time.png')">
                         <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-time.png" alt=""></span><h3>الوقت</h3></div>
                         <p class="panel-desc">تغيير وقت اليوم في كل العوالم.</p>
                         <div class="btn-row">
@@ -676,7 +676,7 @@
                             <button class="ctrl-btn time-btn" data-time="midnight"><img class="cb-icon" src="image/ic-midnight.png" alt=""> منتصف الليل</button>
                         </div>
                     </div>
-                    <div class="panel ctrl-panel">
+                    <div class="panel ctrl-panel" style="--wm:url('image/ic-weather.png')">
                         <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-weather.png" alt=""></span><h3>الطقس</h3></div>
                         <p class="panel-desc">تغيير الطقس في كل العوالم.</p>
                         <div class="btn-row">
@@ -685,12 +685,12 @@
                             <button class="ctrl-btn bad weather-btn" data-weather="thunder"><img class="cb-icon" src="image/ic-thunder.png" alt=""> عاصفة</button>
                         </div>
                     </div>
-                    <div class="panel ctrl-panel">
+                    <div class="panel ctrl-panel" style="--wm:url('image/ic-save.png')">
                         <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-save.png" alt=""></span><h3>حفظ العالم</h3></div>
                         <p class="panel-desc">حفظ كل بيانات العالم فوراً (save-all).</p>
                         <button id="save-all-btn" class="ctrl-btn wide"><img class="cb-icon" src="image/ic-save.png" alt=""> حفظ الآن</button>
                     </div>
-                    <div class="panel ctrl-panel">
+                    <div class="panel ctrl-panel" style="--wm:url('image/ic-console.png')">
                         <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-console.png" alt=""></span><h3>أمر Console مخصّص</h3></div>
                         <p class="panel-desc">نفّذ أمراً مباشرة على console السيرفر. استخدمه بحذر.</p>
                         <div class="control-row">
@@ -1183,6 +1183,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="app.js?v=9"></script>
+    <script src="app.js?v=10"></script>
 </body>
 </html>
