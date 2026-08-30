@@ -549,6 +549,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-danger { background: var(--bad); color: #fff; }
 
 .control-grid, .mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.control-grid .span-2 { grid-column: 1 / -1; }
 .control-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .control-row input { flex: 1; min-width: 160px; }
 
