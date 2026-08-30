@@ -618,10 +618,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .icon-btn .ib-label {
     max-width: 0; opacity: 0; white-space: nowrap; font-size: 12px; font-weight: 700;
-    transition: max-width 0.18s ease, opacity 0.18s ease, margin 0.18s ease;
+    transition: max-width 0.2s ease, opacity 0.18s ease, margin 0.18s ease;
 }
-.icon-btn:hover { gap: 7px; padding: 7px 12px; }
-.icon-btn:hover .ib-label { max-width: 80px; opacity: 1; }
+.icon-btn:hover { gap: 7px; padding: 7px 13px; }
+/* Wide enough for the longest label ("Inventory"/"الحقيبة") so it never clips. */
+.icon-btn:hover .ib-label { max-width: 140px; opacity: 1; }
 
 /* Per-action colours (icon tint + hover background/label). */
 .icon-btn.wl:hover { background: rgba(52, 211, 153, 0.15); border-color: var(--ok); }
