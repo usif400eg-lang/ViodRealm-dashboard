@@ -41,6 +41,7 @@ let myServers = {};        // { serverId: {label, name} } visible to the current
 let serverListeners = []; // active .on() refs so we can detach on switch
 
 const loginScreen = document.getElementById("login-screen");
+const landingScreen = document.getElementById("landing-screen");
 const pendingScreen = document.getElementById("pending-screen");
 const dashboard = document.getElementById("dashboard");
 const loginError = document.getElementById("login-error");
@@ -266,10 +267,37 @@ function showScreen(which) {
   // Auth state is resolved — hide the boot splash for good.
   const splash = document.getElementById("boot-splash");
   if (splash) splash.classList.add("hidden");
-  loginScreen.classList.toggle("hidden", which !== "login");
+  // "login" now means the landing page; the auth form opens on demand.
+  if (landingScreen) landingScreen.classList.toggle("hidden", which !== "login");
+  loginScreen.classList.toggle("hidden", which !== "auth");
   pendingScreen.classList.toggle("hidden", which !== "pending");
   dashboard.classList.toggle("hidden", which !== "dashboard");
 }
+
+// Opens the sign-in/auth form (from the landing page CTAs).
+function openAuth(signup) {
+  if (landingScreen) landingScreen.classList.add("hidden");
+  loginScreen.classList.remove("hidden");
+  // Optionally switch the form into signup mode when "Get started" is used.
+  if (signup && typeof authMode !== "undefined" && authMode !== "signup") {
+    const toggle = document.getElementById("auth-toggle");
+    if (toggle) toggle.click();
+  }
+  loginScreen.scrollIntoView({ behavior: "smooth" });
+}
+// Wire every landing CTA (delegated so footer/hero/nav all work).
+document.addEventListener("click", (e) => {
+  const gs = e.target.closest(".lp-getstarted");
+  const si = e.target.closest(".lp-signin");
+  if (gs) { e.preventDefault(); openAuth(true); }
+  else if (si) { e.preventDefault(); openAuth(false); }
+});
+// Back arrow on the auth form returns to the landing page.
+const authBackBtn = document.getElementById("auth-back");
+if (authBackBtn) authBackBtn.addEventListener("click", () => {
+  loginScreen.classList.add("hidden");
+  if (landingScreen) landingScreen.classList.remove("hidden");
+});
 function providerLabel(user) {
   const pid = (user.providerData && user.providerData[0] && user.providerData[0].providerId) || "";
   if (pid.includes("google")) return "Google";
@@ -3160,7 +3188,64 @@ const AR_EN = {
   "بعد التوثيق، اضغط «لقد وثّقت» للمتابعة. لم تصلك الرسالة؟ راجع البريد المزعج أو أعد الإرسال.": "After verifying, click \"I've verified\" to continue. Didn't get it? Check spam or resend.",
   "لقد وثّقت — متابعة": "I've verified — continue",
   "إعادة إرسال الرسالة": "Resend email",
-  "تسجيل الخروج": "Sign out"
+  "تسجيل الخروج": "Sign out",
+  // Landing page (Arabic source -> English). EN is default; switching to AR uses the reverse map.
+  "المزايا": "Features", "النسخ الاحتياطي": "Backups", "التوثيق": "Docs",
+  "تسجيل الدخول": "Sign in", "ابدأ الآن": "Get started", "ابدأ الآن ←": "Get started ->",
+  "لوحة تحكم سيرفرات ماينكرافت": "Minecraft server control panel",
+  "لوحة تحكم لسيرفر ماينكرافت تأخذ نسخاً احتياطية يمكنك فعلاً استعادتها": "A Minecraft server panel that takes backups you can actually restore",
+  "VoxelPanel يتحكم في سيرفرات Paper من متصفحك: كونسول حي، مدير ملفات كامل، أدوات اللاعبين والعوالم، ونسخ احتياطية كاملة تتزامن مع Google Drive أو OneDrive مع تحقق checksum.": "VoxelPanel controls your Paper servers from your browser: live console, full file manager, player and world tools, and whole-server backups that sync to Google Drive or OneDrive with verified checksums.",
+  "اقرأ التوثيق": "Read the docs",
+  "كل ملف تحت جذر السيرفر، بلا استثناءات": "Every file under the server root, no exclusions",
+  "تحقق SHA-256، ونقل قابل للاستئناف": "SHA-256 verified, resumable transfers",
+  "صلاحيات لكل سيرفر للمتعاونين": "Per-server permissions for collaborators",
+  "نسخ ماينكرافت الاحتياطية إلى Google Drive و OneDrive، مع التفاصيل التي تحدد نجاح الاستعادة": "Minecraft backups to Google Drive and OneDrive, with the details that decide whether a restore works",
+  "تغطية كاملة، افتراضياً": "Full coverage, by default",
+  "يأرشف العوالم، البلجنات، الإعدادات، والسجلات — كل ملف تحت جذر السيرفر، بلا استثناءات صامتة.": "Archives worlds, plugins, configs, and logs — every file under the server root, with no silent exclusions.",
+  "مُتحقَّق منه، لا مفترض": "Verified, not assumed",
+  "يحسب هاش SHA-256 لكل أرشيف بايت ببايت فيُكتشف أي تلف قبل أن تحتاجه.": "Hashes every archive byte-for-byte with SHA-256 so a corrupted backup is caught before you ever need it.",
+  "مزامنة سحابية قابلة للاستئناف": "Resumable cloud sync",
+  "رفع مُجزّأ يصمد أمام انقطاع الاتصال ويكمل من حيث توقف بالضبط.": "Chunked uploads that survive dropped connections and pick up exactly where they left off.",
+  "نزّل أي نسخة، في أي وقت": "Download any backup, any time",
+  "بثّ أي نسخة مباشرة لمتصفحك، مع عرض SHA-256 لتتحقق من الملف بنفسك.": "Stream any backup straight to your browser, with its SHA-256 shown so you can verify the file yourself.",
+  "الجدولة والاحتفاظ": "Scheduling and retention",
+  "جدولة بفواصل زمنية أو cron مع احتفاظ محمي، فلا تُحذف النسخ المهمة أبداً.": "Interval or cron schedules with protected retention, so important backups are never rotated away.",
+  "تقدّم مرئي وأخطاء حقيقية": "Visible progress and real failures",
+  "تقارير خطوة بخطوة للأرشفة والرفع — أخطاء حقيقية تظهر، وليس \"تم\" صامت أبداً.": "Step-by-step reporting for archiving and uploading — real errors surfaced, never a silent \"done\".",
+  "كل ما تحتاجه أيضاً لتشغيل سيرفر": "Everything else you need to run a server",
+  "كونسول حي": "Live console",
+  "بثّ سجلات حي عبر WebSocket مع تنفيذ الأوامر وسجل التاريخ.": "Real-time log streaming over WebSocket with command execution and history.",
+  "مدير ملفات كامل": "Complete file manager",
+  "تصفّح كامل مجلد السيرفر وعدّل الإعدادات بأمان في مكانها.": "Browse the whole server directory and edit configs safely in place.",
+  "اللاعبون والعوالم": "Players & worlds",
+  "طرد، حظر، نقل، وضع اللعب، بالإضافة للتحكم في الوقت والطقس والعوالم.": "Kick, ban, teleport, gamemode, plus time, weather, and world controls.",
+  "مقاييس الأداء": "Performance metrics",
+  "TPS و MSPT و CPU و heap و GC حية مع رسوم بيانية تاريخية.": "Live TPS, MSPT, CPU, heap and GC with historical charts.",
+  "الحسابات وسجل التدقيق": "Accounts & audit log",
+  "حسابات دقيقة لكل سيرفر مع سجل تدقيق لكل إجراء.": "Granular per-server accounts with an auditable log of every action.",
+  "عارض حقيبة دقيق بالبكسل": "Pixel-accurate inventory viewer",
+  "افحص حقيبة اللاعب الحقيقية ودرعه وتعويذاته ومتانته، مثل اللعبة.": "Inspect a player's real inventory, armor, enchants and durability, like the game.",
+  "شارك سيرفراً دون مشاركة حسابك": "Share a server without sharing your account",
+  "دعوة باسم المستخدم": "Invite by username",
+  "أضف المتعاونين مباشرة — بلا مشاركة كلمات مرور، أبداً.": "Add collaborators directly — no shared passwords, ever.",
+  "أدوار جاهزة": "Preset roles",
+  "أدمن، مشرف، مشغّل، مشاهد — أو مجموعة صلاحيات مخصّصة.": "Admin, Moderator, Operator, Viewer — or a custom set of permissions.",
+  "ضمان عدم التصعيد": "Non-escalation guarantee",
+  "لا يمكن لأحد منح صلاحية لا يملكها بالفعل.": "Nobody can grant a permission they don't already hold.",
+  "إلغاء فوري": "Instant revocation",
+  "أزل الوصول ويسري المفعول فوراً في كل مكان.": "Remove access and it takes effect immediately, everywhere.",
+  "مشرف · Survival": "Moderator · Survival",
+  "أمران يعجز عنهما عمداً": "Two things it deliberately cannot do",
+  "لن يشغّل سيرفراً متوقفاً تماماً بمفرده": "It won't start a fully stopped server on its own",
+  "التشغيل يحتاج بلجن مصاحب يعمل أو لوحة استضافتك. اللوحة لا توقظ عملية غير موجودة — فنكون صادقين بدل الفشل الصامت.": "Power-on needs a running companion plugin or your hosting panel. A panel can't wake a process that isn't there — so we're honest about it instead of failing silently.",
+  "لن يجري استعادات محفوفة بالمخاطر أثناء التشغيل": "It won't do risky in-place restores while running",
+  "الاستعادة توقف السيرفر أولاً وتتحقق من الأرشيف، فلا تكتب فوق بيانات عالم حي وتُتلفها.": "Restores stop the server first and verify the archive, so you never overwrite live world data mid-write and corrupt it.",
+  "ابدأ خلال دقائق": "Get started in minutes",
+  "أنشئ حساباً، اربط سيرفر Paper بالبلجن المصاحب، وأدر كل شيء من متصفحك.": "Create an account, connect your Paper server with the companion plugin, and manage everything from your browser.",
+  "اقرأ دليل البدء": "Read the getting-started guide",
+  "تحكم من المتصفح ونسخ احتياطية مُتحقَّقة لسيرفرات Paper.": "Browser-based control and verified backups for Paper Minecraft servers.",
+  "نظرة عامة": "Overview", "البدء": "Getting started", "دليل المستخدم": "User guide", "استكشاف الأخطاء": "Troubleshooting",
+  "الحساب": "Account", "الشروط": "Terms", "الخصوصية": "Privacy"
 };
 
 // Build reverse map (EN -> AR) for restoring.
