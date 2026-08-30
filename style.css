@@ -1313,3 +1313,55 @@ button, a, .nav-item, .srv-card, .stat-card, .fleet-card, .panel {
     .main { padding: 24px 22px; }
     .overview-cols { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   Glassmorphism layer (v13) — per ui-ux-pro-max design system:
+   frosted obsidian surfaces, backdrop blur, subtle borders, depth.
+   Additive only; respects reduced-transparency + reduced-motion.
+   ============================================================ */
+:root {
+    --glass-bg: rgba(22, 28, 42, 0.62);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.05);
+    --glass-blur: 16px;
+}
+html[data-theme="light"] {
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(20, 24, 38, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.5);
+}
+
+/* Frosted surfaces for the main content containers. */
+.panel, .stat-card, .fleet-card, .srv-card, .modal-box {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    border-color: var(--glass-border);
+}
+/* Top light reflection that reads as glass depth. */
+.panel { position: relative; }
+.panel::after {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; z-index: 0;
+    background: linear-gradient(90deg, transparent, var(--glass-highlight) 22%, var(--glass-highlight) 78%, transparent);
+    pointer-events: none;
+}
+.sidebar, .topbar {
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+.sidebar { background: var(--glass-bg); }
+
+/* Data figures use tabular numerals so live counters don't jitter (skill: number-tabular). */
+.stat-value, .fleet-value, .ms-value, .srv-stat-v, .pill, .console-out, .myid-code {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+/* Users who prefer less transparency get solid surfaces (a11y). */
+@media (prefers-reduced-transparency: reduce) {
+    .panel, .stat-card, .fleet-card, .srv-card, .modal-box, .sidebar, .topbar {
+        background: var(--surface);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
