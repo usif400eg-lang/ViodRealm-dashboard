@@ -596,7 +596,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .cell-player { display: flex; align-items: center; gap: 10px; }
 .cell-avatar { width: 32px; height: 32px; border-radius: 9px; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0; overflow: hidden; }
 
+/* Row action buttons: always show icon + label (no fragile hover-expand that
+   clipped text like "Invent..."). Labels are always fully visible. */
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.row-actions .icon-btn {
+    gap: 7px; padding: 7px 12px; white-space: nowrap;
+}
+.row-actions .icon-btn .ib-label {
+    max-width: none; opacity: 1; white-space: nowrap; font-size: 12px; font-weight: 700;
+}
 .mini-btn { font-size: 12px; padding: 6px 11px; border-radius: 8px; font-weight: 700; }
 .mini-btn.kick { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
 .mini-btn.ban { background: rgba(251, 92, 120, 0.15); color: var(--bad); }
