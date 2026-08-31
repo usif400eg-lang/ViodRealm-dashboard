@@ -1399,8 +1399,14 @@ body.agent-offline .srv-open-btn { opacity: 1; }
    ============================================================ */
 .bk-panel { max-width: 760px; margin: 0 auto; }
 .bk-idle { text-align: center; padding: 24px 8px 8px; }
-.bk-hero-ic { width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 20px; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow); }
+.bk-hero-ic { width: 84px; height: 84px; margin: 0 auto 18px; border-radius: 22px; background: var(--surface-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); }
 .bk-hero-ic img { width: 34px; height: 34px; filter: brightness(0) invert(1); }
+/* Google Drive logo in the panel title */
+.bk-h3 { display: inline-flex; align-items: center; gap: 10px; }
+.gdrive-logo { display: inline-flex; align-items: center; }
+/* Stop / restart actions under the progress view */
+.bk-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+.bk-actions button { min-width: 170px; }
 .bk-desc { color: var(--text-2); font-size: 14.5px; line-height: 1.7; max-width: 560px; margin: 0 auto 22px; }
 .bk-start { display: inline-flex; align-items: center; gap: 9px; padding: 14px 26px; font-size: 15px; }
 .bk-note { color: var(--text-3); font-size: 12.5px; margin-top: 14px; }

@@ -2905,10 +2905,42 @@ function ensureBackups() {
   const startBtn = document.getElementById("bk-start-btn");
   if (startBtn) startBtn.addEventListener("click", beginGoogleDriveBackup);
   const againBtn = document.getElementById("bk-again-btn");
-  if (againBtn) againBtn.addEventListener("click", () => {
-    document.getElementById("bk-result").classList.add("hidden");
-    document.getElementById("bk-idle").classList.remove("hidden");
+  if (againBtn) againBtn.addEventListener("click", resetBackupUi);
+  // Cancel the running backup (cooperative stop handled by the plugin).
+  const cancelBtn = document.getElementById("bk-cancel-btn");
+  if (cancelBtn) cancelBtn.addEventListener("click", () => {
+    ask({
+      title: currentLangIsAr() ? "إنهاء العملية" : "Stop backup",
+      msg: currentLangIsAr() ? "سيتم إنهاء النسخ الاحتياطي الحالي. متابعة؟" : "The running backup will be stopped. Continue?",
+      iconImg: "ic-toggle-off.png", danger: true,
+      okText: currentLangIsAr() ? "إنهاء" : "Stop"
+    }).then((r) => {
+      if (!r) return;
+      sendCommand("backup_cancel", "1");
+      cancelBtn.disabled = true;
+      const msg = document.getElementById("bk-message");
+      if (msg) msg.textContent = currentLangIsAr() ? "جاري إنهاء العملية..." : "Stopping...";
+    });
   });
+  // Start a fresh run after a finished/cancelled/failed attempt.
+  const restartBtn = document.getElementById("bk-restart-btn");
+  if (restartBtn) restartBtn.addEventListener("click", () => { resetBackupUi(); beginGoogleDriveBackup(); });
+}
+
+// Returns the page to its idle state and clears the per-file console.
+function resetBackupUi() {
+  const list = document.getElementById("bk-files-list");
+  if (list) list.innerHTML = "";
+  updateBackupFilesCount();
+  const fill = document.getElementById("bk-bar-fill"); if (fill) fill.style.width = "0%";
+  const pe = document.getElementById("bk-percent"); if (pe) pe.textContent = "0%";
+  const msg = document.getElementById("bk-message"); if (msg) { msg.textContent = ""; msg.classList.remove("bk-err"); }
+  document.querySelectorAll("#bk-steps li").forEach((li) => li.classList.remove("done", "active"));
+  const cancelBtn = document.getElementById("bk-cancel-btn");
+  if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove("hidden"); }
+  const restartBtn = document.getElementById("bk-restart-btn");
+  if (restartBtn) restartBtn.classList.add("hidden");
+  showBackupState("idle");
 }
 
 // Requests a Drive access token via Google Identity Services (account picker),
@@ -2951,8 +2983,9 @@ function showBackupState(state) {
 
 function renderBackupProgress(p) {
   if (!p || typeof p.percent !== "number") return;
-  // Ignore a stale progress node from a previous backup once a fresh result shows.
-  showBackupState(p.phase === "complete" ? "progress" : "progress");
+  // "idle" is only a response to cancelling when nothing runs — ignore it.
+  if (p.phase === "idle") return;
+  showBackupState("progress");
   const pct = Math.max(0, Math.min(100, p.percent));
   const fill = document.getElementById("bk-bar-fill");
   if (fill) fill.style.width = pct + "%";
@@ -2967,12 +3000,19 @@ function renderBackupProgress(p) {
     li.classList.toggle("done", cur >= 0 && idx < cur);
     li.classList.toggle("active", idx === cur);
   });
-  if (p.phase === "error") {
-    const msgEl = document.getElementById("bk-message");
-    if (msgEl) msgEl.classList.add("bk-err");
-  } else {
-    const msgEl = document.getElementById("bk-message");
-    if (msgEl) msgEl.classList.remove("bk-err");
+  const msgEl = document.getElementById("bk-message");
+  const terminal = p.phase === "error" || p.phase === "cancelled";
+  if (msgEl) msgEl.classList.toggle("bk-err", terminal);
+  // On a terminal state (error/cancelled) swap Stop -> Start a new run.
+  const cancelBtn = document.getElementById("bk-cancel-btn");
+  const restartBtn = document.getElementById("bk-restart-btn");
+  if (cancelBtn) cancelBtn.classList.toggle("hidden", terminal);
+  if (restartBtn) restartBtn.classList.toggle("hidden", !terminal);
+  if (terminal) {
+    // The run is over: clear any leftover per-file rows.
+    const list = document.getElementById("bk-files-list");
+    if (list) list.innerHTML = "";
+    updateBackupFilesCount();
   }
 }
 
@@ -2984,6 +3024,8 @@ function backupPhaseLabel(phase) {
     hashing: ar ? "التحقق SHA-256" : "Hashing SHA-256",
     uploading: ar ? "الرفع إلى Drive" : "Uploading to Drive",
     complete: ar ? "اكتمل" : "Complete",
+    cancelling: ar ? "جاري الإنهاء" : "Stopping",
+    cancelled: ar ? "تم الإنهاء" : "Stopped",
     error: ar ? "خطأ" : "Error"
   };
   return m[phase] || phase || "";
@@ -3510,7 +3552,11 @@ const AR_EN = {
   "اكتمل": "Complete", "اكتمل النسخ الاحتياطي": "Backup Complete",
   "الملف": "File", "الوقت": "Timestamp", "الحجم": "Size",
   "نسخة أخرى": "Back up again",
-  "الملفات قيد المعالجة": "Files being processed"
+  "الملفات قيد المعالجة": "Files being processed",
+  "إنهاء العملية": "Stop backup", "بدء عملية جديدة": "Start a new backup",
+  "سيتم إنهاء النسخ الاحتياطي الحالي. متابعة؟": "The running backup will be stopped. Continue?",
+  "إنهاء": "Stop", "جاري إنهاء العملية...": "Stopping...",
+  "تم إنهاء العملية بواسطة المستخدم.": "Backup stopped by the user."
 };
 
 // Build reverse map (EN -> AR) for restoring.
