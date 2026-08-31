@@ -2887,6 +2887,9 @@ const GOOGLE_CLIENT_ID = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.googl
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 let backupInit = false;
 let backupProgressRef = null, backupResultRef = null, backupFilesRef = null;
+// True only after the user actually starts a backup in THIS page session, so a
+// refresh never resurrects an old error/complete state from Firebase.
+let backupStartedThisSession = false;
 
 function ensureBackups() {
   if (backupInit) return;
@@ -3018,6 +3021,7 @@ function beginGoogleDriveBackup() {
     if (!tok) { showToast(currentLangIsAr() ? "تعذّر الحصول على إذن Google Drive." : "Could not obtain Google Drive authorization.", "error"); return; }
     // value = "<token>|<customName>"
     sendCommand("backup_gdrive", tok + "|" + name);
+    backupStartedThisSession = true;
     showBackupState("progress");
     renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
   });
@@ -3034,6 +3038,7 @@ function showBackupState(state) {
 function beginLocalBackup() {
   const name = (document.getElementById("bk-name") && document.getElementById("bk-name").value || "").trim();
   sendCommand("backup_local", name || "1");
+  backupStartedThisSession = true;
   showBackupState("progress");
   renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
 }
@@ -3042,6 +3047,12 @@ function renderBackupProgress(p) {
   if (!p || typeof p.percent !== "number") return;
   // "idle" is only a response to cancelling when nothing runs — ignore it.
   if (p.phase === "idle") return;
+  const terminalPhase = p.phase === "error" || p.phase === "cancelled" || p.phase === "complete";
+  // On a fresh page load we haven't started a backup this session. In that case
+  // never resurrect an old terminal state (error/complete/cancelled) — stay idle.
+  // Only a genuinely running backup should pull the user onto the progress view.
+  if (!backupStartedThisSession && terminalPhase) return;
+  if (!backupStartedThisSession && p.t && Date.now() - p.t > 120000) return;
   showBackupState("progress");
   const pct = Math.max(0, Math.min(100, p.percent));
   const fill = document.getElementById("bk-bar-fill");
@@ -3092,7 +3103,9 @@ function backupPhaseLabel(phase) {
 
 function renderBackupResult(r) {
   if (!r || !r.fileName) return;
-  // Only show the result if it's fresh (avoids showing an old backup on open).
+  // Never resurrect a previous backup's result on refresh: only show it when the
+  // user started a backup in this session, and only if it's recent.
+  if (!backupStartedThisSession) return;
   if (r.t && Date.now() - r.t > 10 * 60 * 1000) return;
   document.getElementById("bk-r-file").textContent = r.fileName;
   document.getElementById("bk-r-time").textContent = r.t ? new Date(r.t).toLocaleString(currentLangIsAr() ? "ar-EG" : "en-US") : "-";
