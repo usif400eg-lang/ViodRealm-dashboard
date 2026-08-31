@@ -2193,6 +2193,10 @@ function updateActiveServerName() {
   if (!sid) { el.textContent = "اختر سيرفر"; return; }
   const info = myServers[sid] || ServerContext.serverData || {};
   el.textContent = info.label || info.name || sid;
+  // Reflect live presence on the switcher-button dot (was stuck grey).
+  const online = (ServerContext.serverData && ServerContext.serverData.online === true) || (info.online === true);
+  const dot = document.querySelector("#server-switch .cselect-btn .srv-dot");
+  if (dot) dot.className = "srv-dot " + (online ? "on" : "off");
 }
 
 // ===== Register-a-server flow (step 1 modal + step 2 token/config modal) =====
