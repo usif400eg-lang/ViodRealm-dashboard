@@ -2922,8 +2922,10 @@ function ensureBackups() {
       const dest = tab.dataset.dest;
       document.querySelectorAll("#bk-tabs .bk-tab").forEach((t) => t.classList.toggle("active", t === tab));
       document.querySelectorAll("#bk-idle .bk-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === dest));
+      updateBackupHeader(dest);
     });
   });
+  updateBackupHeader("gdrive");
   // Cancel the running backup (cooperative stop handled by the plugin).
   const cancelBtn = document.getElementById("bk-cancel-btn");
   if (cancelBtn) cancelBtn.addEventListener("click", () => {
@@ -2952,15 +2954,16 @@ function ensureBackups() {
     let dest = activeTab ? activeTab.dataset.dest : "local";
     if (dest === "mega") dest = "local";
     const name = (document.getElementById("bk-name").value || "").trim();
+    const folder = (document.getElementById("bk-folder") && document.getElementById("bk-folder").value || "").trim();
     if (smartToggle.checked && dest === "gdrive") {
       // Smart + Google Drive needs a token now (tokens are short-lived; we obtain one).
       requestDriveToken((tok) => {
         if (!tok) { smartToggle.checked = false; return; }
-        sendCommand("backup_smart", "on|gdrive|" + tok + "|" + name);
+        sendCommand("backup_smart", "on|gdrive|" + tok + "|" + name + "|" + folder);
         showToast(currentLangIsAr() ? "تم تفعيل النسخ التلقائي (Google Drive)" : "Smart backup enabled (Google Drive)", "success");
       });
     } else {
-      sendCommand("backup_smart", (smartToggle.checked ? "on" : "off") + "|" + dest + "||" + name);
+      sendCommand("backup_smart", (smartToggle.checked ? "on" : "off") + "|" + dest + "||" + name + "|" + folder);
       showToast(smartToggle.checked
         ? (currentLangIsAr() ? "تم تفعيل النسخ التلقائي" : "Smart backup enabled")
         : (currentLangIsAr() ? "تم إيقاف النسخ التلقائي" : "Smart backup disabled"), "success");
@@ -3031,6 +3034,27 @@ function showBackupState(state) {
   document.getElementById("bk-idle").classList.toggle("hidden", state !== "idle");
   document.getElementById("bk-progress").classList.toggle("hidden", state !== "progress");
   document.getElementById("bk-result").classList.toggle("hidden", state !== "result");
+}
+
+// Updates the card title + top icon based on the active destination tab.
+const GDRIVE_SVG = '<svg viewBox="0 0 87.3 78" width="22" height="20"><path fill="#0066da" d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z"/><path fill="#00ac47" d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z"/><path fill="#ea4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.5H59.75l5.85 11.5z"/><path fill="#00832d" d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z"/><path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"/><path fill="#ffba00" d="M73.4 26.5L60.75 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z"/></svg>';
+const HDD_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+const MEGA_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#d9272e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7 15V9l5 4 5-4v6"/></svg>';
+function updateBackupHeader(dest) {
+  const ic = document.getElementById("bk-title-ic");
+  const tx = document.getElementById("bk-title-text");
+  if (!ic || !tx) return;
+  const ar = currentLangIsAr();
+  if (dest === "local") {
+    ic.innerHTML = HDD_SVG;
+    tx.textContent = ar ? "نسخة احتياطية للتحميل المباشر" : "Direct Local Download Backup";
+  } else if (dest === "mega") {
+    ic.innerHTML = MEGA_SVG;
+    tx.textContent = ar ? "نسخة Mega.nz (قريباً)" : "Mega.nz Backup (Coming Soon)";
+  } else {
+    ic.innerHTML = GDRIVE_SVG;
+    tx.textContent = ar ? "نسخة Google Drive السحابية" : "Google Drive Cloud Backup";
+  }
 }
 
 // Direct local backup: no OAuth — the plugin archives and serves the file over
@@ -3116,9 +3140,21 @@ function renderBackupResult(r) {
   if (dl) {
     if (r.mode === "local" && r.downloadUrl) {
       dl.href = r.downloadUrl;
+      // download attribute triggers the browser's Save-As / folder picker.
+      dl.setAttribute("download", r.fileName || "backup.zip");
       dl.classList.remove("hidden");
     } else {
       dl.classList.add("hidden");
+    }
+  }
+  // "View in Google Drive" link (gdrive mode only).
+  const drive = document.getElementById("bk-drive-link");
+  if (drive) {
+    if (r.mode === "gdrive") {
+      drive.href = r.driveViewUrl || "https://drive.google.com/drive/my-drive";
+      drive.classList.remove("hidden");
+    } else {
+      drive.classList.add("hidden");
     }
   }
   showBackupState("result");
@@ -3656,7 +3692,16 @@ const AR_EN = {
   "فحص الملفات": "Scan files", "ضغط الملفات في أرشيف واحد": "Compress into one archive",
   "تنزيل/رفع النسخة": "Download / upload backup",
   "تم تفعيل النسخ التلقائي": "Smart backup enabled", "تم إيقاف النسخ التلقائي": "Smart backup disabled",
-  "تم تفعيل النسخ التلقائي (Google Drive)": "Smart backup enabled (Google Drive)"
+  "تم تفعيل النسخ التلقائي (Google Drive)": "Smart backup enabled (Google Drive)",
+  // Folder selection + completion actions + dynamic headers
+  "مجلد الوجهة في Google Drive (اختياري)": "Target Google Drive folder (optional)",
+  "اتركه فارغاً للحفظ في الجذر. سيُنشأ المجلد تلقائياً إن لم يكن موجوداً.": "Leave empty to save in the root. The folder is created automatically if it doesn't exist.",
+  "عرض في Google Drive": "View in Google Drive",
+  "بدء نسخة جديدة": "Start new backup",
+  "نسخة Google Drive السحابية": "Google Drive Cloud Backup",
+  "نسخة احتياطية للتحميل المباشر": "Direct Local Download Backup",
+  "نسخة Mega.nz (قريباً)": "Mega.nz Backup (Coming Soon)",
+  "Google Drive Cloud Backup": "Google Drive Cloud Backup"
 };
 
 // Build reverse map (EN -> AR) for restoring.
