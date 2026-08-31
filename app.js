@@ -2904,8 +2904,19 @@ function ensureBackups() {
 
   const startBtn = document.getElementById("bk-start-btn");
   if (startBtn) startBtn.addEventListener("click", beginGoogleDriveBackup);
+  const localBtn = document.getElementById("bk-local-btn");
+  if (localBtn) localBtn.addEventListener("click", beginLocalBackup);
   const againBtn = document.getElementById("bk-again-btn");
   if (againBtn) againBtn.addEventListener("click", resetBackupUi);
+  // Destination tabs (Google Drive / Direct download / Mega). Mega is disabled.
+  document.querySelectorAll("#bk-tabs .bk-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      if (tab.disabled || tab.classList.contains("disabled")) return;
+      const dest = tab.dataset.dest;
+      document.querySelectorAll("#bk-tabs .bk-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll("#bk-idle .bk-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === dest));
+    });
+  });
   // Cancel the running backup (cooperative stop handled by the plugin).
   const cancelBtn = document.getElementById("bk-cancel-btn");
   if (cancelBtn) cancelBtn.addEventListener("click", () => {
@@ -2981,6 +2992,14 @@ function showBackupState(state) {
   document.getElementById("bk-result").classList.toggle("hidden", state !== "result");
 }
 
+// Direct local backup: no OAuth — the plugin archives and serves the file over
+// its built-in download server, then the result card shows a download link.
+function beginLocalBackup() {
+  sendCommand("backup_local", "1");
+  showBackupState("progress");
+  renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
+}
+
 function renderBackupProgress(p) {
   if (!p || typeof p.percent !== "number") return;
   // "idle" is only a response to cancelling when nothing runs — ignore it.
@@ -3024,6 +3043,7 @@ function backupPhaseLabel(phase) {
     hashing: ar ? "التحقق SHA-256" : "Hashing SHA-256",
     uploading: ar ? "الرفع إلى Drive" : "Uploading to Drive",
     complete: ar ? "اكتمل" : "Complete",
+    linking: ar ? "تجهيز الرابط" : "Preparing link",
     cancelling: ar ? "جاري الإنهاء" : "Stopping",
     cancelled: ar ? "تم الإنهاء" : "Stopped",
     error: ar ? "خطأ" : "Error"
@@ -3039,6 +3059,16 @@ function renderBackupResult(r) {
   document.getElementById("bk-r-time").textContent = r.t ? new Date(r.t).toLocaleString(currentLangIsAr() ? "ar-EG" : "en-US") : "-";
   document.getElementById("bk-r-size").textContent = r.size != null ? formatBytes(r.size) : "-";
   document.getElementById("bk-r-hash").textContent = r.sha256 || "-";
+  // Direct-download link (local mode only).
+  const dl = document.getElementById("bk-download-link");
+  if (dl) {
+    if (r.mode === "local" && r.downloadUrl) {
+      dl.href = r.downloadUrl;
+      dl.classList.remove("hidden");
+    } else {
+      dl.classList.add("hidden");
+    }
+  }
   showBackupState("result");
 }
 
@@ -3556,7 +3586,17 @@ const AR_EN = {
   "إنهاء العملية": "Stop backup", "بدء عملية جديدة": "Start a new backup",
   "سيتم إنهاء النسخ الاحتياطي الحالي. متابعة؟": "The running backup will be stopped. Continue?",
   "إنهاء": "Stop", "جاري إنهاء العملية...": "Stopping...",
-  "تم إنهاء العملية بواسطة المستخدم.": "Backup stopped by the user."
+  "تم إنهاء العملية بواسطة المستخدم.": "Backup stopped by the user.",
+  // Backup destination tabs + local/mega
+  "تحميل مباشر": "Direct download", "قريباً": "Soon",
+  "يضغط كل ملفات السيرفر في أرشيف .zip على تخزين الهوست، ثم يوفّر رابط تحميل مباشر للمتصفح. تُحذف الملفات المؤقتة تلقائياً بعد 24 ساعة.": "Compresses all server files into a .zip on the host, then gives you a direct browser download link. Temp files are auto-deleted after 24 hours.",
+  "إنشاء نسخة للتحميل": "Create downloadable backup",
+  "الرابط يعمل من الأجهزة التي تصل لعنوان الهوست. قد تحتاج فتح المنفذ في لوحة الاستضافة.": "The link works from devices that can reach the host address. You may need to open the port in your hosting panel.",
+  "الرفع إلى Mega.nz (20GB مجاناً) قيد التطوير حالياً وسيتوفّر قريباً في تحديث قادم.": "Upload to Mega.nz (20GB free) is under development and will arrive in a future update.",
+  "قيد التطوير — قريباً": "Under development — coming soon",
+  "قيد التطوير — سيتوفّر قريباً": "Under development — coming soon",
+  "Download Backup (.zip)": "Download Backup (.zip)",
+  "تجهيز رابط التحميل...": "Preparing download link..."
 };
 
 // Build reverse map (EN -> AR) for restoring.

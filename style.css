@@ -1401,6 +1401,17 @@ body.agent-offline .srv-open-btn { opacity: 1; }
 .bk-idle { text-align: center; padding: 24px 8px 8px; }
 .bk-hero-ic { width: 84px; height: 84px; margin: 0 auto 18px; border-radius: 22px; background: var(--surface-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); }
 .bk-hero-ic img { width: 34px; height: 34px; filter: brightness(0) invert(1); }
+.bk-hero-ic.local { background: var(--brand-grad); border: none; }
+.bk-hero-ic.mega { background: linear-gradient(135deg, #d9272e, #ff2d55); border: none; }
+/* Destination tabs */
+.bk-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+.bk-tab { position: relative; display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.bk-tab:hover:not(.disabled) { color: var(--text); border-color: var(--line-strong); }
+.bk-tab.active { border-color: var(--brand); color: var(--text); background: var(--brand-soft); }
+.bk-tab.disabled { opacity: 0.6; cursor: not-allowed; }
+.bk-soon { font-size: 10px; font-weight: 800; background: var(--warn); color: #1a1400; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.3px; }
+.bk-pane { display: none; }
+.bk-pane.active { display: block; animation: fade 0.2s ease; }
 /* Google Drive logo in the panel title */
 .bk-h3 { display: inline-flex; align-items: center; gap: 10px; }
 .gdrive-logo { display: inline-flex; align-items: center; }
