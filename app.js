@@ -2882,7 +2882,7 @@ document.getElementById("file-save").addEventListener("click", () => {
 const GOOGLE_CLIENT_ID = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.googleClientId) || "";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 let backupInit = false;
-let backupProgressRef = null, backupResultRef = null;
+let backupProgressRef = null, backupResultRef = null, backupFilesRef = null;
 
 function ensureBackups() {
   if (backupInit) return;
@@ -2895,6 +2895,12 @@ function ensureBackups() {
   backupResultRef = serverRef.child("backup/result");
   backupResultRef.on("value", (snap) => renderBackupResult(snap.val()), onReadError);
   serverListeners.push(backupResultRef);
+  // Live per-file console (child events so rows appear/update/disappear smoothly).
+  backupFilesRef = serverRef.child("backup/files");
+  backupFilesRef.on("child_added", (s) => upsertBackupFileRow(s.key, s.val()), onReadError);
+  backupFilesRef.on("child_changed", (s) => upsertBackupFileRow(s.key, s.val()), onReadError);
+  backupFilesRef.on("child_removed", (s) => removeBackupFileRow(s.key), onReadError);
+  serverListeners.push(backupFilesRef);
 
   const startBtn = document.getElementById("bk-start-btn");
   if (startBtn) startBtn.addEventListener("click", beginGoogleDriveBackup);
@@ -2992,6 +2998,40 @@ function renderBackupResult(r) {
   document.getElementById("bk-r-size").textContent = r.size != null ? formatBytes(r.size) : "-";
   document.getElementById("bk-r-hash").textContent = r.sha256 || "-";
   showBackupState("result");
+}
+
+// ---- Live per-file console (each archived file gets its own bar) ----
+function upsertBackupFileRow(key, v) {
+  if (!v || !v.name) return;
+  const listEl = document.getElementById("bk-files-list");
+  if (!listEl) return;
+  let row = listEl.querySelector(`[data-fk="${CSS.escape(key)}"]`);
+  if (!row) {
+    row = document.createElement("div");
+    row.className = "bk-file-row";
+    row.dataset.fk = key;
+    row.innerHTML = `
+      <div class="bk-file-top"><span class="bk-file-name"></span><span class="bk-file-pct"></span></div>
+      <div class="bk-file-bar"><div class="bk-file-fill"></div></div>`;
+    listEl.appendChild(row);
+  }
+  const pct = Math.max(0, Math.min(100, v.pct != null ? v.pct : 0));
+  row.querySelector(".bk-file-name").textContent = v.name;
+  row.querySelector(".bk-file-pct").textContent = (v.size ? formatBytes(v.written || 0) + " / " + formatBytes(v.size) : "") + "  " + pct + "%";
+  row.querySelector(".bk-file-fill").style.width = pct + "%";
+  if (v.done) { row.classList.add("done"); setTimeout(() => removeBackupFileRow(key), 500); }
+  updateBackupFilesCount();
+}
+function removeBackupFileRow(key) {
+  const listEl = document.getElementById("bk-files-list");
+  if (!listEl) return;
+  const row = listEl.querySelector(`[data-fk="${CSS.escape(key)}"]`);
+  if (row) { row.classList.add("leaving"); setTimeout(() => { row.remove(); updateBackupFilesCount(); }, 220); }
+}
+function updateBackupFilesCount() {
+  const listEl = document.getElementById("bk-files-list");
+  const countEl = document.getElementById("bk-files-count");
+  if (listEl && countEl) countEl.textContent = listEl.querySelectorAll(".bk-file-row:not(.leaving)").length;
 }
 
 // Power result feedback (attached once globally after listeners).
@@ -3469,7 +3509,8 @@ const AR_EN = {
   "مزامنة الأجزاء إلى Google Drive": "Syncing chunks to Google Drive",
   "اكتمل": "Complete", "اكتمل النسخ الاحتياطي": "Backup Complete",
   "الملف": "File", "الوقت": "Timestamp", "الحجم": "Size",
-  "نسخة أخرى": "Back up again"
+  "نسخة أخرى": "Back up again",
+  "الملفات قيد المعالجة": "Files being processed"
 };
 
 // Build reverse map (EN -> AR) for restoring.

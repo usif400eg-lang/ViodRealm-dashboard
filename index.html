@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=27">
+    <link rel="stylesheet" href="style.css?v=28">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -975,6 +975,16 @@
                         </div>
                         <div class="bk-bar"><div id="bk-bar-fill" class="bk-bar-fill" style="width:0%"></div></div>
                         <p id="bk-message" class="bk-message"></p>
+
+                        <!-- Live per-file console: each file being archived gets its own row
+                             with an independent progress bar; the row clears when it finishes. -->
+                        <div class="bk-files-console" id="bk-files-console">
+                            <div class="bk-files-head">
+                                <span data-i18n="bk_files_head">الملفات قيد المعالجة</span>
+                                <span id="bk-files-count" class="bk-files-count">0</span>
+                            </div>
+                            <div id="bk-files-list" class="bk-files-list"></div>
+                        </div>
                         <ul class="bk-steps" id="bk-steps">
                             <li data-step="archiving"><span class="bk-step-dot"></span><span data-i18n="bk_step_arch">أرشفة جذر السيرفر</span></li>
                             <li data-step="hashing"><span class="bk-step-dot"></span><span data-i18n="bk_step_hash">حساب SHA-256</span></li>
@@ -1448,6 +1458,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=28"></script>
 </body>
 </html>
