@@ -14,7 +14,7 @@ window.FIREBASE_CONFIG = {
   // OAuth Client ID (Web) used for the Google Drive backup account picker.
   // Create it in Google Cloud Console → APIs & Services → Credentials, enable the
   // Google Drive API, and add your dashboard domain to the authorized origins.
-  googleClientId: ""
+  googleClientId: "715980217889-06hfv65k8hs888k9selg4h637c34itjl.apps.googleusercontent.com"
 };
 
 // The server id must match "firebase.server-id" in the plugin's config.yml.
