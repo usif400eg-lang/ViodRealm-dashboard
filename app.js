@@ -2765,14 +2765,16 @@ function renderFiles(data) {
   data.entries.forEach((e) => {
     const row = document.createElement("div");
     row.className = "file-row";
-    const icon = e.dir ? "📁" : (e.editable ? "📝" : "📄");
+    const icon = e.dir
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
     row.innerHTML = `
       <input type="checkbox" class="file-check" title="تحديد">
-      <span class="file-ic">${icon}</span>
+      <span class="file-ic ${e.dir ? "dir" : "file"}">${icon}</span>
       <span class="file-name">${escapeHtml(e.name)}</span>
       <span class="file-size">${e.dir ? "" : formatBytes(e.size)}</span>
+      <span class="file-mtime">${e.mtime ? timeAgo(e.mtime) : ""}</span>
       <span class="file-actions"></span>`;
-    // Checkbox selection (works for both files and folders).
     const cb = row.querySelector(".file-check");
     cb.addEventListener("click", (ev) => ev.stopPropagation());
     cb.addEventListener("change", () => {
@@ -2781,21 +2783,63 @@ function renderFiles(data) {
       updateSelBar();
     });
     const actions = row.querySelector(".file-actions");
+    // Kebab (...) menu holds the row actions, like a real file manager.
+    const menuItems = [];
     if (e.dir) {
       row.querySelector(".file-name").style.cursor = "pointer";
       row.querySelector(".file-name").addEventListener("click", () => filesLoad(e.path));
+      menuItems.push({ label: currentLangIsAr() ? "فتح" : "Open", act: () => filesLoad(e.path) });
     } else {
-      if (e.editable) {
-        const ed = document.createElement("button"); ed.className = "mini-btn rank"; ed.textContent = "تعديل";
-        ed.addEventListener("click", () => openFileEditor(e.path, e.name));
-        actions.appendChild(ed);
-      }
-      const del = document.createElement("button"); del.className = "mini-btn ban"; del.textContent = "حذف";
-      del.addEventListener("click", () => ask({ title: "حذف ملف", msg: "حذف " + e.name + "؟", iconImg: "ic-trash.png", danger: true, okText: "حذف" }).then((r) => { if (r) sendCommand("files_delete", e.path); }));
-      actions.appendChild(del);
+      if (e.editable) menuItems.push({ label: currentLangIsAr() ? "تعديل" : "Edit", act: () => openFileEditor(e.path, e.name) });
     }
+    menuItems.push({
+      label: currentLangIsAr() ? "حذف" : "Delete", danger: true,
+      act: () => ask({ title: "حذف", msg: "حذف " + e.name + "؟", iconImg: "ic-trash.png", danger: true, okText: "حذف" }).then((r) => { if (r) sendCommand("files_delete", e.path); })
+    });
+    actions.appendChild(buildKebab(menuItems));
     list.appendChild(row);
   });
+}
+
+// A "..." kebab button with a popup menu of actions.
+function buildKebab(items) {
+  const wrap = document.createElement("div");
+  wrap.className = "kebab";
+  wrap.innerHTML = '<button class="kebab-btn" title="إجراءات"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>';
+  const menu = document.createElement("div");
+  menu.className = "kebab-menu";
+  items.forEach((it) => {
+    const b = document.createElement("button");
+    b.className = "kebab-item" + (it.danger ? " danger" : "");
+    b.textContent = it.label;
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); wrap.classList.remove("open"); it.act(); });
+    menu.appendChild(b);
+  });
+  wrap.appendChild(menu);
+  wrap.querySelector(".kebab-btn").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    document.querySelectorAll(".kebab.open").forEach((k) => { if (k !== wrap) k.classList.remove("open"); });
+    wrap.classList.toggle("open");
+  });
+  return wrap;
+}
+// Close any open kebab menu on outside click.
+document.addEventListener("click", () => document.querySelectorAll(".kebab.open").forEach((k) => k.classList.remove("open")));
+
+// Relative "x ago" formatting (AR/EN aware).
+function timeAgo(ms) {
+  const ar = currentLangIsAr();
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 60) return ar ? "منذ لحظات" : "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return ar ? `منذ ${m} دقيقة` : `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return ar ? `منذ ${h} ساعة` : `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return ar ? `منذ ${d} يوم` : `${d}d ago`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return ar ? `منذ ${mo} شهر` : `${mo}mo ago`;
+  return ar ? `منذ ${Math.floor(mo / 12)} سنة` : `${Math.floor(mo / 12)}y ago`;
 }
 function formatBytes(b) { if (b < 1024) return b + " B"; if (b < 1048576) return (b/1024).toFixed(1) + " KB"; return (b/1048576).toFixed(1) + " MB"; }
 
