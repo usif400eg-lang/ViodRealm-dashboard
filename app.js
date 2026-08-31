@@ -1528,7 +1528,7 @@ function renderPlugins(plugins) {
       <div class="pc-glow"></div>
       <div class="pc-shine"></div>
       <div class="pc-head">
-        <div class="pc-logo">${escapeHtml(initial)}</div>
+        <div class="pc-logo" data-plugin="${escapeHtml(p.name || "")}">${escapeHtml(initial)}</div>
         <span class="pc-badge ${p.enabled ? "on" : "off"}"><span class="pc-dot"></span>${p.enabled ? "مفعّل" : "معطّل"}</span>
       </div>
       <div class="pc-name">${escapeHtml(p.name)}</div>
@@ -1536,7 +1536,51 @@ function renderPlugins(plugins) {
       ${p.authors ? `<div class="pc-auth">by ${escapeHtml(p.authors)}</div>` : ""}
       ${p.description ? `<div class="pc-desc">${escapeHtml(p.description)}</div>` : ""}`;
     c.appendChild(card);
+    // Try to show the plugin's real icon (from Modrinth); keep the letter as fallback.
+    loadPluginIcon(card.querySelector(".pc-logo"), p.name);
   });
+}
+
+// Resolves a plugin's icon via the public Modrinth API by matching its name,
+// then swaps the letter tile for the image. Results are cached in localStorage
+// (including "no icon" misses) to avoid repeat lookups. Purely cosmetic — any
+// failure silently keeps the letter fallback.
+const pluginIconCache = {};
+function loadPluginIcon(el, name) {
+  if (!el || !name) return;
+  const key = name.toLowerCase().trim();
+  // In-memory + localStorage cache.
+  let cached = pluginIconCache[key];
+  if (cached === undefined) {
+    try { cached = JSON.parse(localStorage.getItem("vp_picon_" + key)); } catch (e) { cached = undefined; }
+  }
+  if (cached !== undefined && cached !== null) {
+    pluginIconCache[key] = cached;
+    if (cached) applyPluginIcon(el, cached);
+    return; // cached hit or known-miss
+  }
+  fetch("https://api.modrinth.com/v2/search?limit=1&query=" + encodeURIComponent(name)
+        + '&facets=[["project_type:plugin","project_type:mod"]]')
+    .then((r) => r.ok ? r.json() : null)
+    .then((data) => {
+      const hit = data && data.hits && data.hits[0];
+      // Only use the icon if the project title reasonably matches the plugin name.
+      const url = (hit && hit.icon_url && namesMatch(hit.title, name)) ? hit.icon_url : "";
+      pluginIconCache[key] = url;
+      try { localStorage.setItem("vp_picon_" + key, JSON.stringify(url)); } catch (e) {}
+      if (url) applyPluginIcon(el, url);
+    })
+    .catch(() => {});
+}
+function applyPluginIcon(el, url) {
+  const img = new Image();
+  img.onload = () => { el.classList.add("has-img"); el.innerHTML = ""; el.style.backgroundImage = `url('${url}')`; };
+  img.src = url;
+}
+function namesMatch(a, b) {
+  const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const x = norm(a), y = norm(b);
+  return x && y && (x.includes(y) || y.includes(x));
 }
 
 document.getElementById("refresh-plugins-btn").addEventListener("click", () => {
