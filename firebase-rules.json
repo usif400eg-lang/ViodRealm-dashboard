@@ -26,6 +26,7 @@
         "chat": { ".write": false },
         "consoleLog": { ".write": false },
         "files": { ".write": false },
+        "backup": { ".write": false },
         "power": { ".write": false },
         "panelConfig": {
           ".write": "auth != null && (auth.token.email.toLowerCase() == 'usif400.eg@gmail.com' || root.child('userServers').child(auth.uid).child($serverId).exists() || root.child('admins').child(auth.uid).exists())"

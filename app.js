@@ -442,6 +442,7 @@ const PAGE_INFO = {
   chat: ["الشات المباشر", "دردشة السيرفر الحية"],
   console: ["الكونسول", "أوامر ومخرجات السيرفر الحية"],
   files: ["الملفات", "تصفّح وتعديل ملفات السيرفر"],
+  backups: ["النسخ الاحتياطي", "نسخ احتياطي إلى Google Drive"],
   control: ["التحكم", "التحكم العام"],
   admins: ["إدارة الأدمن", "منح وسحب صلاحيات اللوحة"],
   firebase: ["Firebase", "قاعدة البيانات والمصادقة"]
@@ -481,6 +482,7 @@ function navigateTo(target) {
   if (target === "chat") ensureChat();
   if (target === "files") ensureFiles();
   if (target === "console") ensureConsole();
+  if (target === "backups") ensureBackups();
   // Keep the URL in sync so refresh/back behave predictably.
   const wanted = SERVER_SCOPED_SECTIONS.has(target)
     ? `#/servers/${ServerContext.serverId}/${target}`
@@ -501,7 +503,7 @@ function showSection(id) {
 //   #/servers/:serverId/:section           -> server-scoped page (explicit only)
 //   #/admins | #/site | #/firebase | #/profile -> global pages
 const SERVER_SCOPED_SECTIONS = new Set([
-  "overview", "server", "console", "files", "plugins", "control",
+  "overview", "server", "console", "files", "backups", "plugins", "control",
   "players", "moderation", "chat", "waypoints", "charts", "activity"
 ]);
 const GLOBAL_SECTIONS = new Set(["servers", "admins", "site", "firebase", "profile"]);
@@ -658,7 +660,7 @@ function deactivateServer() {
     if (charts[k]) { try { charts[k].destroy(); } catch (e) {} delete charts[k]; }
   });
   chatInit = false; firebaseConsoleInit = false; modrinthLoadedOnce = false;
-  consoleInit = false; filesInit = false;
+  consoleInit = false; filesInit = false; backupInit = false;
   ACTIVE_SERVER = null;
   serverRef = null;
   ServerContext.reset();
@@ -2873,6 +2875,125 @@ document.getElementById("file-save").addEventListener("click", () => {
   setTimeout(() => fileModal.classList.add("hidden"), 800);
 });
 
+// ---- Google Drive Backup ----
+// Flow: user clicks the button -> Google OAuth (drive.file scope, account picker)
+// -> we hand the access token to the plugin via a command -> the plugin archives,
+// hashes and resumable-uploads to Drive, streaming progress back through Firebase.
+const GOOGLE_CLIENT_ID = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.googleClientId) || "";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+let backupInit = false;
+let backupProgressRef = null, backupResultRef = null;
+
+function ensureBackups() {
+  if (backupInit) return;
+  if (!serverRef || !ServerContext.serverId) return;
+  backupInit = true;
+  // Live progress + result listeners (registered so deactivateServer detaches them).
+  backupProgressRef = serverRef.child("backup/progress");
+  backupProgressRef.on("value", (snap) => renderBackupProgress(snap.val()), onReadError);
+  serverListeners.push(backupProgressRef);
+  backupResultRef = serverRef.child("backup/result");
+  backupResultRef.on("value", (snap) => renderBackupResult(snap.val()), onReadError);
+  serverListeners.push(backupResultRef);
+
+  const startBtn = document.getElementById("bk-start-btn");
+  if (startBtn) startBtn.addEventListener("click", beginGoogleDriveBackup);
+  const againBtn = document.getElementById("bk-again-btn");
+  if (againBtn) againBtn.addEventListener("click", () => {
+    document.getElementById("bk-result").classList.add("hidden");
+    document.getElementById("bk-idle").classList.remove("hidden");
+  });
+}
+
+// Requests a Drive access token via Google Identity Services (account picker),
+// then dispatches the backup command to the plugin.
+function beginGoogleDriveBackup() {
+  if (!GOOGLE_CLIENT_ID) {
+    showToast(currentLangIsAr()
+      ? "لم يتم ضبط Google Client ID. أضِف googleClientId في firebase-config.js."
+      : "Google Client ID is not configured. Add googleClientId to firebase-config.js.", "error");
+    return;
+  }
+  if (typeof google === "undefined" || !google.accounts || !google.accounts.oauth2) {
+    showToast(currentLangIsAr() ? "مكتبة Google لم تُحمّل بعد. حاول مجدداً." : "Google library not loaded yet. Try again.", "error");
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    prompt: "consent",             // always show the account picker/consent
+    callback: (resp) => {
+      if (resp && resp.access_token) {
+        // Hand the token to the plugin; it performs the chunked, verified upload.
+        sendCommand("backup_gdrive", resp.access_token);
+        showBackupState("progress");
+        renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
+      } else {
+        showToast(currentLangIsAr() ? "تعذّر الحصول على إذن Google Drive." : "Could not obtain Google Drive authorization.", "error");
+      }
+    },
+    error_callback: () => showToast(currentLangIsAr() ? "أُلغيت مصادقة Google." : "Google authorization cancelled.", "error")
+  });
+  client.requestAccessToken();
+}
+
+function showBackupState(state) {
+  document.getElementById("bk-idle").classList.toggle("hidden", state !== "idle");
+  document.getElementById("bk-progress").classList.toggle("hidden", state !== "progress");
+  document.getElementById("bk-result").classList.toggle("hidden", state !== "result");
+}
+
+function renderBackupProgress(p) {
+  if (!p || typeof p.percent !== "number") return;
+  // Ignore a stale progress node from a previous backup once a fresh result shows.
+  showBackupState(p.phase === "complete" ? "progress" : "progress");
+  const pct = Math.max(0, Math.min(100, p.percent));
+  const fill = document.getElementById("bk-bar-fill");
+  if (fill) fill.style.width = pct + "%";
+  const pe = document.getElementById("bk-percent"); if (pe) pe.textContent = pct + "%";
+  const ph = document.getElementById("bk-phase"); if (ph) ph.textContent = backupPhaseLabel(p.phase);
+  const msg = document.getElementById("bk-message"); if (msg) msg.textContent = p.message || "";
+  // Mark step states.
+  const order = ["archiving", "hashing", "uploading", "complete"];
+  const cur = order.indexOf(p.phase);
+  document.querySelectorAll("#bk-steps li").forEach((li) => {
+    const idx = order.indexOf(li.dataset.step);
+    li.classList.toggle("done", cur >= 0 && idx < cur);
+    li.classList.toggle("active", idx === cur);
+  });
+  if (p.phase === "error") {
+    const msgEl = document.getElementById("bk-message");
+    if (msgEl) msgEl.classList.add("bk-err");
+  } else {
+    const msgEl = document.getElementById("bk-message");
+    if (msgEl) msgEl.classList.remove("bk-err");
+  }
+}
+
+function backupPhaseLabel(phase) {
+  const ar = currentLangIsAr();
+  const m = {
+    starting: ar ? "جارٍ البدء" : "Starting",
+    archiving: ar ? "الأرشفة" : "Archiving",
+    hashing: ar ? "التحقق SHA-256" : "Hashing SHA-256",
+    uploading: ar ? "الرفع إلى Drive" : "Uploading to Drive",
+    complete: ar ? "اكتمل" : "Complete",
+    error: ar ? "خطأ" : "Error"
+  };
+  return m[phase] || phase || "";
+}
+
+function renderBackupResult(r) {
+  if (!r || !r.fileName) return;
+  // Only show the result if it's fresh (avoids showing an old backup on open).
+  if (r.t && Date.now() - r.t > 10 * 60 * 1000) return;
+  document.getElementById("bk-r-file").textContent = r.fileName;
+  document.getElementById("bk-r-time").textContent = r.t ? new Date(r.t).toLocaleString(currentLangIsAr() ? "ar-EG" : "en-US") : "-";
+  document.getElementById("bk-r-size").textContent = r.size != null ? formatBytes(r.size) : "-";
+  document.getElementById("bk-r-hash").textContent = r.sha256 || "-";
+  showBackupState("result");
+}
+
 // Power result feedback (attached once globally after listeners).
 function attachPowerResult() {
   if (!serverRef || !ServerContext.serverId) return;
@@ -3337,7 +3458,18 @@ const AR_EN = {
   "نظرة عامة": "Overview", "البدء": "Getting started", "دليل المستخدم": "User guide", "استكشاف الأخطاء": "Troubleshooting",
   "الحساب": "Account", "الشروط": "Terms", "الخصوصية": "Privacy",
   // File manager multi-select
-  "تحديد الكل": "Select all", "حذف المحدد": "Delete selected"
+  "تحديد الكل": "Select all", "حذف المحدد": "Delete selected",
+  // Google Drive backup
+  "النسخ الاحتياطي إلى Google Drive": "Google Drive Backup",
+  "نسخة كاملة لجذر السيرفر، مُتحقَّقة بـ SHA-256، تُرفع بأجزاء قابلة للاستئناف.": "A full server-root backup, SHA-256 verified, uploaded in resumable chunks.",
+  "يؤرشف كل ملف تحت جذر السيرفر (العوالم، البلجنات، الإعدادات، السجلات)، يحسب SHA-256 للتحقق، ثم يرفعه إلى حسابك على Google Drive بأجزاء تصمد أمام انقطاع الاتصال.": "Archives every file under the server root (worlds, plugins, configs, logs), computes a SHA-256 for verification, then uploads to your Google Drive in chunks that survive dropped connections.",
+  "سيُطلب منك اختيار حساب Google والموافقة على الرفع لمجلد VoxelPanel فقط.": "You'll be asked to pick a Google account and authorize upload to the VoxelPanel folder only.",
+  "أرشفة جذر السيرفر": "Archiving server root",
+  "حساب SHA-256": "Hashing SHA-256",
+  "مزامنة الأجزاء إلى Google Drive": "Syncing chunks to Google Drive",
+  "اكتمل": "Complete", "اكتمل النسخ الاحتياطي": "Backup Complete",
+  "الملف": "File", "الوقت": "Timestamp", "الحجم": "Size",
+  "نسخة أخرى": "Back up again"
 };
 
 // Build reverse map (EN -> AR) for restoring.

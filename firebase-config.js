@@ -10,7 +10,11 @@ window.FIREBASE_CONFIG = {
   storageBucket: "viodrealms-tpu.firebasestorage.app",
   messagingSenderId: "554046426397",
   appId: "1:554046426397:web:64ae95e98f0cd4349b25f4",
-  measurementId: "G-GP2N6PXRTL"
+  measurementId: "G-GP2N6PXRTL",
+  // OAuth Client ID (Web) used for the Google Drive backup account picker.
+  // Create it in Google Cloud Console → APIs & Services → Credentials, enable the
+  // Google Drive API, and add your dashboard domain to the authorized origins.
+  googleClientId: ""
 };
 
 // The server id must match "firebase.server-id" in the plugin's config.yml.

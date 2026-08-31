@@ -1394,6 +1394,45 @@ body.agent-offline .srv-open-btn { opacity: 1; }
     .lp-hero { padding: 54px 0 40px; }
 }
 
+/* ============================================================
+   Google Drive Backup page
+   ============================================================ */
+.bk-panel { max-width: 760px; margin: 0 auto; }
+.bk-idle { text-align: center; padding: 24px 8px 8px; }
+.bk-hero-ic { width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 20px; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow); }
+.bk-hero-ic img { width: 34px; height: 34px; filter: brightness(0) invert(1); }
+.bk-desc { color: var(--text-2); font-size: 14.5px; line-height: 1.7; max-width: 560px; margin: 0 auto 22px; }
+.bk-start { display: inline-flex; align-items: center; gap: 9px; padding: 14px 26px; font-size: 15px; }
+.bk-note { color: var(--text-3); font-size: 12.5px; margin-top: 14px; }
+
+.bk-progress { padding: 12px 4px; }
+.bk-prog-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.bk-phase { font-weight: 800; font-size: 15px; }
+.bk-percent { font-weight: 900; font-size: 22px; color: var(--brand-3); font-variant-numeric: tabular-nums; }
+.bk-bar { height: 12px; background: var(--surface-3); border-radius: 20px; overflow: hidden; border: 1px solid var(--line); }
+.bk-bar-fill { height: 100%; background: var(--brand-grad); border-radius: 20px; transition: width 0.4s cubic-bezier(0.22,1,0.36,1); position: relative; }
+.bk-bar-fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); background-size: 200% 100%; animation: bkShine 1.6s linear infinite; }
+@keyframes bkShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.bk-message { color: var(--text-2); font-size: 13.5px; margin-top: 12px; min-height: 20px; }
+.bk-message.bk-err { color: var(--bad); }
+.bk-steps { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 20px 0 4px; padding: 0; }
+.bk-steps li { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 14px; transition: color 0.2s; }
+.bk-step-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--surface-3); border: 2px solid var(--line-strong); flex-shrink: 0; transition: background 0.2s, border-color 0.2s; }
+.bk-steps li.active { color: var(--text); font-weight: 700; }
+.bk-steps li.active .bk-step-dot { border-color: var(--brand); background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); animation: pulse 1.4s ease-in-out infinite; }
+.bk-steps li.done { color: var(--ok); }
+.bk-steps li.done .bk-step-dot { border-color: var(--ok); background: var(--ok); }
+
+.bk-result { text-align: center; padding: 20px 8px 8px; }
+.bk-result-ic { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: flex; align-items: center; justify-content: center; }
+.bk-result-ic svg { width: 32px; height: 32px; }
+.bk-result h4 { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+.bk-result-rows { display: flex; flex-direction: column; gap: 10px; text-align: start; max-width: 560px; margin: 0 auto; }
+.bk-result-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 15px; }
+.bk-result-row > span { color: var(--text-3); font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.bk-result-row code { font-family: "Consolas", monospace; font-size: 12.5px; color: var(--text); word-break: break-all; text-align: end; }
+.bk-hash { color: var(--brand-3) !important; }
+
 /* Toast */
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); padding: 14px 24px; border-radius: var(--r); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 300; animation: toastIn 0.3s ease; }
 .toast.success { border-color: var(--ok); }
