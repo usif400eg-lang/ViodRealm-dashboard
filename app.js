@@ -2936,6 +2936,37 @@ function ensureBackups() {
   // Start a fresh run after a finished/cancelled/failed attempt.
   const restartBtn = document.getElementById("bk-restart-btn");
   if (restartBtn) restartBtn.addEventListener("click", () => { resetBackupUi(); beginGoogleDriveBackup(); });
+
+  // Smart Backup Mode toggle: persists to the plugin via backup_smart.
+  const smartToggle = document.getElementById("bk-smart-toggle");
+  if (smartToggle) smartToggle.addEventListener("change", () => {
+    // Destination follows the currently selected tab (gdrive/local); mega excluded.
+    const activeTab = document.querySelector("#bk-tabs .bk-tab.active");
+    let dest = activeTab ? activeTab.dataset.dest : "local";
+    if (dest === "mega") dest = "local";
+    const name = (document.getElementById("bk-name").value || "").trim();
+    if (smartToggle.checked && dest === "gdrive") {
+      // Smart + Google Drive needs a token now (tokens are short-lived; we obtain one).
+      requestDriveToken((tok) => {
+        if (!tok) { smartToggle.checked = false; return; }
+        sendCommand("backup_smart", "on|gdrive|" + tok + "|" + name);
+        showToast(currentLangIsAr() ? "تم تفعيل النسخ التلقائي (Google Drive)" : "Smart backup enabled (Google Drive)", "success");
+      });
+    } else {
+      sendCommand("backup_smart", (smartToggle.checked ? "on" : "off") + "|" + dest + "||" + name);
+      showToast(smartToggle.checked
+        ? (currentLangIsAr() ? "تم تفعيل النسخ التلقائي" : "Smart backup enabled")
+        : (currentLangIsAr() ? "تم إيقاف النسخ التلقائي" : "Smart backup disabled"), "success");
+    }
+  });
+  // Reflect the persisted smart state.
+  const smartRef = serverRef.child("backup/smart");
+  smartRef.on("value", (snap) => {
+    const s = snap.val() || {};
+    const t = document.getElementById("bk-smart-toggle");
+    if (t) t.checked = s.enabled === true;
+  }, () => {});
+  serverListeners.push(smartRef);
 }
 
 // Returns the page to its idle state and clears the per-file console.
@@ -2956,34 +2987,36 @@ function resetBackupUi() {
 
 // Requests a Drive access token via Google Identity Services (account picker),
 // then dispatches the backup command to the plugin.
-function beginGoogleDriveBackup() {
+function requestDriveToken(cb) {
   if (!GOOGLE_CLIENT_ID) {
     showToast(currentLangIsAr()
       ? "لم يتم ضبط Google Client ID. أضِف googleClientId في firebase-config.js."
       : "Google Client ID is not configured. Add googleClientId to firebase-config.js.", "error");
-    return;
+    cb(null); return;
   }
   if (typeof google === "undefined" || !google.accounts || !google.accounts.oauth2) {
     showToast(currentLangIsAr() ? "مكتبة Google لم تُحمّل بعد. حاول مجدداً." : "Google library not loaded yet. Try again.", "error");
-    return;
+    cb(null); return;
   }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: DRIVE_SCOPE,
-    prompt: "consent",             // always show the account picker/consent
-    callback: (resp) => {
-      if (resp && resp.access_token) {
-        // Hand the token to the plugin; it performs the chunked, verified upload.
-        sendCommand("backup_gdrive", resp.access_token);
-        showBackupState("progress");
-        renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
-      } else {
-        showToast(currentLangIsAr() ? "تعذّر الحصول على إذن Google Drive." : "Could not obtain Google Drive authorization.", "error");
-      }
-    },
-    error_callback: () => showToast(currentLangIsAr() ? "أُلغيت مصادقة Google." : "Google authorization cancelled.", "error")
+    prompt: "consent",
+    callback: (resp) => cb(resp && resp.access_token ? resp.access_token : null),
+    error_callback: () => { showToast(currentLangIsAr() ? "أُلغيت مصادقة Google." : "Google authorization cancelled.", "error"); cb(null); }
   });
   client.requestAccessToken();
+}
+
+function beginGoogleDriveBackup() {
+  const name = (document.getElementById("bk-name") && document.getElementById("bk-name").value || "").trim();
+  requestDriveToken((tok) => {
+    if (!tok) { showToast(currentLangIsAr() ? "تعذّر الحصول على إذن Google Drive." : "Could not obtain Google Drive authorization.", "error"); return; }
+    // value = "<token>|<customName>"
+    sendCommand("backup_gdrive", tok + "|" + name);
+    showBackupState("progress");
+    renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
+  });
 }
 
 function showBackupState(state) {
@@ -2995,7 +3028,8 @@ function showBackupState(state) {
 // Direct local backup: no OAuth — the plugin archives and serves the file over
 // its built-in download server, then the result card shows a download link.
 function beginLocalBackup() {
-  sendCommand("backup_local", "1");
+  const name = (document.getElementById("bk-name") && document.getElementById("bk-name").value || "").trim();
+  sendCommand("backup_local", name || "1");
   showBackupState("progress");
   renderBackupProgress({ percent: 1, phase: "starting", message: currentLangIsAr() ? "بدء النسخ الاحتياطي..." : "Starting backup..." });
 }
@@ -3012,7 +3046,7 @@ function renderBackupProgress(p) {
   const ph = document.getElementById("bk-phase"); if (ph) ph.textContent = backupPhaseLabel(p.phase);
   const msg = document.getElementById("bk-message"); if (msg) msg.textContent = p.message || "";
   // Mark step states.
-  const order = ["archiving", "hashing", "uploading", "complete"];
+  const order = ["scanning", "archiving", "hashing", "uploading", "complete"];
   const cur = order.indexOf(p.phase);
   document.querySelectorAll("#bk-steps li").forEach((li) => {
     const idx = order.indexOf(li.dataset.step);
@@ -3043,6 +3077,7 @@ function backupPhaseLabel(phase) {
     hashing: ar ? "التحقق SHA-256" : "Hashing SHA-256",
     uploading: ar ? "الرفع إلى Drive" : "Uploading to Drive",
     complete: ar ? "اكتمل" : "Complete",
+    scanning: ar ? "فحص الملفات" : "Scanning files",
     linking: ar ? "تجهيز الرابط" : "Preparing link",
     cancelling: ar ? "جاري الإنهاء" : "Stopping",
     cancelled: ar ? "تم الإنهاء" : "Stopped",
@@ -3596,7 +3631,15 @@ const AR_EN = {
   "قيد التطوير — قريباً": "Under development — coming soon",
   "قيد التطوير — سيتوفّر قريباً": "Under development — coming soon",
   "Download Backup (.zip)": "Download Backup (.zip)",
-  "تجهيز رابط التحميل...": "Preparing download link..."
+  "تجهيز رابط التحميل...": "Preparing download link...",
+  // Custom name + Smart mode + scan step
+  "اسم ملف النسخة (اختياري)": "Backup file name (optional)",
+  "Smart Backup Mode": "Smart Backup Mode",
+  "عند تفعيله، يحفظ نسخة تلقائياً عند تغيّر الملفات ويرسلها للوجهة المحددة.": "When on, it auto-saves a backup whenever files change and sends it to the chosen destination.",
+  "فحص الملفات": "Scan files", "ضغط الملفات في أرشيف واحد": "Compress into one archive",
+  "تنزيل/رفع النسخة": "Download / upload backup",
+  "تم تفعيل النسخ التلقائي": "Smart backup enabled", "تم إيقاف النسخ التلقائي": "Smart backup disabled",
+  "تم تفعيل النسخ التلقائي (Google Drive)": "Smart backup enabled (Google Drive)"
 };
 
 // Build reverse map (EN -> AR) for restoring.

@@ -1412,6 +1412,21 @@ body.agent-offline .srv-open-btn { opacity: 1; }
 .bk-soon { font-size: 10px; font-weight: 800; background: var(--warn); color: #1a1400; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.3px; }
 .bk-pane { display: none; }
 .bk-pane.active { display: block; animation: fade 0.2s ease; }
+/* Shared options: custom name + Smart Backup Mode */
+.bk-options { max-width: 520px; margin: 6px auto 4px; display: flex; flex-direction: column; gap: 14px; }
+.bk-options .edit-field label { font-size: 13px; color: var(--text-2); font-weight: 700; }
+.bk-smart { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; text-align: start; }
+.bk-smart-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--text); }
+.bk-smart-title svg { color: var(--brand); }
+.bk-smart-sub { color: var(--text-3); font-size: 12.5px; line-height: 1.5; margin-top: 4px; }
+/* iOS-style switch */
+.bk-switch { position: relative; display: inline-block; width: 48px; height: 27px; flex-shrink: 0; }
+.bk-switch input { opacity: 0; width: 0; height: 0; }
+.bk-switch-slider { position: absolute; inset: 0; cursor: pointer; background: var(--surface-3); border: 1px solid var(--line-strong); border-radius: 30px; transition: background 0.18s; }
+.bk-switch-slider::before { content: ""; position: absolute; height: 19px; width: 19px; inset-inline-start: 3px; top: 3px; background: var(--text-3); border-radius: 50%; transition: transform 0.18s, background 0.18s; }
+.bk-switch input:checked + .bk-switch-slider { background: var(--brand-grad); border-color: transparent; }
+.bk-switch input:checked + .bk-switch-slider::before { transform: translateX(21px); background: #fff; }
+html[dir="rtl"] .bk-switch input:checked + .bk-switch-slider::before { transform: translateX(-21px); }
 /* Google Drive logo in the panel title */
 .bk-h3 { display: inline-flex; align-items: center; gap: 10px; }
 .gdrive-logo { display: inline-flex; align-items: center; }
