@@ -436,7 +436,7 @@ const PAGE_INFO = {
   waypoints: ["النقاط", "إدارة نقاط اللاعبين"],
   plugins: ["البلجنات", "البلجنات المثبّتة وتثبيت جديد"],
   moderation: ["الحظر والقوائم", "الحظر، القائمة البيضاء والسوداء"],
-  server: ["تحكم السيرفر", "الوقت، الطقس، الحفظ، console"],
+  server: ["الأوامر", "منشئ أوامر تفاعلي"],
   charts: ["الإحصائيات", "رسوم بيانية حية"],
   activity: ["سجل الأحداث", "من فعل ماذا ومتى"],
   chat: ["الشات المباشر", "دردشة السيرفر الحية"],
@@ -483,6 +483,7 @@ function navigateTo(target) {
   if (target === "files") ensureFiles();
   if (target === "console") ensureConsole();
   if (target === "backups") ensureBackups();
+  if (target === "server") renderCommandCards();
   // Keep the URL in sync so refresh/back behave predictably.
   const wanted = SERVER_SCOPED_SECTIONS.has(target)
     ? `#/servers/${ServerContext.serverId}/${target}`
@@ -709,6 +710,12 @@ function watchActiveServerPresence() {
     if (banner) banner.classList.toggle("hidden", online);
     // Offline servers stay fully open; only agent-dependent actions are disabled.
     document.body.classList.toggle("agent-offline", !online);
+    // Freeze the uptime counter the moment the server goes offline.
+    if (!online) {
+      uptimeBaseMs = null;
+      const up = document.getElementById("ov-uptime");
+      if (up) up.textContent = "--:--:--";
+    }
     updateActiveServerName();
   }, () => {});
 }
@@ -814,8 +821,15 @@ function attachServerListeners() {
     if (s.lastSync) document.getElementById("last-sync").textContent = "آخر تحديث: " + new Date(s.lastSync).toLocaleTimeString("ar-EG");
     setText("ov-tps", s.tps != null ? s.tps : "-");
     // Anchor the uptime to local time so it can tick live (h:m:s.cs) between syncs.
-    if (s.uptimeMs != null) { uptimeBaseMs = s.uptimeMs; uptimeAnchor = Date.now(); }
-    setText("ov-uptime", s.uptimeMs != null ? formatUptime(s.uptimeMs) : "-");
+    // Only tick while the server is actually online; freeze/reset when offline.
+    const srvOnline = (ServerContext.serverData && ServerContext.serverData.online === true);
+    if (srvOnline && s.uptimeMs != null) {
+      uptimeBaseMs = s.uptimeMs; uptimeAnchor = Date.now();
+      setText("ov-uptime", formatUptime(s.uptimeMs));
+    } else {
+      uptimeBaseMs = null;  // stop the live ticker
+      setText("ov-uptime", "--:--:--");
+    }
     setText("ov-capacity", (s.onlinePlayers != null && s.maxPlayers != null) ? (s.onlinePlayers + " / " + s.maxPlayers) : "-");
     setText("ov-entities", s.totalEntities != null ? s.totalEntities : "-");
     setText("ov-chunks", s.loadedChunks != null ? s.loadedChunks : "-");
@@ -1395,16 +1409,136 @@ document.getElementById("broadcast-btn").addEventListener("click", () => {
 document.getElementById("system-on-btn").addEventListener("click", () => { sendCommand("toggle_system", "true"); showToast("تفعيل النظام", "success"); });
 document.getElementById("system-off-btn").addEventListener("click", () => { sendCommand("toggle_system", "false"); showToast("تعطيل النظام", "success"); });
 
-// ---- Server control ----
-document.querySelectorAll(".time-btn").forEach((b) => b.addEventListener("click", () => { sendCommand("time", b.dataset.time); showToast("تم تغيير الوقت", "success"); }));
-document.querySelectorAll(".weather-btn").forEach((b) => b.addEventListener("click", () => { sendCommand("weather", b.dataset.weather); showToast("تم تغيير الطقس", "success"); }));
-document.getElementById("save-all-btn").addEventListener("click", () => { sendCommand("save_all", ""); showToast("تم إرسال حفظ العالم", "success"); });
-document.getElementById("console-btn").addEventListener("click", () => {
-  const i = document.getElementById("console-input"); const cmd = i.value.trim();
-  if (!cmd) return;
-  ask({ title: "تنفيذ أمر Console", msg: "سيُنفّذ على السيرفر مباشرة:\n" + cmd, iconImg: "ic-console.png", danger: true, okText: "تنفيذ" })
-    .then((r) => { if (r) { sendCommand("console", cmd); i.value = ""; showToast("تم إرسال الأمر", "success"); } });
+// ---- Commands Builder (interactive command cards) ----
+// Each definition renders a card; clicking it opens a modal with live-rendered
+// command output and an "Execute on Server" button. Commands route through the
+// existing realtime command channel (sendCommand -> servers/{id}/commands).
+const CMD_CATEGORIES = [
+  { cat: "الأغراض", cards: [
+    { id: "give", title: "إعطاء غرض", desc: "أعطِ لاعباً غرضاً بكمية محددة.", icon: "ic-system.png",
+      fields: [
+        { key: "player", type: "text", label: "اللاعب", ph: "Steve" },
+        { key: "item", type: "text", label: "معرّف الغرض", ph: "diamond" },
+        { key: "amount", type: "number", label: "الكمية", def: "1" }
+      ], render: (v) => `/give ${v.player||"{player}"} ${v.item||"{item}"} ${v.amount||1}` }
+  ]},
+  { cat: "الإشراف", cards: [
+    { id: "kick", title: "طرد لاعب", desc: "اطرد لاعباً من السيرفر مع سبب.", icon: "moderation.png",
+      fields: [
+        { key: "player", type: "text", label: "اللاعب", ph: "Steve" },
+        { key: "reason", type: "text", label: "السبب", def: "Kicked" }
+      ], render: (v) => `/kick ${v.player||"{player}"} ${v.reason||"Kicked"}` },
+    { id: "wl", title: "إضافة للقائمة البيضاء", desc: "أضف لاعباً إلى الـ whitelist.", icon: "moderation.png",
+      fields: [ { key: "player", type: "text", label: "اللاعب", ph: "Steve" } ],
+      render: (v) => `/whitelist add ${v.player||"{player}"}` }
+  ]},
+  { cat: "اللاعبون", cards: [
+    { id: "gm", title: "تغيير وضع اللعب", desc: "غيّر gamemode للاعب.", icon: "players.png",
+      fields: [
+        { key: "mode", type: "select", label: "الوضع", opts: ["survival","creative","adventure","spectator"] },
+        { key: "player", type: "text", label: "اللاعب", ph: "Steve" }
+      ], render: (v) => `/gamemode ${v.mode||"survival"} ${v.player||"{player}"}` },
+    { id: "tp", title: "نقل لإحداثيات", desc: "انقل لاعباً إلى X Y Z.", icon: "players.png",
+      fields: [
+        { key: "player", type: "text", label: "اللاعب", ph: "Steve" },
+        { key: "x", type: "number", label: "X", def: "0" },
+        { key: "y", type: "number", label: "Y", def: "64" },
+        { key: "z", type: "number", label: "Z", def: "0" }
+      ], render: (v) => `/tp ${v.player||"{player}"} ${v.x||0} ${v.y||0} ${v.z||0}` }
+  ]},
+  { cat: "السيرفر", cards: [
+    { id: "saveall", title: "حفظ كل العوالم", desc: "احفظ كل بيانات العالم فوراً.", icon: "ic-save.png",
+      fields: [], render: () => `/save-all` }
+  ]},
+  { cat: "العالم", cards: [
+    { id: "diff", title: "ضبط الصعوبة", desc: "غيّر مستوى صعوبة العالم.", icon: "ic-system.png",
+      fields: [ { key: "value", type: "select", label: "الصعوبة", opts: ["peaceful","easy","normal","hard"] } ],
+      render: (v) => `/difficulty ${v.value||"normal"}` },
+    { id: "time", title: "ضبط الوقت", desc: "غيّر وقت اليوم في كل العوالم.", icon: "ic-time.png",
+      fields: [ { key: "value", type: "select", label: "الوقت", opts: ["day","night","noon","midnight"] } ],
+      render: (v) => `/time set ${v.value||"day"}` },
+    { id: "weather", title: "ضبط الطقس", desc: "غيّر الطقس في كل العوالم.", icon: "ic-weather.png",
+      fields: [ { key: "value", type: "select", label: "الطقس", opts: ["clear","rain","thunder"] } ],
+      render: (v) => `/weather ${v.value||"clear"}` }
+  ]}
+];
+
+function renderCommandCards() {
+  const host = document.getElementById("cmd-cats");
+  if (!host || host.childElementCount) return; // build once
+  CMD_CATEGORIES.forEach((group) => {
+    const sec = document.createElement("div");
+    sec.className = "cmd-cat";
+    sec.innerHTML = `<div class="cmd-cat-label">${escapeHtml(group.cat)}</div><div class="cmd-grid"></div>`;
+    const grid = sec.querySelector(".cmd-grid");
+    group.cards.forEach((def) => {
+      const card = document.createElement("div");
+      card.className = "cmd-card";
+      card.innerHTML = `
+        <div class="cmd-card-ic"><img src="image/${def.icon}" alt=""></div>
+        <div class="cmd-card-body">
+          <div class="cmd-card-title">${escapeHtml(def.title)}</div>
+          <div class="cmd-card-desc">${escapeHtml(def.desc)}</div>
+        </div>
+        <button class="btn-ghost cmd-open">فتح</button>`;
+      card.querySelector(".cmd-open").addEventListener("click", () => openCommandModal(def));
+      grid.appendChild(card);
+    });
+    host.appendChild(sec);
+  });
+}
+
+const cmdModal = document.getElementById("cmd-modal");
+let cmdActiveDef = null;
+function openCommandModal(def) {
+  cmdActiveDef = def;
+  document.getElementById("cmd-modal-title").textContent = def.title;
+  document.getElementById("cmd-modal-desc").textContent = def.desc;
+  document.getElementById("cmd-modal-hint").textContent = "";
+  const wrap = document.getElementById("cmd-modal-fields");
+  wrap.innerHTML = "";
+  def.fields.forEach((f) => {
+    const field = document.createElement("div");
+    field.className = "edit-field";
+    let control;
+    if (f.type === "select") {
+      control = `<select data-k="${f.key}" class="perf-select" dir="ltr">${f.opts.map((o) => `<option value="${o}">${o}</option>`).join("")}</select>`;
+    } else {
+      control = `<input type="${f.type}" data-k="${f.key}" placeholder="${escapeHtml(f.ph||"")}" value="${escapeHtml(f.def||"")}" dir="ltr">`;
+    }
+    field.innerHTML = `<label>${escapeHtml(f.label)}</label>${control}`;
+    wrap.appendChild(field);
+  });
+  // Live re-render as the user types/selects.
+  wrap.querySelectorAll("input,select").forEach((el) => {
+    el.addEventListener("input", renderCommandLive);
+    el.addEventListener("change", renderCommandLive);
+  });
+  renderCommandLive();
+  cmdModal.classList.remove("hidden");
+}
+function collectCmdValues() {
+  const v = {};
+  document.querySelectorAll("#cmd-modal-fields [data-k]").forEach((el) => { v[el.dataset.k] = (el.value || "").trim(); });
+  return v;
+}
+function renderCommandLive() {
+  if (!cmdActiveDef) return;
+  const cmd = cmdActiveDef.render(collectCmdValues());
+  document.getElementById("cmd-render-out").textContent = cmd;
+}
+document.getElementById("cmd-cancel-btn").addEventListener("click", () => cmdModal.classList.add("hidden"));
+cmdModal.addEventListener("click", (e) => { if (e.target === cmdModal) cmdModal.classList.add("hidden"); });
+document.getElementById("cmd-exec-btn").addEventListener("click", () => {
+  if (!cmdActiveDef) return;
+  const cmd = cmdActiveDef.render(collectCmdValues());
+  // strip the leading slash: the console handler runs a raw console command.
+  sendCommand("console", cmd.replace(/^\//, ""));
+  cmdModal.classList.add("hidden");
+  showToast((currentLangIsAr() ? "تم تنفيذ الأمر: " : "Command executed: ") + cmd, "success");
 });
+
+// ---- Server power (kept from the old server page) ----
 
 // ---- Activity log ----
 function renderActivity(activity) {
@@ -3745,7 +3879,23 @@ const AR_EN = {
   "نسخة Google Drive السحابية": "Google Drive Cloud Backup",
   "نسخة احتياطية للتحميل المباشر": "Direct Local Download Backup",
   "نسخة Mega.nz (قريباً)": "Mega.nz Backup (Coming Soon)",
-  "Google Drive Cloud Backup": "Google Drive Cloud Backup"
+  "Google Drive Cloud Backup": "Google Drive Cloud Backup",
+  // Commands builder
+  "الأوامر": "Commands", "منشئ أوامر تفاعلي": "Interactive command builder",
+  "الأغراض": "Items", "الإشراف": "Moderation", "اللاعبون": "Players", "السيرفر": "Server", "العالم": "World",
+  "إعطاء غرض": "Give Item", "أعطِ لاعباً غرضاً بكمية محددة.": "Give a player an item with a set amount.",
+  "معرّف الغرض": "Item ID", "الكمية": "Amount",
+  "طرد لاعب": "Kick Player", "اطرد لاعباً من السيرفر مع سبب.": "Kick a player with a reason.", "السبب": "Reason",
+  "إضافة للقائمة البيضاء": "Whitelist Add", "أضف لاعباً إلى الـ whitelist.": "Add a player to the whitelist.",
+  "تغيير وضع اللعب": "Set Gamemode", "غيّر gamemode للاعب.": "Change a player's gamemode.", "الوضع": "Mode",
+  "نقل لإحداثيات": "Teleport to Coordinates", "انقل لاعباً إلى X Y Z.": "Teleport a player to X Y Z.",
+  "حفظ كل العوالم": "Save All Worlds", "احفظ كل بيانات العالم فوراً.": "Save all world data immediately.",
+  "ضبط الصعوبة": "Set Difficulty", "غيّر مستوى صعوبة العالم.": "Change the world difficulty.", "الصعوبة": "Difficulty",
+  "ضبط الوقت": "Set Time", "غيّر وقت اليوم في كل العوالم.": "Change the time of day in all worlds.",
+  "ضبط الطقس": "Set Weather", "غيّر الطقس في كل العوالم.": "Change the weather in all worlds.",
+  "اللاعب": "Player", "الوقت": "Time", "الطقس": "Weather", "فتح": "Open",
+  "الأمر الناتج": "Rendered Command", "تنفيذ على السيرفر": "Execute on Server",
+  "تم تنفيذ الأمر: ": "Command executed: "
 };
 
 // Build reverse map (EN -> AR) for restoring.

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=36">
+    <link rel="stylesheet" href="style.css?v=37">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -327,7 +327,7 @@
                     <img class="nav-icon-img" src="image/overview.png" alt="" onerror="this.style.display='none'"><span class="nav-text">نظرة عامة</span>
                 </a>
                 <a href="#" class="nav-item server-scoped" data-target="server">
-                    <img class="nav-icon-img" src="image/ic-system.png" alt="" onerror="this.style.display='none'"><span class="nav-text">تحكم السيرفر</span>
+                    <img class="nav-icon-img" src="image/ic-console.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الأوامر</span>
                 </a>
                 <a href="#" class="nav-item server-scoped" data-target="console">
                     <img class="nav-icon-img" src="image/ic-console.png" alt="" onerror="this.style.display='none'"><span class="nav-text">الكونسول</span>
@@ -875,40 +875,29 @@
                         </div>
                         <p id="power-hint" class="admin-add-hint"></p>
                     </div>
-                    <div class="panel ctrl-panel" style="--wm:url('image/ic-time.png')">
-                        <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-time.png" alt=""></span><h3>الوقت</h3></div>
-                        <p class="panel-desc">تغيير وقت اليوم في كل العوالم.</p>
-                        <div class="btn-row">
-                            <button class="ctrl-btn time-btn" data-time="day"><img class="cb-icon" src="image/ic-day.png" alt=""> نهار</button>
-                            <button class="ctrl-btn time-btn" data-time="noon"><img class="cb-icon" src="image/ic-noon.png" alt=""> ظهر</button>
-                            <button class="ctrl-btn time-btn" data-time="night"><img class="cb-icon" src="image/ic-night.png" alt=""> ليل</button>
-                            <button class="ctrl-btn time-btn" data-time="midnight"><img class="cb-icon" src="image/ic-midnight.png" alt=""> منتصف الليل</button>
-                        </div>
+                </div>
+
+                <!-- Interactive Commands Builder (cards populated by app.js) -->
+                <div class="cmd-cats" id="cmd-cats"></div>
+            </section>
+
+            <!-- Command builder modal -->
+            <div id="cmd-modal" class="modal hidden">
+                <div class="modal-box">
+                    <div class="ask-head"><span class="ask-icon"><img src="image/ic-console.png" alt=""></span><h3 id="cmd-modal-title">أمر</h3></div>
+                    <p id="cmd-modal-desc" class="panel-desc"></p>
+                    <div id="cmd-modal-fields"></div>
+                    <div class="cmd-render">
+                        <span class="cmd-render-label" data-i18n="cmd_rendered">الأمر الناتج</span>
+                        <code id="cmd-render-out" dir="ltr">/</code>
                     </div>
-                    <div class="panel ctrl-panel" style="--wm:url('image/ic-weather.png')">
-                        <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-weather.png" alt=""></span><h3>الطقس</h3></div>
-                        <p class="panel-desc">تغيير الطقس في كل العوالم.</p>
-                        <div class="btn-row">
-                            <button class="ctrl-btn ok weather-btn" data-weather="clear"><img class="cb-icon" src="image/ic-clear.png" alt=""> صحو</button>
-                            <button class="ctrl-btn weather-btn" data-weather="rain"><img class="cb-icon" src="image/ic-rain.png" alt=""> مطر</button>
-                            <button class="ctrl-btn bad weather-btn" data-weather="thunder"><img class="cb-icon" src="image/ic-thunder.png" alt=""> عاصفة</button>
-                        </div>
-                    </div>
-                    <div class="panel ctrl-panel" style="--wm:url('image/ic-save.png')">
-                        <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-save.png" alt=""></span><h3>حفظ العالم</h3></div>
-                        <p class="panel-desc">حفظ كل بيانات العالم فوراً (save-all).</p>
-                        <button id="save-all-btn" class="ctrl-btn wide"><img class="cb-icon" src="image/ic-save.png" alt=""> حفظ الآن</button>
-                    </div>
-                    <div class="panel ctrl-panel" style="--wm:url('image/ic-console.png')">
-                        <div class="ctrl-head"><span class="ctrl-icon"><img src="image/ic-console.png" alt=""></span><h3>أمر Console مخصّص</h3></div>
-                        <p class="panel-desc">نفّذ أمراً مباشرة على console السيرفر. استخدمه بحذر.</p>
-                        <div class="control-row">
-                            <input type="text" id="console-input" placeholder="مثال: give Player diamond 1">
-                            <button id="console-btn" class="btn-danger">تنفيذ</button>
-                        </div>
+                    <p id="cmd-modal-hint" class="admin-add-hint"></p>
+                    <div class="ask-actions">
+                        <button id="cmd-exec-btn" class="btn-primary full" data-i18n="cmd_exec">تنفيذ على السيرفر</button>
+                        <button id="cmd-cancel-btn" class="btn-ghost full" data-i18n="cancel">إلغاء</button>
                     </div>
                 </div>
-            </section>
+            </div>
 
             <!-- Console -->
             <section id="section-console" class="section">
@@ -1542,6 +1531,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="app.js?v=36"></script>
+    <script src="app.js?v=37"></script>
 </body>
 </html>
